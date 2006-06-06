@@ -1,0 +1,272 @@
+body {
+  font-family: ariel, sans-serif;
+}
+
+
+a {
+        text-decoration: none;
+}
+A.listentry:link {
+color: white;
+font : bold 10pt arial;
+}
+
+A.listentry:active {
+color: lightgray;
+font : bold 10pt arial;
+}
+
+A.listentry:visited {
+color: white;
+font : bold 10pt arial;
+}
+
+A.listentry:hover {
+color: yellow;
+font : bold 10pt arial;
+}
+
+
+.h1 {
+	background-color: #ffffcc;
+	border: 1px solid gray;
+  color: black;
+  font-size: 20px;
+  padding: 3px 2px 5px 6px;
+}
+td.section {
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #666666;
+  color: #bbbbbb;
+  padding: 2px;
+  padding-top: 5px;
+  margin: 0px;
+}
+td.group {
+  background-color: #336633;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffffcc;
+  padding-bottom: 2px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 5px;
+  }
+td.pager {
+  background-color: #333366;
+  font-size: 12px;
+  color: #ffffcc;
+  padding-bottom: 2px;
+  /*padding-right: 6px;*/
+  }
+.tiny{
+  font-size: 2px;
+}
+.review {
+  border-collapse: collapse;
+}
+.review1 {
+  background-color: #cccc99;
+  font-size: 12px;
+  color: black;
+  border: 1px solid gray;
+}
+.review2 {
+  background-color: #cccc66;
+  font-size: 12px;
+  color: black;
+  border: 1px solid gray;
+}
+.reviewblank {
+  background-color: #cccccc;
+  font-size: 12px;
+  color: black;
+  border: 1px solid gray;
+  }
+.reviewbad {
+  background-color: #cc9999;
+  font-size: 12px;
+  color: black;
+  border: 1px solid gray;
+  }
+.reviewgood {
+  background-color: #99cc99;
+  font-size: 12px;
+  color: black;
+  border: 1px solid gray;
+}
+.reviewcomment {
+  background-color: #cccc99;
+  font-size: 10px;
+  color: gray;
+  border: 1px solid gray;
+}
+.statuscomment {
+  font-size: 12px;
+  color: black;
+  padding: 2px;
+}
+.status {
+  background-color: #cccc99;
+  font-size: 16px;
+  color: black;
+  padding: 2px;
+  border: 1px solid gray;
+}
+.message {
+  background-color: #cccc99;
+  font-size: 12px;
+  color: black;
+  padding: 2px;
+}
+.comment {
+  color: #333333;
+  font-style: italic;
+  font-size: 12px;
+}
+.pagetitle {
+  background-color: #cccc99;
+  font-size: 24px;
+  font-weight: bold;
+  color: black;
+  border: 1px solid gray;
+  text-align: center;
+}
+.linked {
+  font-size: 12px;
+  color: blue;
+  text-decoration: underline;
+}
+.linkedselected {
+  font-size: 12px;
+  color: black;
+}
+.small {
+  font-size: 12px;
+}
+.hilite {
+  color: black;
+  background-color: yellow;
+  border: 1px solid gray;
+  text-align: center;
+  font-weight: bold;
+}
+.button {
+  color: black;
+  font-size: 12px;
+  background-color: #cccccc;
+  border: 2px outset gray;
+  text-align: center;
+}
+.menuselectedbottom {
+  font-size: 1px;
+  padding-top: 0px;
+  /*background-color: #ffffcc;*/
+  border-left: 3px ridge black;
+  border-right: 3px ridge black;
+  }
+.menubottom {
+  border-bottom: 3px ridge black;
+  /*background-color: #ffffcc;*/
+  font-size: 1px;
+  padding-top: 0px;
+}
+.menuselectedtop {
+  font-size: 1px;
+  /*background-color: #ffffcc;*/
+  border-top: 3px ridge black;
+  border-left: 3px ridge black;
+  border-right: 3px ridge black;
+  }
+.menuselected {
+  /*background-color: #ffffcc;*/
+  border-left: 3px ridge black;
+  border-right: 3px ridge black;
+  font-size: 16px;
+  font-weight: bold;
+  color: black;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.menu {
+  background-color: #666633;
+  font-size: 14px;
+  font-weight: bold;
+  font-color: white;
+  padding-bottom: 2px;
+  padding-left: 6px;
+  padding-right: 6px;
+  border-left: 1px solid white;
+  border-right: 1px solid white;
+}
+.menulabel {
+  background-color: #666633;
+  font-size: 14px;
+  color: white;
+  padding-left: 2px;
+  padding-right: 2px;
+  font-style: italic;
+}
+.messagetitle {
+  background-color: #666633;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+}
+table.message {
+  padding: 0px;
+  }
+input.message {
+  font-size: 14px;
+  border: 1px ridge white;
+}
+
+
+
+
+/*  ### for login */
+
+html.login,body.login, table#pagelayout {
+  height: 100%;
+  width: 100%;
+  }
+body.login {
+  margin: 0px; /* Used here for IE & Mozilla */
+  padding: 0px; /* Used here for Opera */
+  font-family: ariel, sans-serif, fixed;
+  background-color: #cccc99;
+  }
+table#login {
+  margin: auto; 
+  background-color: #336699; 
+  color: white; 
+  text-align: center; 
+  vertical-align: middle;
+  padding: 3px;
+  border: 3px outset #ffffcc;
+  }
+td.login {
+  /*padding: 0px; /* Accomplishes table cellpadding=0 */
+  vertical-align: middle;
+  }
+.logintitle { 
+  background-color: black;
+  border: 1px groove black; 
+  color: white; 
+  text-align: 
+  center; 
+  padding: 3px; 
+  font-size: 14pt; 
+  font-weight: bold ;
+}
+.loginlable {
+  background-color: #cccc99;
+  font-family: ariel;
+  border: 1px outset black;
+  position: right;
+}
+.footer {
+  font-size: 10pt;
+  color: #666699;
+}
