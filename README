@@ -1,0 +1,151 @@
+Black Flower CAD v1.3 - 2005/04/17
+
+OVERVIEW
+
+  Description:
+  ------------
+  Black Flower CAD is an open source Computer Aided Dispatch / Computer 
+  Aided Logging software package.  
+  
+  Contact Information:
+  --------------------
+  The current version of this software can be downloaded from:
+    http://www.forlorn.net/cad/
+  
+  For bug reports, questions, etc, send email to:
+    cad-info@forlorn.net
+  
+INSTALLATION
+  
+  Server Requirements:
+  --------------------
+  * MySQL database server v4.0+
+  * PHP version 4, with MySQL integration.
+  * Apache webserver running in Prefork mode, with PHP integration.
+  
+  * The recommended (best tested) platform for the server is Debian Linux, 
+    however Fedora Core and Microsoft Windows server platforms have also been 
+    tested successfully.
+  
+  
+  Client Requirements:
+  --------------------
+  * Mozilla v1.5+ or Firefox v1.0+ web browser
+  * Client system time synchronized with CAD server system time
+  
+  * The recommended (best tested) platform for the clients is Microsoft 
+    Windows XP, however Linux clients have also been tested successfully.
+  
+  The system _may_ function adequately with older revisions of Netscape based
+  browsers.  The current version _will_NOT_ operate correctly with Microsoft 
+  Internet Explorer.  Other browsers are untested.
+  
+  
+  Installation Quick Guide
+  ------------------------
+  1) Install the MySQL database server on the target server.
+     *** Linux instructions coming later; refer to MySQL documentation ***
+     *** Windows instructions coming later; refer to MySQL documentation ***
+     Currently, a MySQL installation with NO permission/password 
+     configurations *is required*.  Upcoming changes to the initialization 
+     script will alter this requirement.  Or, if you have a fair level of
+     MySQL command line administration skills, read the installation script
+     and initialize the system manually using the MySQL root account.
+  
+  2) Install Apache and PHP on the target server.
+     *** Linux instructions coming later; refer to Apache/PHP docs ***
+     *** Windows instructions coming later; refer to Apache/PHP docs ***
+  
+  3) Unpack the CAD distribution archive in the desired Web directory.
+  
+  4) Configure the CAD system.
+     If bash and perl are available on your Linux or UNIX server, change 
+     to the CAD directory and execute the "initialize.sh" script.  
+     This will create and load the default SQL tables and otherwise 
+     prepare the system for running.  You will be prompted to enter
+     certain usernames and passwords.  Or, if you have a fair level of
+     MySQL command line administration skills, read the installation script
+     and initialize the system manually using the MySQL root account.
+  
+     *** Manual/Windows documentation to be added ***  
+  
+  5) Configure your Apache installation to serve the CAD application.
+
+  6) Synchronize the server and all clients to the same time.  
+     See NTP discussion below.
+  
+  
+  To use the CAD system:
+  ----------------------
+  On the server, start or restart Apache and MySQL as needed.
+  On the client, load your web browser and go to the CAD URL, e.g.:
+
+    http://servername.domainname.com/path-to-CAD-application/
+
+  *or* (if you have configured your system for HTTPS:)
+
+    https://secureservername.domainname.com/path-to-CAD-application/
+  
+  Log in with the CAD administrator username and password created 
+  during step 4 above.  The default username is 'Administrator' 
+  and the default password is 'admin' (case sensitive.)
+  
+  Click on the "Settings" tab, then "Edit Users" in the Administration 
+  dialog, and create the required usernames and passwords for CAD users.
+
+  An access level less than 10 should be used for normal users.  
+  Access levels of 10 or greater create a system administrator account.  
+
+  Day to day use of CAD should be done through normal, rather than
+  system administrator, accounts.
+  
+  
+  Best Common Practices
+  ---------------------
+  1)  NTP
+  
+  Time synchronization is required for coordination of timestamps 
+  generated on the server with those generated on the clients.  
+  This can be done by running a standalone (stratum 1) NTP server 
+  if on a completely isolated network, or by connecting all systems 
+  to the Internet NTP network.  In the Internet case it is 
+  recommended to run a caching NTP server on the CAD server, and 
+  synchronize all clients to that.  A popular freeware Windows NTP 
+  client is available from http://www.oneguycoding.com/automachron/.
+  
+  2)  Syslog
+  
+  CAD will use the native system logging functionality on UNIX or 
+  Windows systems.  On UNIX systems, CAD uses the local4 logging level.  
+  On Windows, messages are logged to the Application section of the 
+  Event Viewer.  Edit session.inc to alter these defaults.
+  
+  3)  Network security
+  
+  Any network running CAD or other such systems should be kept 
+  isolated from insecure network traffic such as the Internet.  
+  Any consumer grade or better hardware firewall is sufficient for 
+  purposes of CAD network security.  
+  
+  In an extremely small or field-deployable CAD installation, it is 
+  possible to install the server on a system which will also be one
+  of the clients of the installation.  If that is the only system 
+  expected to use CAD, a software firewall on that host is sufficient 
+  if configured correctly.  Software firewalls are generally 
+  recommended for any Microsoft Windows client or server systems 
+  which will be exposed to insecure network traffic.  
+  
+  Ports required to be open on CAD server for client communication:
+  
+    80 (http)   - Normal operation: HTTP on a secure network.
+  *or*
+   443 (https)  - If using secure HTTPS on an insecure network
+  
+  Other ports that may be used in a full network environment:
+  
+    53 (domain) - If using the CAD server as a DNS server.
+    67 (bootps) - If using the CAD server as a DHCP server.
+   123 (ntp)    - If using the CAD server as an NTP server.
+  
+  
+  

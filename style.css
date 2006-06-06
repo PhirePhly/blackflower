@@ -1,0 +1,16 @@
+li { font-size: 10pt; text-align: justify }
+.h1   { font-family: tahoma, sans; font-size: 16pt; padding-left: 0.3cm; padding-right: 0.3cm }
+.text 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
+.textj 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm; text-align: justify }
+.time 	{ background-color: #cccccc; color: black; font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
+.message 	{ font-family: tahoma, sans; background-color: #cccccc; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
+.notice 	{ font-family: tahoma, sans; background-color: blue; color: white; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
+.gray 	{ font-family: tahoma, sans; color: gray; background-color: #cccccc; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
+td.incident-header 	{ font-size: 12pt; background-color: darkblue; font-family: sans-serif; color: white; padding-left: 0.2cm; padding-right: 0.2cm}
+td.ihsmall { font-size: 10pt; background-color: darkgray; font-family: tahoma, sans; padding-left: 0.2cm; padding-right: 0.2cm}
+td.label 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
+td.block 	{ font-family: tahoma, sans; font-size: 10pt; background-color: #cccccc; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify }
+td.smalltext    { font-family: tahoma, sans; font-size: 8pt; background-color: #cccccc }
+td.menuselect   { font-family: tahoma, sans }
+td.menu         { font-family: tahoma, sans; background-color: #cccccc }
+td.th           { font-family: tahoma, sans; font-weight: bold; background-color: #cccccc; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
