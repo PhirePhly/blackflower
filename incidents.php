@@ -30,7 +30,10 @@ function resizeMe()
   <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA=screen>
 </HEAD>
 <BODY vlink=blue link=blue alink=cyan onload="displayClockStart()" onunload="displayClockStop()" onresize="resizeMe()">
-<?php include('include-title.php') ?>
+<?php
+  include('include-title.php');
+  include('include-footer.php');
+?>
 
 <p>
 <table width=98%>
@@ -44,5 +47,6 @@ function resizeMe()
 <iframe name="incidents" src="incidents-frame.php" 
         width=<?php print htmlentities($_COOKIE['width']) - 30 ?> 
         height=<?php print htmlentities($_COOKIE['height']) - 175 ?> 
-        marginheight=0 marginwidth=0 frameborder=0> </iframe> <?php include('include-footer.php') ?></BODY>
+        marginheight=0 marginwidth=0 frameborder=0> </iframe> 
+</BODY>
 </HTML>

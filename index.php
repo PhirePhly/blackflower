@@ -27,12 +27,13 @@
   <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA="screen, print">
 </head>
 <body vlink=blue link=blue alink=cyan>
-<?php include('include-title.php') ?>
+<?php 
+  include('include-title.php');
+  include('include-footer.php');
+?>
   
 <iframe name="menu" src="index.php?frame=1" 
         width=<?php print htmlentities($_COOKIE['width']) - 30 ?> 
         height=<?php print htmlentities($_COOKIE['height']) - 125 ?> 
-        marginheight=0 marginwidth=0 frameborder=0> </iframe> <?php include('include-footer.php') ?>
-
+        marginheight=0 marginwidth=0 frameborder=0> </iframe> 
 </body>
-

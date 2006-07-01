@@ -40,7 +40,7 @@
 <!--
 function popup(url,name)
 {
-	var newwindow=window.open(url,name,'height=500,width=700');
+	var newwindow=window.open(url,name,'height=500,width=700,scrollbars');
 	if (window.focus) {newwindow.focus()}
 	return false;
 }
@@ -51,6 +51,7 @@ function popup(url,name)
 </HEAD>
 <BODY vlink=blue link=blue alink=cyan onload="displayClockStart()" onunload="displayClockStop()">
 <?php include('include-title.php') ?>
+<?php include('include-footer.php') ?>
 <p>
 <form name="myform" action="cad-units.php" method="post">
 <table width=98%>
@@ -146,7 +147,6 @@ function popup(url,name)
 ?>
 
 
-<?php include('include-footer.php') ?>
 </body>
 </html>
 

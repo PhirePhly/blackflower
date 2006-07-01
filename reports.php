@@ -11,7 +11,10 @@
   <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA="screen, print">
 </head>
 <body vlink=blue link=blue alink=cyan>
-<?php include('include-title.php');?>
+<?php 
+  include('include-title.php');
+  include('include-footer.php'); 
+?>
 
 
   <?php
@@ -164,4 +167,3 @@
 </body>
 </html>
 
-<?php include('include-footer.php'); ?>

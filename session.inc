@@ -89,6 +89,7 @@ function setFocus(str) {
         $_SESSION['access_level'] = $answer->access_level;
         $_SESSION['access_acl'] = $answer->access_acl;
         $_SESSION['timeout'] = $answer->timeout;
+        # TODO: add preference parsing
         session_write_close();
         syslog(LOG_INFO, "User logged in [".$answer->username . "/". $_SERVER['REMOTE_ADDR']."]");
         header("Location: index.php");
