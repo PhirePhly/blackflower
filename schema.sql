@@ -37,14 +37,17 @@ CREATE TABLE archive_master (
 	);
 
 CREATE TABLE users (
-  id            int not null auto_increment,
-  username      varchar(20) not null,
-  password      varchar(64) not null,
-  name          varchar(40),
-  access_level  int not null default 1,
-  access_acl    varchar(20),
-  timeout       int not null default 300,
-  PRIMARY KEY (id)
+  id            INTEGER NOT NULL AUTO_INCREMENT,
+  username      VARCHAR(20) NOT NULL,
+  password      VARCHAR(64) NOT NULL,
+  name          VARCHAR(40),
+  access_level  INTEGER NOT NULL DEFAULT 1,
+  access_acl    VARCHAR(20),
+  timeout       INTEGER NOT NULL DEFAULT 300,
+  preferences   TEXT,
+
+  PRIMARY KEY (id),
+  INDEX (username)
 );
 /* data tables */
 

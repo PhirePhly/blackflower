@@ -23,14 +23,16 @@
     // points exist for the form submission.  Valid buttons that could bring us here include:
     // 
     // save_incident
-    // note_submit
+    // save_incident_close
+    // note_submit -- deprecated due to bug 37, remove at later date
     // unit_submit
     // add_unit
     // arrived_unit_*
     // release_unit_*
     //
-    // If we determine we got here via save_incident, we want to close the window afterwards.  otherwise save and continue editing.
-    $reload_not_close=0;
+    // If we determine we got here via save_incident_close, we want to close the window afterwards.  otherwise save and continue editing.
+    // Default to remain open
+    $reload_not_close=1;
 
     $incident_id = MysqlClean($_POST, "incident_id", 20);
 
@@ -176,21 +178,19 @@
       }
     }
 
-    // In ADDITION to updating the header fields, if the note submit button was activated, also try to save a new note:
-    if (isset($_POST["note_message"]) || isset($_POST["note_submit"])) {
-      if (isset($_POST["note_message"]) && $_POST["note_message"] <> "") {
-        $unit = MysqlClean($_POST,"note_unit",20);
-        $message = MysqlClean($_POST,"note_message",255);
+    // In ADDITION to updating the header fields, if text was entered in the Note
+    // field, add that note:
+    // (bug 37 removed note_submit unnecessary logic)
+    if (isset($_POST["note_message"]) && $_POST["note_message"] <> "") {
+      $unit = MysqlClean($_POST,"note_unit",20);
+      $message = MysqlClean($_POST,"note_message",255);
 
-        if (isset($_SESSION['username']) && $_SESSION['username'] != '')
-          $creator = $_SESSION['username'];
-        else 
-          $creator = "";
+      if (isset($_SESSION['username']) && $_SESSION['username'] != '')
+        $creator = $_SESSION['username'];
+      else 
+        $creator = "";
 
-        $query = "INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES ($incident_id, NOW(), '$unit', '$message', '$creator')";
-        mysql_query($query) or die ("Couldn't insert incident note: ".mysql_error());
-      }
-      $reload_not_close=1;
+      MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES ($incident_id, NOW(), '$unit', '$message', '$creator')");
     }
 
     // Try on any of the optional ways the form could have been submitted:
@@ -240,7 +240,6 @@
         $query = "UNLOCK TABLES";
         mysql_query($query) or die ("In query: $query<br>\nError: ".mysql_error());
       }
-      $reload_not_close=1;
     }
     
     // If it was a unit arrival submit button, note that:
@@ -254,7 +253,6 @@
       $query = "UNLOCK TABLES";
       mysql_query($query) or die ("In query: $query<br>\nError: ".mysql_error());
 
-      $reload_not_close=1;
     }
 
     // If it was a unit release submit button, note that:
@@ -279,20 +277,21 @@
 
       $query = "UNLOCK TABLES";
       mysql_query($query) or die ("In query: $query<br>\nError: ".mysql_error());
-
-      $reload_not_close=1;
     }
 
-    // If one of the sub-submit functions was not used, consider it a main submit, and go away.
-    // TODO: This is NOT the cleanest way to do this. Need to explicitly Close Window.
-    if (isset($_POST["save_incident"])) {
-      print "<SCRIPT LANGUAGE=\"JavaScript\"> window.opener.location.reload(); self.close()</SCRIPT>";
-    }
-    elseif (isset($reload_not_close) && $reload_not_close) {
+    // If the save_incident_closewin button was explicitly activated, set 
+    // the "force close" by clearing the default reload flag.  This is the
+    // only way that the window will be closed; otherwise, reload it.
+
+    if (isset($_POST["save_incident_closewin"])) 
+      $reload_not_close=0;
+    
+    if (isset($reload_not_close) && $reload_not_close) {
       header("Location: edit-incident.php?incident_id=$incident_id");
     }
-    else
+    else {
       print "<SCRIPT LANGUAGE=\"JavaScript\"> window.opener.location.reload(); self.close()</SCRIPT>";
+    }
   }
 
   elseif (isset($_GET["incident_id"])) {
@@ -371,72 +370,32 @@
     }
 
 
-    function stampCompletedTime()
-    {
-      if (document.myform.disposition.value != "") {
-        document.myform.ts_complete.value = stampFulltime();
-        document.myform.dts_complete.value = stampTimestamp();
-	<?php if (!$row->completed) {
-	echo " document.myform.release_query.disabled = 0;\n";
-	echo " document.myform.release_query.checked = 1;\n";
-	echo " document.myform.release_query.value = 1;\n";
-	}
-	?>
-      }
-    }
-
     function handleDisposition()
     {
-      document.myform.dts_complete.disabled = false;
-	    stampCompletedTime();
-    }
-
-    function unitDispatched()
-    {
-      //document.myform.dts_dispatch.disabled = true;
-      document.myform.dts_arrival.disabled = false;
-      document.myform.ts_dispatch.value = stampFulltime();
-      document.myform.dts_dispatch.value = stampTimestamp();
-      document.myform.ts_arrival.value = "";
-      document.myform.dts_arrival.value = "";
-    }
-
-    function stampDispatchedTime()
-    {
-      // TODO: Why is this state checking flaky, and why doesn't unitDispatched() automatically fill this time in??
-      if (document.myform.ts_dispatch.value == "") {
-        document.myform.ts_dispatch.value = stampFulltime();
-        document.myform.dts_dispatch.value = stampTimestamp();
-      }
-    }
-
-    function stampArrivedTime()
-    {
-      if (document.myform.ts_dispatch.value != "") {
-        document.myform.ts_arrival.value = stampFulltime();
-        document.myform.dts_arrival.value = stampTimestamp();
-      }
-    }
-
-    function addUnit()
-    {
-      if (document.myform.add_unit != "") {
-        var objTable=document.getElementById("unit_table");
-        try {
-          var newNode = objTable.children(objTable.children.length-1).cloneNode(true);
-          with (newNode.children(0).children(0).children(0)) outerHTML=outerHTML.replace(/unit_([0-9]{1,3})/i,function (p1,p2){return "unit_"+(p2*1+1)})
-          objTable.appendChild(newNode);
+      //document.myform.dts_complete.disabled = false;
+      // do we really need this?
+      if (document.myform.disposition.value != "") {
+        // if the completed timestamps do not already have values, fill them in now
+        // just in case maybe we're changing the disposition type after completion of the incident
+        if (document.myform.ts_complete.value == "0000-00-00 00:00:00" && document.myform.dts_complete.value == "") {
+          document.myform.ts_complete.value = stampFulltime();
+          document.myform.dts_complete.value = stampTimestamp();
         }
-        catch(e) {
-          var str = document.myform.add_unit[document.myform.add_unit.selectedIndex].value + '<input type="hidden" name="new_unit_name" value="'+document.myform.add_unit.value+'"><input type="hidden" name="new_unit_dispatch_time" value="'+stampFulltime()+'">';
-          var tbody = objTable.getElementsByTagName("TBODY")[0];
-          var row = document.createElement("TR");
-          var td1 = document.createElement("TD");
-          td1.innerHTML=str;
-          td1.setAttribute("class", "text");
-          /*td1.setAttribute("id", "unit_table_unit_*/
-          row.appendChild(td1);
-          tbody.appendChild(row);
+        // if the release_query checkbox is present, enable it and populate default values
+        if (document.myform.release_query != null) {
+          document.myform.release_query.disabled = 0;
+          document.myform.release_query.checked = 1;
+          document.myform.release_query.value = 1;
+        }
+      }
+      else {
+        document.myform.ts_complete.value = "0000-00-00 00:00:00";
+        document.myform.dts_complete.value = "";
+        // if the release_query checkbox is present, disable it and reset values
+        if (document.myform.release_query != null) {
+          document.myform.release_query.disabled = 1;
+          document.myform.release_query.checked = 0;
+          document.myform.release_query.value = 0;
         }
       }
     }
@@ -476,11 +435,13 @@
 
 <tr>
     <td align=right class="label">Details
-      <input type="hidden" name="incident_id" value="<?php print $incident_id?>"> </td>
-      <input type="hidden" name="updated" value="<?php print $row->updated?>"> </td>
+      <input type="hidden" name="incident_id" value="<?php print $incident_id?>"> 
+      <input type="hidden" name="updated" value="<?php print $row->updated?>"> 
+    </td>
 
     <td align=left class="text"><input type="text" tabindex="1" size="50" maxlength="80" name="call_details" 
         value="<?php print $row->call_details ?>">
+    </td>
 
     <td width="30" align=right class="label">Call&nbsp;Type</td>
     <td width="50" align=left class="text">
@@ -504,6 +465,7 @@
     <td align=left class="text">
        <input type="hidden" name="ts_opened" value="<?php print $row->ts_opened ?>">
        <input type="text" class="time" size=6 readonly disabled style="color: black" name="dts_opened" value="<?php print date("H:i:s", strtotime($row->ts_opened)) ?>">
+    </td>
 </tr>
 
 <!-- ****************************************** -->
@@ -511,13 +473,15 @@
     <td align=right class="label">Location</td>
     <td align=left colspan=3 class="text"><input tabindex="2" type="text" size="50" maxlength="80" name="location" 
         value="<?php print $row->location  ?>">
+    </td>
 
     <td width="100" align=right class="label">Dispatched</td>
     <td align=left class="text">
        <input type="hidden" name="ts_dispatch" value="<?php print $row->ts_dispatch  ?>">
        <input type="text" class="time" size=6 readonly disabled style="color: black" 
-               onclick="stampDispatchedTime()" name="dts_dispatch" 
+               name="dts_dispatch" 
                value="<?php if ($row->ts_dispatch) print dls_hmstime($row->ts_dispatch) ?>">
+    </td>
 </tr>
 
 <!-- ****************************************** -->
@@ -525,6 +489,7 @@
     <td align=right class="label">Reporting&nbsp;Party</td>
     <td align=left class="text"><input type="text" tabindex="3" size="50" maxlength="80" name="reporting_pty" 
         value="<?php print $row->reporting_pty  ?>">
+    </td>
 
     <td class="label"></td><td align=left class="label"><!--a href="">Other Units...</a--></td>
 
@@ -532,8 +497,9 @@
     <td align=left class="text">
        <input type="hidden" name="ts_arrival" value="<?php print $row->ts_arrival  ?>">
        <input type="text" class="time" size=6 readonly disabled style="color: black" 
-               tabindex="96" onkeypress="stampArrivedTime()" onclick="stampArrivedTime()" name="dts_arrival" 
+               tabindex="96" name="dts_arrival" 
                value="<?php if ($row->ts_arrival) print dls_hmstime($row->ts_arrival) ?>">
+    </td>
 </tr>
 
 <!-- ****************************************** -->
@@ -541,6 +507,7 @@
     <td align=right class="label">Contact&nbsp;At</td>
     <td align=left class="text"><input type="text" tabindex="4" size="50" maxlength="80" name="contact_at" 
         value="<?php print $row->contact_at  ?>">
+    </td>
 
     <td align=right class="label">Disposition</td>
     <td align=left class="text"><select name="disposition" onchange="handleDisposition()" tabindex="98">
@@ -558,13 +525,15 @@
    }
    mysql_free_result($dispresult);
 ?>
+    </td>
 
     <td width="100" align=right class="label">Completed</td>
     <td align=left class="text">
        <input type="hidden" name="ts_complete" value="<?php print $row->ts_complete  ?>">
        <input type="text" class="time" size=6 readonly <?php if (!$row->disposition || !strcmp($row->disposition, "")) print "disabled"?> 
-              tabindex="99" onkeypress="stampCompletedTime()" onclick="stampCompletedTime()" name="dts_complete" 
+              tabindex="99" name="dts_complete" 
               value="<?php if ($row->ts_complete) print dls_hmstime($row->ts_complete) ?>">
+    </td>
 </tr>
 
 <!-- ****************************************** -->
@@ -575,6 +544,9 @@
      print "<td class=\"label\" colspan=3 valign=top> <p name=\"release_label\">Release Assigned Units On Incident Completion";
      print "<input type=\"checkbox\" disabled tabindex=\"100\" name=\"release_query\" value=\"0\"></td>\n";
    }
+   else {
+     print "<td>&nbsp;</td>\n";
+   }
    ?>
 </tr>
 
@@ -583,11 +555,12 @@
 <tr>
    <td class="label" colspan="6" align="middle">
    <input type="submit" tabindex="50" name="save_incident" value="Save">
+   <input type="submit" tabindex="51" name="save_incident_closewin" value="Save & Return">
 <?php 
   if (!$row->visible && !$row->completed)
-    echo "<input type=\"submit\" name=\"incident_abort\" tabindex=\"51\" value=\"Abort Incident\">\n";
+    echo "<input type=\"submit\" name=\"incident_abort\" tabindex=\"52\" value=\"Abort Incident\">\n";
   else
-    echo "<input type=\"submit\" name=\"cancel_changes\" tabindex=\"51\" value=\"Cancel\">\n";
+    echo "<input type=\"submit\" name=\"cancel_changes\" tabindex=\"52\" value=\"Cancel\">\n";
 ?>
 </td>
 </tr>
@@ -609,43 +582,66 @@
     <!-- AT THIS POINT, INSERT FRAME OF INCIDENT NOTES -->
 
     <tr>
-       <td class="label" align=left><b>Incident Notes</b></td>
+       <td colspan=2 class="label" align=left><b>Incident Notes </b></td>
     </tr>
 
     <tr><td></td></tr>
     <tr><td></td></tr>
 
-    <tr><td class="label">Add note:
+    <tr><td class="label">From:</td>
+        <td>
           <select name="note_unit" tabindex="61"> 
 <?php
-    $query="SELECT unit FROM units ORDER BY unit ASC";
+    $query="SELECT unit FROM units";
     $formresult = mysql_query($query) or die("In query: $query  <br>\nError: " . mysql_error());
 
-    echo "<option selected value=\"\"></option>\n";
-    while ($line = mysql_fetch_array($formresult, MYSQL_ASSOC)) {
-       echo "<option value=\"". $line["unit"] ."\">". $line["unit"] ."</option>\n";
+    # TODO: we do a very similar query below - instead, select * here, and dynamically
+    # fill a second array if it meets the conditionals for the second query.
+    $unitnames = array();
+    $unitarray = array();
+    while ($unitrow = mysql_fetch_array($formresult, MYSQL_ASSOC)) {
+      array_push($unitnames, $unitrow["unit"]);
+      $unitarray[$unitrow["unit"]] = $unitrow;
     }
+    natsort($unitnames);
+
+    echo "<option selected value=\"\"></option>\n";
+    foreach ($unitnames as $u_name) {
+      $unitrow = $unitarray[$u_name];
+      echo "<option value=\"" . $unitrow["unit"]."\">". $unitrow["unit"] . "</option>\n";
+    }
+
     mysql_free_result($formresult);
 ?> 
          </select>
-       </td>
-       <td>
-         <input type="text" name="note_message"  tabindex="62" size=40 maxlength=250>
-         <input type="submit" name="note_submit" tabindex="63" value="Save Note"> 
-       <!-- How do we get away without this?  JavaScript OnChange? -->
+      </td>
+    </tr>
+
+    <tr><td></td></tr>
+
+    <tr>
+       <td class="label">Note:</td>
+         <td>
+         <input type="text" name="note_message"  tabindex="63" size=80 maxlength=250> &crarr;
        </td>
     </tr>
+
+    <!--  Bug 37: If this absence is acceptable in the redesigned
+    entry GUI, remove this commented out code during 1.5.x.
+    <tr>
+       <td></td><td class="label" colspan="2">
+         <input type="submit" name="note_submit" tabindex="62" value="Save Note"> <font size=-2 color=gray>Or &lt;Enter&gt;</font>
+       </td>
+    </tr> -->
     
-    <!-- submit this, will also change the top.  have to onchange() them all to set a global flag, then here, save all if necc? -->
-    <!-- one form to rule them all, one form to mind them.  one bool to choose which one, and in the tables bind them. -->
     <tr><td colspan="2">
         <iframe border=0 frameborder=0 name="notes" src="incident-notes.php?incident_id=<?php print $incident_id?>" 
-            width=600 height=300 marginheight=0 marginwidth=0 scrolling="yes"></iframe>
+            width=600 height=274 marginheight=0 marginwidth=0 scrolling="auto"></iframe>
     </td></tr>
-  </table> <!-- layout table for incident notes -->
+  </table>
   </td>
 </tr>
-</table> <!-- outer color table for incident notes -->
+</table>
 
 </td>
 <td valign=top width=100%> 
@@ -660,10 +656,20 @@
     </tr><tr>
     <td colspan=4 width=100% class="label">Attach&nbsp;additional&nbsp;unit:&nbsp;<select name="add_unit"> 
 <?php
-   $unitquery = "SELECT unit FROM units WHERE status <> 'Attached to Incident' OR type='Generic' ORDER BY unit";
+   $unitquery = "SELECT unit FROM units WHERE status <> 'Attached to Incident' OR type='Generic'";
    $unitresult = mysql_query($unitquery) or die ("In query: $unitquery<br>\nError: ".mysql_error());
+
+   $unitnames = array();
+   $unitarray = array();
+   while ($unitrow = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
+     array_push($unitnames, $unitrow["unit"]);
+     $unitarray[$unitrow["unit"]] = $unitrow;
+   }
+   natsort($unitnames);
+
    echo "<option selected value=\"\"></option>\n";
-   while ($unitrow = mysql_fetch_array($unitresult,MYSQL_ASSOC)) {
+   foreach ($unitnames as $u_name) {
+     $unitrow = $unitarray[$u_name];
      echo "<option value=\"" . $unitrow["unit"]."\">". $unitrow["unit"] . "</option>\n";
    }
    mysql_free_result($unitresult);

@@ -242,10 +242,9 @@
   ?>
   </table>
   </form>
-<p>
 
 <?php if (!$newunit) { ?>
-<b>Messages</b><br>
+<b>Last 10 Messages</b><br>
   <table><tr><td width=20></td><td bgcolor="#aaaaaa">
   <table cellpadding=2 cellspacing=1> <tr>
     <td class="message">Time</td>
@@ -254,7 +253,7 @@
 
   <?php
 
-     $rowquery = "SELECT * FROM messages WHERE unit = '$unit' AND deleted=0 ORDER BY oid DESC";
+     $rowquery = "SELECT * FROM messages WHERE unit = '$unit' AND deleted=0 ORDER BY oid DESC LIMIT 10";
      $rowresult = mysql_query($rowquery) or die("row Query failed : " . mysql_error());
 
      while ($line = mysql_fetch_array($rowresult, MYSQL_ASSOC)) {

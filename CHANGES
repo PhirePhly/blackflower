@@ -1,6 +1,15 @@
 CHANGES
 -------
 
+Version 1.3.2 - 2006-07-01
+* bug 35 - Edit Incident popup Save/Close logic cleaned up.
+* bug 39 - Edit Incident disposition assignment and Javascript cleaned up.
+* bug 52 (edit-incident portion) - use natural sort for unit dropdowns.
+* bug 47 - Fixed Unit popup message window overrun
+* bug 37 - Increased Note entry text size, removed Save Note button.
+* bug 48 (partial) - relocated the footer (still todo: incorporate its
+  functionality directly into a unified header file)
+
 Version 1.3.1 - 2006-06-05
 * Rebranded header for initial dev release
 * Reformatted README, TODO, CHANGES

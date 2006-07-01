@@ -56,7 +56,9 @@ function resizeMe()
 </HEAD>
 
 <BODY vlink=blue link=blue alink=cyan onload="displayClockStart()" onunload="displayClockStop()" onresize="resizeMe()">
-<?php include('include-title.php') ?>
+<?php include('include-title.php');
+   include('include-footer.php');
+?>
 
 <form name="myform" action="cad.php" method="post">
 <table cellspacing=0 cellpadding=0 style="padding-bottom: 0"> 
@@ -121,7 +123,6 @@ function resizeMe()
 
         marginheight=0 marginwidth=0 frameborder=0> </iframe>
 <?php
-   include('include-footer.php');
    mysql_close($link);
 ?>
 </form></body></html>

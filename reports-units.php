@@ -270,5 +270,4 @@ else
   die("Unit selection not set.");
 }
 
-include('include-footer.php');
 ?>

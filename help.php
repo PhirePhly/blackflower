@@ -9,7 +9,10 @@
   <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA="screen, print">
 </head>
 <body vlink=blue link=blue alink=cyan>
-<?php include('include-title.php') ?>
+<?php 
+  include('include-title.php');
+  include('include-footer.php');
+?>
 
 <table width=750>
 <p>
@@ -172,10 +175,7 @@ send email to <a href="mailto:cad-info@forlorn.net">&lt;cad-info@forlorn.net&gt;
     the &quot;Clear&quot; button to clear the drop-down and text-entry boxes.<br>
 <p class="textj">
 
-
 </td></tr></table>
-<p>
-<?php include('include-footer.php') ?>
 
 </body>
 </html>

@@ -213,8 +213,6 @@
       <p>
       <a href="config-users.php">Abort Changes, Go Back To Config::Users</a><br>
       <a href="config.php">Abort Changes, Go Back To Config main menu</a><br>
-      <p>
-      <?php include('include-footer.php') ?>
       </body>
       </html>
 
@@ -241,7 +239,10 @@
   <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA=screen>
 </head>
 <body vlink=blue link=blue alink=cyan>
-<?php include('include-title.php') ?>
+<?php 
+  include('include-title.php');
+  include('include-footer.php'); 
+?>
 
 <p>
 <span style=h1><b>User Administration</b></span>
@@ -284,8 +285,6 @@
 <p>
 <a href="config-users.php?adduser">Add New User</a><p>
 <a href="config.php">Back to Main Configuration Menu</a>
-      <p>
-      <?php include('include-footer.php') ?>
     <?php
   }
 

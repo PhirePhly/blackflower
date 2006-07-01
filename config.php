@@ -103,7 +103,10 @@
   
 </head>
 <body vlink=blue link=blue alink=cyan>
-<?php include('include-title.php') ?>
+<?php
+  include('include-title.php');
+  include ('include-footer.php');
+?>
 
 <table>
 <tr>
@@ -223,10 +226,7 @@ if ($_SESSION['access_level'] >= 10) {
 <input type="submit" name="saving" value="Save Settings">
 </ul>
 </form>
-
 </ul>
-
-<?php  include ('include-footer.php') ?>
 </body>
 </html>
 

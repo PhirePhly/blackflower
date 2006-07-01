@@ -13,7 +13,6 @@
     exit;
   }
   elseif (isset($_POST["cleardb"]) && $_POST["cleardb"] == 3) {
-/* TODO - verify admin privileges */
 
   /* Define timestamp and get a lock on tables */
     $comment = MysqlClean($_POST, "comment", 80);
@@ -22,7 +21,7 @@
     mysql_query($query) or die("locking Query failed : " . mysql_error());
   
   /* Note revision in master archive table */
-    $query = "INSERT INTO archive_master VALUES ('$ts', 'hardcoded', NOW(), '$comment')";
+    $query = "INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment')";
     mysql_query($query) or die("archive master  Query failed : " . mysql_error());
     if (mysql_affected_rows() != 1) die("Error registering this checkpoint in archive_master table!!");
   
@@ -89,6 +88,7 @@
 </head>
 <body vlink=blue link=blue alink=cyan>
 <?php include('include-title.php') ?>
+<?php include('include-footer.php') ?>
 
 <p>
 <center><b>CLEARING THE DATABASE</b></center>
