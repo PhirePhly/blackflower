@@ -3,9 +3,63 @@ li { font-size: 10pt; text-align: justify }
 .text 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
 .textj 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm; text-align: justify }
 .time 	{ background-color: #cccccc; color: black; font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
-.message 	{ font-family: tahoma, sans; background-color: #cccccc; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
+.message {
+    font-family: tahoma, sans;
+    background-color: #cccccc;
+    font-size: 10pt;
+    text-align: justify;
+    padding-left: 0.2cm;
+    padding-right: 0.2cm
+}
+.messageold {
+    font-family: tahoma, sans;
+    color: #666666;
+    background-color: #cccccc;
+    font-size: 10pt;
+    text-align: justify;
+    padding-left: 0.2cm;
+    padding-right: 0.2cm
+}
+.bulletin-info {
+    font-family: tahoma, sans;
+    background-color: #eeeeee;
+    font-size: 9pt;
+    text-align: center;
+    padding-left: 0.2cm;
+    padding-right: 0.2cm
+}
+.bulletin {
+    font-family: tahoma, sans;
+    background-color: #eeeeee;
+    font-size: 10pt;
+    text-align: center;
+    padding-left: 0.5cm;
+    padding-right: 0.5cm
+    border: 1px solid #999999;
+}
+a.menua { color: white; text-decoration: none }
+a.menua:hover { color: #ccccff; }
+.menubg { font-family: tahoma, ariel, sans; background-color: #333366; padding: 0.01cm; }
+.headermenu { float: left; font-family: tahoma, ariel, sans; background-color: #333366; color: white; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify ; border-right: 1px dotted #ccccff }
+.headermenuright { float:right; font-family: tahoma, ariel, sans; background-color: #333366; color: white; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify ; border-right: 1px dotted #ccccff }
+.headertext { font-family: tahoma, ariel, sans; font-size: 14pt; padding-left: 0.2cm; padding-right: 0.2cm; padding-bottom: 0.05cm;}
+
+.headerinfo {
+           vertical-align: bottom;
+           width:          100%;
+           font-family:    tahoma, ariel, sans;
+           font-size:      12;
+           color:          #666666;
+           margin:         0 auto;
+           padding:        3px 0px 3px 0px;
+   }
+
+.headermenusel { float: left; font-family: tahoma, ariel, sans; background-color: #666699; color: white; font-weight: bold; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify }
+.headermenurightsel { float: right; font-family: tahoma, ariel, sans; background-color: #666699; color: white; font-weight: bold; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify }
+
 .notice 	{ font-family: tahoma, sans; background-color: blue; color: white; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
 .gray 	{ font-family: tahoma, sans; color: gray; background-color: #cccccc; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
+
 td.incident-header 	{ font-size: 12pt; background-color: darkblue; font-family: sans-serif; color: white; padding-left: 0.2cm; padding-right: 0.2cm}
 td.ihsmall { font-size: 10pt; background-color: darkgray; font-family: tahoma, sans; padding-left: 0.2cm; padding-right: 0.2cm}
 td.label 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
@@ -14,3 +68,102 @@ td.smalltext    { font-family: tahoma, sans; font-size: 8pt; background-color: #
 td.menuselect   { font-family: tahoma, sans }
 td.menu         { font-family: tahoma, sans; background-color: #cccccc }
 td.th           { font-family: tahoma, sans; font-weight: bold; background-color: #cccccc; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
+
+ul {
+    list-style: none;
+    margin-left: 0;
+}
+
+.lolite {
+    color: gray;
+}
+.smalldesc {
+    color: #dddddd;
+    font-size: 8pt;
+}
+
+.WhiteTable { width:393px; }
+
+.WhiteTable td#Top {
+	width:auto; height:10px;
+	background:url(/cad/Images/msg.frame.white.top.gif);
+	background-repeat:no-repeat;
+	background-position: left bottom; }
+
+.WhiteTable td#Mid {
+	width:auto; height:auto;
+	padding:5px 15px 10px 15px;
+	background:url(/cad/Images/msg.frame.white.mid.gif);
+	background-repeat:repeat-y; }
+
+.WhiteTable td#Bot {
+	width:auto; height:10px;
+	background:url(/cad/Images/msg.frame.white.bot.gif);
+	background-repeat:no-repeat; }
+
+	.PublicError {
+    margin: 0 0 10px 15px; }
+
+.EmptyContianerImage {
+	position:relative;
+	width:303px; height:auto;
+	padding:10px 0 0 44px;
+	background-image:url(/cad/Images/msg.alert.32.gif);
+	background-repeat:no-repeat;
+	background-position:left top;
+	float:left; }
+
+.EmptyContianerText {
+	position:relative;
+	top:-10px; left:0px;
+	width:303px;
+	font-weight:bold;
+	color:#0A2966; }
+
+.EmptyContianerExplain {
+	position:relative;
+	top:0px; left:0px;
+	width:303px;
+	margin: 7px 0 6px 0;
+}
+
+html.login,body.login, table#pagelayout {
+  height: 100%;
+  width: 100%;
+  }
+body.login {
+  margin: 0px; /* Used here for IE & Mozilla */
+  padding: 0px; /* Used here for Opera */
+  font-family: ariel, sans-serif, fixed;
+  background-color: #cccc99;
+  }
+table#login {
+  margin: auto;
+  background-color: #336699;
+  color: white;
+  text-align: center;
+  vertical-align: middle;
+  padding: 3px;
+  border: 3px outset #ffffcc;
+  }
+td.login {
+  /*padding: 0px; /* Accomplishes table cellpadding=0 */
+  vertical-align: middle;
+  }
+.logintitle {
+  background-color: black;
+  border: 1px groove black;
+  color: white;
+  text-align:
+  center;
+  padding: 3px;
+  font-size: 14pt;
+  font-weight: bold ;
+}
+.loginlable {
+  background-color: #cccc99;
+  font-family: ariel;
+  border: 1px outset black;
+  position: right;
+}
+

@@ -9,14 +9,28 @@
     openlog('cad', LOG_CONS|LOG_PID, LOG_LOCAL4);
   }
 
+/*
+ * Disable session.use_trans_sid to mitigate performance-penalty
+ * (do it before any output is started)
+ */
+  if (!defined('SID')) {
+    @ini_set('session.use_trans_sid', 0);
+  }
+
+  /* Specify that when an assertion fails, we terminate right away. */
+  assert_options(ASSERT_WARNING, 1);
+  assert_options(ASSERT_BAIL, 1);
+
+// --------------------------------------------------------------------------
+
 function HTMLLoginDialog($failureCount) {
 ?>
 <html class="login">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-  <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA="screen">
-  <LINK REL=StyleSheet HREF="pager.css" TYPE="text/css" MEDIA="screen">
-  <SCRIPT type="text/JavaScript">
+  <link rel="stylesheet" href="style.css" type="text/css" media="screen">
+  <script src="js/utils.js" type="text/javascript"></script>
+  <script type="text/javascript">
 // <!--
 function element(id) {
   if (document.getElementById != null) { return document.getElementById(id); }
@@ -34,37 +48,59 @@ function setFocus(str) {
 </head>
 
 <body class="login" onload="setFocus('username')">
-
-<form method="post" action="index.php">
+<noscript>
+  <br />
+  <table cellpadding="0" cellspacing="0" border="0" class="WhiteTable PublicError">
+    <tr><td id="Top"><img src="/cad/Images/1.gif" width="1" height="1" alt=""></td></tr>
+    <tr>
+      <td id="Mid">
+        <div class="EmptyContianerImage">
+        <div class="EmptyContianerText">
+        Set Up Your Web Browser To Allow JavaScript</div>
+        <div class="EmptyContianerExplain">
+        JavaScript is required to use this site. Please enable your web browser
+        to run JavaScript. For steps in configuring this, see the Help for
+        your browser.&nbsp;&nbsp;
+        </div>
+        </div>
+      </td>
+    </tr>
+    <tr><td id="Bot"><img src="/cad/Images/1.gif" width="1" height="1" alt=""></td></tr>
+  </table><br />
+</noscript>
+<form method="post" action="main.php">
 <table id="pagelayout" >
 <tr height="100"> <td>&nbsp;</td></tr>
-<tr height="100"> <td class="login" align=center width=500> 
+<tr height="100"> <td class="login" align="center" width="500">
 
   <table style="border: black solid 1px">
-  <tr> <td class="logintitle" colspan=2>CAD :: Login</td></tr>
+  <tr> <td class="logintitle" colspan="2">CAD :: Login</td></tr>
 
-  <tr> <td class=text> Username:</td>
-       <td class=text> <input id="username" type="text" size="15" name="username"></td>
+  <tr> <td class="text"> Username:</td>
+       <td class="text"> <input id="username" type="text" size="15" name="username"></td>
   </tr>
-  <tr> <td class=text> Password: </td>
-       <td class=text> <input type="password" size="15" name="password"></td>
+  <tr> <td class="text"> Password: </td>
+       <td class="text"> <input type="password" size="15" name="password"></td>
   </tr>
-  <tr> <td></td><td ><input class="loginlabel" type=submit value="Log in"></td> </tr>
+  <tr> <td></td><td><input class="loginlabel" type="submit" value="Log in"></td> </tr>
   </table>
 
 </td></tr>
-<?php 
-  if ($failureCount) { 
+<?php
+  if ($failureCount) {
     print "<tr valign=top><td><center><font color=\"red\">Incorrect username or password, try again.</font></center><input type=\"hidden\" value=\"$failureCount\" name=\"ival\"></td></tr>";
-} ?>
-<tr height=50% valign=bottom>
-<td width=100%>
+  } ?>
+<tr height="50%" valign="bottom">
+<td width="100%">
 &nbsp;</td></tr>
 </table>
 </form>
 </body>
 <?php
 }
+
+// --------------------------------------------------------------------------
+// Actual start of session.inc
 
   if (isset($_POST['username']) && isset($_POST['password'])) {
     session_start();
@@ -83,22 +119,22 @@ function setFocus(str) {
     if (mysql_num_rows($users) == 1) {
       $answer = mysql_fetch_object($users);
       if ($answer->password == $answer->testpw) {
-        $_SESSION['id'] = $answer->id;
-        $_SESSION['name'] = $answer->name;
-        $_SESSION['username'] = $answer->username;
-        $_SESSION['access_level'] = $answer->access_level;
-        $_SESSION['access_acl'] = $answer->access_acl;
-        $_SESSION['timeout'] = $answer->timeout;
+        $_SESSION['id'] = MysqlUnClean($answer->id);
+        $_SESSION['name'] = MysqlUnClean($answer->name);
+        $_SESSION['username'] = MysqlUnClean($answer->username);
+        $_SESSION['access_level'] = MysqlUnClean($answer->access_level);
+        $_SESSION['access_acl'] = MysqlUnClean($answer->access_acl);
+        $_SESSION['timeout'] = MysqlUnClean($answer->timeout);
         # TODO: add preference parsing
         session_write_close();
-        syslog(LOG_INFO, "User logged in [".$answer->username . "/". $_SERVER['REMOTE_ADDR']."]");
-        header("Location: index.php");
+        syslog(LOG_INFO, "User logged in [".MysqlUnClean($answer->username) . "/". $_SERVER['REMOTE_ADDR']."]");
+        header("Location: main.php");
       }
       else {
         if ($previousFailures) {
           sleep(2 * $previousFailures);
         }
-        syslog(LOG_WARNING, "Failed login attempt: Incorrect password for user [$username]/IP ". $_SERVER['REMOTE_ADDR']."]/password attempt [$password]");
+        syslog(LOG_WARNING, "Failed login attempt: Incorrect password for user [$username]/IP ". $_SERVER['REMOTE_ADDR']."]/password attempt [$testpw]");
         HTMLLoginDialog($previousFailures + 1);
         exit;
       }
@@ -116,7 +152,7 @@ function setFocus(str) {
     session_start();
     syslog(LOG_INFO, "User logged out [".$_SESSION['username'] . "/". $_SERVER['REMOTE_ADDR']."]");
     session_destroy();
-    header("Location: index.php");
+    header("Location: main.php");
   }
   else {
     session_start();
@@ -126,5 +162,5 @@ function setFocus(str) {
       exit;
     }
   }
-  
+
 ?>

@@ -1,6 +1,8 @@
 <?php
-  $link = mysql_connect("localhost", "cad", "cad-password") or die("Could not connect : " . mysql_error());
-  mysql_select_db("cad") or die("Could not select database");
+  require('cad.conf');
+
+  $link = mysql_connect($DBHOST, $DBUSER, $DBPASS) or die("Could not connect : " . mysql_error());
+  mysql_select_db($DB) or die("Could not select database");
 
   function MysqlQuery ($sqlquery) {
     $return = mysql_query($sqlquery) or die("CRITICAL ERROR\nIn query: $sqlquery<br>\nError: ".mysql_error());
@@ -11,11 +13,21 @@
     global $link;
     if (isset($array["{$index}"])) {
       $input = substr($array["{$index}"], 0, $maxlength);
-      $input = mysql_real_escape_string($input, $link);
-      $input = htmlentities($input);
+      if (get_magic_quotes_gpc()) {
+        $input = stripslashes($input);
+        $input = mysql_real_escape_string($input, $link);
+      }
+      else {
+        $input = mysql_real_escape_string($input, $link);
+      }
       return ($input);
     }
     return NULL;
+  }
+
+  function MysqlUnClean ($input) {
+    $input = htmlentities($input);
+    return ($input);
   }
 
   header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");

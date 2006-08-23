@@ -1,0 +1,11 @@
+<?php
+  $DBHOST = "localhost";
+  $DBUSER = "cad";
+  $DBPASS = "cad-password";
+  $DB = "cad";
+
+  $DEFAULT_ADMIN = "Administrator";
+  $DEFAULT_ADMIN_PW = "admin";
+
+  $BULLETIN_TITLE_SCAN = 1;
+?>

@@ -51,6 +51,43 @@ CREATE TABLE users (
 );
 /* data tables */
 
+CREATE TABLE bulletins (
+  bulletin_id   INTEGER NOT NULL AUTO_INCREMENT,
+  bulletin_subject VARCHAR(160),
+  bulletin_text TEXT,
+  updated       DATETIME,
+  updated_by    INTEGER,
+  access_level  INTEGER,
+  closed        BOOL NOT NULL DEFAULT 0,
+
+  PRIMARY KEY (bulletin_id),
+  INDEX (updated),
+  INDEX (access_level),
+  INDEX (closed),
+);
+
+CREATE TABLE bulletin_views (
+  id            INTEGER NOT NULL AUTO_INCREMENT,
+  bulletin_id   INTEGER,
+  user_id       INTEGER,
+  last_read     DATETIME,
+
+  PRIMARY KEY (id),
+  INDEX (user_id, bulletin_id),
+  INDEX (last_read)
+);
+
+CREATE TABLE bulletin_history (
+  id            INTEGER NOT NULL AUTO_INCREMENT,
+  bulletin_id   INTEGER,
+  action        ENUM('Created', 'Edited', 'Closed', 'Reopened'),
+  updated       DATETIME,
+  updated_by    INTEGER,
+
+  PRIMARY KEY (id),
+  INDEX (bulletin_id, updated)
+);
+
 CREATE TABLE messages (
 	oid	int not null auto_increment primary key,
 	ts	datetime not null,
@@ -58,7 +95,10 @@ CREATE TABLE messages (
 	message	varchar(255) not null,
 	deleted bool not null default 0,
 	creator varchar(20),
-  message_type varchar(20)
+  message_type varchar(20),
+
+  INDEX (deleted),
+  INDEX (unit)
 	);
 
 CREATE TABLE units (
@@ -68,7 +108,9 @@ CREATE TABLE units (
 	update_ts datetime,
 	role	set('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Law Enforcement', 'Other'),
 	type	set('Unit', 'Individual', 'Generic'),
-	personnel varchar(100)
+	personnel varchar(100),
+
+  INDEX (status, type)
 	);
 
 CREATE TABLE incidents (
@@ -87,7 +129,10 @@ CREATE TABLE incidents (
 	visible		bool not null default 0,
 	primary_unit	varchar(20),
 	completed	bool not null default 0,
-	updated datetime not null
+	updated datetime not null,
+
+  INDEX (visible, completed),
+  INDEX (ts_opened)
 	);
 
 CREATE TABLE incident_notes (
@@ -97,7 +142,9 @@ CREATE TABLE incident_notes (
 	unit		varchar(20),
 	message		varchar(255) not null,
 	deleted		bool not null default 0,
-	creator varchar(20)
+	creator varchar(20),
+
+  INDEX (incident_id, deleted)
 	);
 
 CREATE TABLE incident_units (
@@ -108,7 +155,10 @@ CREATE TABLE incident_units (
 	arrival_time datetime,
 	cleared_time datetime,
 	is_primary bool,  /* may be unused */
-	is_generic bool
+  is_generic bool,
+
+  INDEX (incident_id, cleared_time),
+  INDEX (dispatch_time)
 	);
 
 /* Insert default long-lived values into reference tables *****************/

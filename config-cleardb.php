@@ -2,8 +2,9 @@
   $subsys="config";
   require_once('db-open.php');
   require_once('session.inc');
+  require_once('functions.php');
 
-  $td = "<td bgcolor=#cccccc>"; 
+  $td = "<td bgcolor=#cccccc>";
 
   if ($_SESSION['access_level'] < 10) {
     syslog(LOG_WARNING, "Database clearing attempted without permissions by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
@@ -19,16 +20,16 @@
     $ts = date("Ymd_His");
     $query = "LOCK TABLES archive_master WRITE, messages WRITE, units WRITE, incidents WRITE, incident_notes WRITE";
     mysql_query($query) or die("locking Query failed : " . mysql_error());
-  
+
   /* Note revision in master archive table */
     $query = "INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment')";
     mysql_query($query) or die("archive master  Query failed : " . mysql_error());
     if (mysql_affected_rows() != 1) die("Error registering this checkpoint in archive_master table!!");
-  
+
   /* Make backup copies of all relevant tables and data */
-  
+
   /* The *easy* syntax here is CREATE TABLE .. LIKE ..   but that's only in MySQL 4.1.  Currently using 4.0.x. */
-  
+
     $query = "CREATE TABLE cadarchives.messages_$ts (oid int not null auto_increment primary key, ts datetime not null, unit varchar(20), message varchar(255) not null, deleted bool not null default 0, creator varchar(20), message_type varchar(20))";
        mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
 
@@ -59,7 +60,7 @@
     mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
     $query = "INSERT INTO cadarchives.incident_units_$ts SELECT * from incident_units";
     mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-  
+
   /* Clear relevant tables and data */
     $query = "DELETE FROM messages";
     mysql_query($query) or die("message clearing Query failed : " . mysql_error());
@@ -73,24 +74,17 @@
     mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
     $query = "UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL";
     mysql_query($query) or die("status resetting Query failed : " . mysql_error());
-  
+
   /* Finish */
     $query = "UNLOCK TABLES";
     mysql_query($query) or die("unlocking Query failed : " . mysql_error());
     header("Location: config.php");
   }
 
-?> 
-
-<html>
-<head>
-  <title>Dispatch :: Configuration</title>
-</head>
-<body vlink=blue link=blue alink=cyan>
-<?php include('include-title.php') ?>
-<?php include('include-footer.php') ?>
-
-<p>
+  header_html("Dispatch :: Configuration");
+?>
+<body vlink="blue" link="blue" alink="cyan">
+<? include('include-title.php'); ?>
 <center><b>CLEARING THE DATABASE</b></center>
 
 <p>
@@ -138,7 +132,7 @@ sure this is what you want to do!<p>
       echo $td, "Are you REALLY SURE you want to do this?</td>\n";
       echo $td, "<input type=\"checkbox\" name=\"cleardb\" value=\"2\" disabled checked> </td>\n</tr>\n<tr>\n";
       echo "<td bgcolor=#cccccc colspan=2> <input type=\"hidden\" name=\"cleardb\" value=\"3\"> \n";
-      echo "Comment: <input type=\"text\" maxlength=\"80\" size=\"40\" name=\"comment\"></td>"; 
+      echo "Comment: <input type=\"text\" maxlength=\"80\" size=\"40\" name=\"comment\"></td>";
       echo "<td><input type=\"submit\" value=\"Archive and Clear Database\"> </td>";
     }
   ?>

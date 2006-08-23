@@ -1,7 +1,8 @@
 <?php
   $subsys = "config";
-  
+
   require_once('session.inc');
+  require_once('functions.php');
 
   if (isset($_POST["saving"])) {
     if (isset($_POST["incidents_open_only"]))
@@ -43,8 +44,13 @@
     else
       setcookie("cad_show_message_type", "no");
 
-    if ((isset($_POST["oldpw"]) && $_POST["oldpw"]) || 
-        (isset($_POST["newpw"]) && $_POST["newpw"]) || 
+    if (isset($_POST["system_tooltips"]))
+      setcookie("system_tooltips", "yes");
+    else
+      setcookie("system_tooltips", "no");
+
+    if ((isset($_POST["oldpw"]) && $_POST["oldpw"]) ||
+        (isset($_POST["newpw"]) && $_POST["newpw"]) ||
         (isset($_POST["confirmpw"]) && $_POST["confirmpw"])) {
       $oldpw = MysqlClean($_POST, 'oldpw', 64);
       $newpw = MysqlClean($_POST, 'newpw', 64);
@@ -55,7 +61,7 @@
           print "Old password is missing.";
           exit;
       }
- 
+
       $pwcheck = MysqlQuery("SELECT PASSWORD('$oldpw') AS enteredpw, password FROM cad.users WHERE username='".$_SESSION['username']."'");
       $rows = mysql_num_rows($pwcheck);
       if ($rows != 1) {
@@ -93,141 +99,120 @@
     }
     header('Location: config.php');
   }
-
-?> 
-
-<html>
-<head>
-  <title>Dispatch :: Configuration</title>
-  <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA="screen, print">
-  
-</head>
-<body vlink=blue link=blue alink=cyan>
-<?php
-  include('include-title.php');
-  include ('include-footer.php');
+  header_html("Dispatch :: Configuration")
 ?>
-
+<body vlink="blue" link="blue" alink="cyan">
+<? include('include-title.php'); ?>
 <table>
 <tr>
-<td align=left width=400>
+  <td align="left" width="400">
+  <form name="myform" method="post" action="config.php">
 
-<h1>User Preferences</h1>
-<form name="myform" method="post" action="config.php">
-&nbsp; <b>Incidents</b><br>
-<table width=350 style="background-color: #dddddd; border: 1px solid gray">
-  <tr> 
-    <td align=right><input type="checkbox" name="incidents_show_units" <?php 
+<!-- Incidents -->
+<br />&nbsp;<b>Incidents Preferences</b><br />
+  <table width="350" style="background-color: #dddddd; border: 1px solid gray">
+  <tr>
+    <td align="right"><input type="checkbox" name="incidents_show_units" <?php
         if (!isset($_COOKIE["incidents_show_units"]) || $_COOKIE["incidents_show_units"] == "yes") print "checked";?>
-        value="yes"></td>
+        value="yes" /></td>
     <td>Show unit availability</td>
   </tr>
-  <tr> 
-    <td align=right><input type="checkbox" name="incidents_open_only" <?php 
-        if (!isset($_COOKIE["incidents_open_only"]) || $_COOKIE["incidents_open_only"] == "yes") print "checked"?> 
-        value="yes"></td>
+  <tr>
+    <td align="right"><input type="checkbox" name="incidents_open_only" <?php
+        if (!isset($_COOKIE["incidents_open_only"]) || $_COOKIE["incidents_open_only"] == "yes") print "checked"?>
+        value="yes" /></td>
     <td>Show open incidents only</td>
   </tr>
-  <tr> 
-    <td align=right><input type="checkbox" name="incidents_show_creator" <?php 
-        if (!isset($_COOKIE["incidents_show_creator"]) || $_COOKIE["incidents_show_creator"] == "yes") print "checked"?> 
-        value="yes"></td>
+  <tr>
+    <td align="right"><input type="checkbox" name="incidents_show_creator" <?php
+        if (!isset($_COOKIE["incidents_show_creator"]) || $_COOKIE["incidents_show_creator"] == "yes") print "checked"?>
+        value="yes" /></td>
     <td>Show incident notes creator</td>
   </tr>
 </table>
-<br>
 
-&nbsp; <b>Units</b><br>
-<table width=350 style="background-color: #dddddd; border: 1px solid gray">
-  <tr> 
-    <td align=right><input type="checkbox" name="units_color" <?php 
-    if (!isset($_COOKIE["units_color"]) || $_COOKIE["units_color"] == "yes") 
-      print "checked"?> value="yes"></td>
+<!-- Units -->
+<br />&nbsp;<b>Units Preferences</b><br />
+<table width="350" style="background-color: #dddddd; border: 1px solid gray">
+  <tr>
+    <td align="right"><input type="checkbox" name="units_color" <?php
+    if (!isset($_COOKIE["units_color"]) || $_COOKIE["units_color"] == "yes")
+      print "checked"?> value="yes" /></td>
     <td>Color-code units by type</td>
   </tr>
 </table>
 
-<br>
-
-&nbsp; <b>Log Viewer</b><br>
-<table width=350 style="background-color: #dddddd; border: 1px solid gray">
-
-  <tr> 
-    <td align=right><input type="checkbox" name="cad_show_creator" <?php 
-    if (!isset($_COOKIE["cad_show_creator"]) || 
-               $_COOKIE["cad_show_creator"] == "yes") 
-      print "checked"?> value="yes"></td>
-    <td>Show message creator</td>
+<!-- Log Viewer -->
+<br />&nbsp;<b>Log Viewer Preferences</b><br />
+<table width="350" style="background-color: #dddddd; border: 1px solid gray">
+  <tr>
+    <td align="right"><input type="checkbox" name="cad_show_creator" <?php
+    if (!isset($_COOKIE["cad_show_creator"]) ||
+               $_COOKIE["cad_show_creator"] == "yes")
+      print "checked"?> value="yes" /></td>
+    <td colspan=2>Show message creator</td>
   </tr>
-  <tr> 
-    <td align=right><input type="checkbox" name="cad_show_message_type" <?php 
-    if (!isset($_COOKIE["cad_show_message_type"]) || 
-               $_COOKIE["cad_show_message_type"] == "yes") 
-      print "checked"?> value="yes"></td>
-    <td>Use Message Type field<br></td>
+  <tr>
+    <td align="right"><input type="checkbox" name="cad_show_message_type" <?php
+    if (!isset($_COOKIE["cad_show_message_type"]) ||
+               $_COOKIE["cad_show_message_type"] == "yes")
+      print "checked"?> value="yes" /></td>
+    <td colspan=2>Use Message Type field<br /></td>
   </tr>
 
   <tr><td></td></tr>
-  <tr><td></td></tr>
 
   <tr>
-    <td align=right>
-       <input type="radio" name="cadmode" <?php 
-         if (!isset($_COOKIE["cadmode"]) || $_COOKIE["cadmode"] == "last25") print "checked"?> 
-         value="last25"></td>
-    <td>Display Most Recent 25 Messages</td></tr>
+    <td valign=top align=right rowspan=3>Mode:</td>
+    <td align="right">
+       <input type="radio" name="cadmode" <?php
+         if (!isset($_COOKIE["cadmode"]) || $_COOKIE["cadmode"] == "last25") print "checked"?>
+         value="last25" /></td>
+    <td>25 Newest Messages</td></tr>
   <tr>
-    <td align=right>
-       <input type="radio" name="cadmode" <?php 
-         if (isset($_COOKIE["cadmode"]) && $_COOKIE["cadmode"] == "hourly") print "checked"?> 
-         value="hourly"></td>
-    <td>Display Hourly View</td></tr>
+    <td align="right">
+       <input type="radio" name="cadmode" <?php
+         if (isset($_COOKIE["cadmode"]) && $_COOKIE["cadmode"] == "hourly") print "checked"?>
+         value="hourly" /></td>
+    <td>Hourly View</td></tr>
   <tr>
-    <td align=right>
-       <input type="radio" name="cadmode" <?php if (isset($_COOKIE["cadmode"]) && $_COOKIE["cadmode"] == "all") print "checked"?> value="all"></td>
-    <td>Display All Log Messages</td>
+    <td align="right">
+       <input type="radio" name="cadmode" <?php if (isset($_COOKIE["cadmode"]) && $_COOKIE["cadmode"] == "all") print "checked"?> value="all" /></td>
+    <td>All Log Messages</td>
   </tr>
 </table>
 
-<br>
-
-&nbsp; <b>Change Password</b><br>
-<table width=350 style="background-color: #dddddd; border: 1px solid gray">
-  <tr> <td colspan=2>Current password:</td><td><input type=password size=15 name=oldpw></td></tr>
-  <tr><td></td></tr>
-  <tr><td></td></tr>
-  <tr> <td colspan=2>New password:</td><td><input type=password size=15 name=newpw></td></tr>
-  <tr> <td colspan=2>Confirm new password:</td><td><input type=password size=15 name=confirmpw></td></tr>
+<!-- Change Password -->
+<br />&nbsp;<b>Change Password</b><br />
+<table width="350" style="background-color: #dddddd; border: 1px solid gray">
+  <tr><td colspan="2">Current password:</td><td><input type="password" size="15" name="oldpw" /></td></tr>
+  <tr><td colspan="3"><hr /></td></tr>
+  <tr><td colspan="2">New password:</td><td><input type="password" size="15" name="newpw" /></td></tr>
+  <tr><td colspan="2">Confirm new password:</td><td><input type="password" size="15" name="confirmpw" /></td></tr>
 </td></tr>
 </table>
 
-</td>
-<?php
-if ($_SESSION['access_level'] >= 10) {
- ?>
-<td align=left width=400 valign=top>
-
-<table width=350 style="border: 3px ridge blue; padding: 5px; background-color: #dddddd">
-<tr><td><h1>Administration</h1></td></tr>
-  <tr><td><a href="config-users.php">Edit Users</a></td></tr>
-  <tr><td><a href="config-cleardb.php">Archive and Clear Database</a></td></tr>
-  <tr><td><font color="gray">Manage Database Archives</font>  (Not developed yet)</td></tr>
+<!-- System Options -->
+<!-- Removed for now...
+<br />&nbsp;<b>System Options</b><br />
+<table width="350" style="background-color: #dddddd; border: 1px solid gray">
+  <tr>
+    <td align="right"><input type="checkbox" name="system_tooltips" <?php
+    if (!isset($_COOKIE["system_tooltips"]) || $_COOKIE["system_tooltips"] == "yes")
+      print "checked"?> value="yes" /></td>
+    <td>System Tooltips</td>
+  </tr>
 </table>
+-->
+
 </td>
-
-<?php
-}
-?>
-
 </tr>
 </table>
 
-<br>
-<input type="submit" name="saving" value="Save Settings">
+<br />
+<input type="submit" name="saving" value="Save Settings" />
 </ul>
 </form>
 </ul>
 </body>
 </html>
-
-
