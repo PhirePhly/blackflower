@@ -86,7 +86,8 @@
 
    </td>
    <td colspan=2 bgcolor="#cccccc">
-     <input <?php if ($deleted) print "disabled"?> type="text" name="message" size=100 maxlength=250 value="<?php print $message?>">
+     <input <?php if ($deleted) print "disabled"?> type="text" name="message" size=100 maxlength=250
+      value="<?php print MysqlUnClean($message)?>">
      <input type="hidden" name="note_id" value="<?php print $note_id?>">
      <input type="hidden" name="incident_id" value="<?php print $incident_id?>">
    </td>

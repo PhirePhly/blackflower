@@ -1,8 +1,11 @@
 <?php
   $subsys="main";
 
+  header("Location: main.php");
+/*
   include('local-dls.php');
   require_once('session.inc');
+  require_once('functions.php');
 
   if (isset($_GET["frame"]) && $_GET["frame"] == "1") {
           print "<BASE target=_parent>\n";
@@ -20,20 +23,16 @@
     print "</ul>";
     exit;
   }
+  header_html("Dispatch :: Main Menu");
 ?>
-<html>
-<head>
-  <TITLE>Dispatch :: Main Menu</TITLE>
-  <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA="screen, print">
-</head>
-<body vlink=blue link=blue alink=cyan>
-<?php 
+<body vlink="blue" link="blue" alink="cyan">
+<?php
   include('include-title.php');
-  include('include-footer.php');
 ?>
-  
-<iframe name="menu" src="index.php?frame=1" 
-        width=<?php print htmlentities($_COOKIE['width']) - 30 ?> 
-        height=<?php print htmlentities($_COOKIE['height']) - 125 ?> 
-        marginheight=0 marginwidth=0 frameborder=0> </iframe> 
+
+<iframe name="menu" src="index.php?frame=1"
+        width="<?=trim($_COOKIE['width']) - 30 ?>"
+        height="<?=trim($_COOKIE['height']) - 125 ?>"
+        marginheight="0" marginwidth="0" frameborder="0"> </iframe>
 </body>
+*/

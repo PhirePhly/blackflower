@@ -1,6 +1,25 @@
 CHANGES
 -------
 
+Version 1.3.4 - 2006-08-23
+* bug 51 - Implemented Bulletins feature
+* bug 48 - Rewrote Header GUI style to be more efficient, easily 
+  extensible (dropped use of custom tab images for now)
+* Broke out config into a .conf file - a .conf.example file will be
+  distributed, that needs to be copied to the .conf and modified.
+* Various other bug fixes and progress on other bugzilla bugs.  See
+  SVN logs for more details; the changes were not captured here.
+
+Version 1.3.3 - 2006-07-03 through 2006-08-21 (various betas)
+* Conversion of much of the HTML from 3.2 compliant towards 4.01
+* Built a standard header file for all pages for common page info
+* Moved much of the Javascript to "loadable" .js files
+* New "functions.php" for common/shared functions
+* Added checks for JavaScript enabled and Cookies enabled
+* rearranged filenames to have a more consistant naming scheme
+* Added JS code for tooltip capabilities.  More logic needed to
+    turn this feature on and off.
+
 Version 1.3.2 - 2006-07-01
 * bug 35 - Edit Incident popup Save/Close logic cleaned up.
 * bug 39 - Edit Incident disposition assignment and Javascript cleaned up.

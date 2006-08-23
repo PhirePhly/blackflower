@@ -26,7 +26,9 @@
       $query = "UPDATE messages SET unit='$unit', message='$message', message_type='$message_type' WHERE oid=$oid";
       mysql_query($query) or die("update query failed: ".mysql_error());
     }
-    print "<SCRIPT LANGUAGE=\"JavaScript\"> window.opener.location.reload(); self.close()</SCRIPT>";
+
+    print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
+    die("(Error: JavaScript not enabled or not present) Action completed. Close this window to continue.");
   }
   if (!isset($_GET["oid"]))
     die("Improper usage: GET[oid] must be specified.");
@@ -108,7 +110,8 @@
    </td>
 
    <td colspan=2 bgcolor="#cccccc">
-     <input <?php if ($deleted) print "disabled"?> type="text" name="message" size=90 maxlength=250 value="<?php print $message?>">
+     <input <?php if ($deleted) print "disabled"?> type="text" name="message" size=90 maxlength=250
+      value="<?php print MysqlUnClean($message)?>">
      <input type="hidden" name="oid" value="<?php print $oid?>">
    </td>
    </tr>

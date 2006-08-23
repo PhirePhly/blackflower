@@ -2,15 +2,16 @@
   $subsys = "config";
   require_once('session.inc');
   require_once('db-open.php');
-  
+  require_once('functions.php');
+
   #
   # Verify access level
   #
   if ($_SESSION['access_level'] < 10) {
     syslog(LOG_WARNING, "User editing attempted without permissions by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
-    echo "Access level insufficient for this operation.<br>\n";
-    echo "User: " . $_SESSION['username'] . "<br>\n";
-    echo "Level: " . $_SESSION['access_level'] . "<br>\n";
+    echo "Access level insufficient for this operation.<br />\n";
+    echo "User: " . $_SESSION['username'] . "<br />\n";
+    echo "Level: " . $_SESSION['access_level'] . "<br />\n";
     exit;
   }
 
@@ -45,7 +46,7 @@
         $_POST["password"] == "")
     {
       $check_password = 1;
-      $check_errormsg .= "Passwords do not match.<br>";
+      $check_errormsg .= "Passwords do not match.<br />";
     }
     if ($_POST["edituser"] == $_SESSION['username'] &&
             $_POST["access_level"] < 10)
@@ -72,6 +73,8 @@
       $levelrow = MysqlQuery("SELECT username, access_level FROM cad.users WHERE id='$cleanid'");
       $levelobj = mysql_fetch_object($levelrow);
       $username = $levelobj->username;
+      $pswd = (((substr($cleanpassword,0,1)=="*") && (strlen($cleanpassword)==41)) ? "'".$cleanpassword."'" : "PASSWORD('".$cleanpassword."')");
+
       if ($_SESSION['access_level'] < $levelobj->access_level ) {
         syslog(LOG_WARNING, "User [".$_SESSION['username']."] (level ".$_SESSION["access_level"].") attempted to modify [$username] (level ".$levelobj->access_level.")!");
         echo "ERROR: Cannot modify users with a higher access level than your own.<br>";
@@ -91,19 +94,19 @@
         }
         else {
           syslog(LOG_INFO, "User [$cleanuser] was added by [".$_SESSION['username']."]");
-          MysqlQuery("INSERT INTO cad.users (username, password, name, access_level, access_acl, timeout) VALUES ('$cleanuser', PASSWORD('" . $cleanpassword . "'), '$cleanname', '$cleanaccesslevel', '$cleanaccessacl', '$cleantimeout')");
+          MysqlQuery("INSERT INTO cad.users (username, password, name, access_level, access_acl, timeout) VALUES ('$cleanuser', ".$pswd.", '$cleanname', '$cleanaccesslevel', '$cleanaccessacl', '$cleantimeout')");
           header('Location: config-users.php?moduser='.mysql_insert_id().'&action=Added');
         }
       }
       elseif ($cleanid) {
         syslog(LOG_INFO, "User [$cleanuser] was edited by [".$_SESSION['username']."]");
-        MysqlQuery("UPDATE cad.users SET password=PASSWORD('" . $cleanpassword . "'), access_level='$cleanaccesslevel', access_acl='$cleanaccessacl', timeout='$cleantimeout', name='$cleanname' WHERE id='$cleanid'");
+        MysqlQuery("UPDATE cad.users SET password=".$pswd.", access_level='$cleanaccesslevel', access_acl='$cleanaccessacl', timeout='$cleantimeout', name='$cleanname' WHERE id='$cleanid'");
         header('Location: config-users.php?moduser='.$cleanid.'&action=Saved');
       }
       else {
         #TODO: error
         exit;
-      } 
+      }
     }
   }
   if (isset($_GET["edituser"]) || isset($_GET["adduser"]) || $check_errormsg != "") {
@@ -127,86 +130,80 @@
   # TODO: if any new columns WERE accepted in previous form validation that set check_errormsg, recall and use the changed ones.
       }
     }
-
-      ?>
-<HTML>
-<HEAD>
-  <TITLE>Dispatch :: Configuration :: Users</title>
-  <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA=screen>
-</head>
-<body vlink=blue link=blue alink=cyan>
-<?php include('include-title.php') ?>
-<p>
-<span style=h1><b>Editing User Values</b></span>
-      <form method=post action="<?php print $_SERVER["PHP_SELF"]?>">
+    header_html("Dispatch :: Configuration :: Users");
+?>
+<body vlink="blue" link="blue" alink="cyan">
+<? include('include-title.php'); ?>
+<span style='h1'><b>Editing User Values</b></span>
+      <form method="post" action="<?php print $_SERVER["PHP_SELF"]?>">
       <table style="border: black groove 1px"><tr><td>
       <table>
       <tr>
       <?php if (isset($_GET["adduser"])) { ?>
 
           <td class="message">New User Login name:</td>
-          <td><input size=40 type=text name=edituser onChange="this.style.backgroundColor='yellow'">
-          <input type=hidden name=adduser value="1">
+          <td><input size="4"0 type="text" name="edituser" onChange="this.style.backgroundColor='yellow'" />
+          <input type="hidden" name="adduser" value="1" />
           <script language="javascript">document.forms[0].edituser.focus();</script></td>
       <?php  } else { ?>
           <td class="th">Editing User</td>
           <td class="th">
-          <input type=hidden name=id value="<?php print $user->id ?>">
-          <input type=hidden name=edituser value="<?php print $user->username?>">
+          <input type="hidden" name="id" value="<?=$user->id;?>" />
+          <input type="hidden" name="edituser" value="<?=$user->username;?>" />
           <?php print $user->username ?> </td>
       <?php  } ?>
 
-      <tr><td class="message">Full Name  
-          <td><input type=text size=40 name=name 
-               value="<?php print $user->name ?>" 
-               onChange="this.style.backgroundColor='yellow'">
+      <tr><td class="message">Full Name
+          <td><input type="text" size="40" name="name"
+               value="<?=MysqlUnClean($user->name);?>"
+               onChange="this.style.backgroundColor='yellow'" />
                </td>
-      <?php if (!isset($_GET["adduser"])) { 
-          echo "<script language=\"javascript\">document.forms[0].name.focus();</script>\n";
+      <?php if (!isset($_GET["adduser"])) {
+          echo "<script type=\"text/javascript\">document.forms[0].name.focus();</script>\n";
           }?>
-      <tr><td class="message">Password   
-          <td><input type=password size=40 name=password 
-              value="<?php print $user->password ?>"
-               onChange="this.style.backgroundColor='yellow'">
-               <?php if ($check_password) echo "<font color=red>*"; ?>
+      <tr><td class="message">Password
+          <td><input type="password" size="40" name="password"
+              value="<?=MysqlUnClean($user->password);?>"
+               onChange="this.style.backgroundColor='yellow'" />
+               <?php if ($check_password) echo "<font color=\"red\">*"; ?>
                </td>
-      <tr><td class="message">Password (verify)  
-          <td><input type=password size=40 name=password2 
-               value="<?php print $user->password   ?>"
-               onChange="this.style.backgroundColor='yellow'">
-               <?php if ($check_password) echo "<font color=red>*"; ?>
+      <tr><td class="message">Password (verify)
+          <td><input type="password" size="40" name="password2"
+               value="<?=MysqlUnClean($user->password);?>"
+               onChange="this.style.backgroundColor='yellow'" />
+               <?php if ($check_password) echo "<font color=\"red\">*"; ?>
                </td>
-      <tr><td class="message">Access Level   
-          <td><input type=text size=10 name=access_level 
-               value="<?php print $user->access_level   ?>"
-               onChange="this.style.backgroundColor='yellow'">
-               <?php if ($check_accesslevel) echo "<font color=red>*"; ?>
+      <tr><td class="message">Access Level
+          <td><input type="text" size="10" name="access_level"
+               value="<?=MysqlUnClean($user->access_level);?>"
+               onChange="this.style.backgroundColor='yellow'" />
+               <?php if ($check_accesslevel) echo "<font color=\"red\">*"; ?>
                </td>
-      <tr><td class="message">Access ACL     
-          <td><input type=text size=10 name=access_acl 
-               value="<?php print $user->access_acl   ?>"
-               onChange="this.style.backgroundColor='yellow'">
-               <?php if ($check_accessacl) echo "<font color=red>*"; ?>
+      <tr><td class="message">Access ACL
+          <td><input type="text" size="10" name="access_acl"
+               value="<?=MysqlUnClean($user->access_acl);?>"
+               onChange="this.style.backgroundColor='yellow'" />
+               <?php if ($check_accessacl) echo "<font color=\"red\">*"; ?>
                </td>
-      <tr><td class="message">Timeout   
-          <td><input type=text size=10 name=timeout 
-               value="<?php print $user->timeout   ?>"
-               onChange="this.style.backgroundColor='yellow'">
-               <?php if ($check_timeout) echo "<font color=red>*"; ?>
+      <tr><td class="message">Timeout
+          <td><input type="text" size="10" name="timeout"
+               value="<?=MysqlUnClean($user->timeout);?>"
+               onChange="this.style.backgroundColor='yellow'" />
+               <?php if ($check_timeout) echo "<font color=\"red\">*"; ?>
                </td>
       </tr>
 
       <?php if ($check_errormsg) {
         ?>
-        <tr><td colspan=2 style="font-weight: bold">Error:  settings flagged above are invalid, reverting:</td> </tr>
-        <tr><td colspan=2 style="color: red"><?php echo $check_errormsg ?></td> </tr>
+        <tr><td colspan="2" style="font-weight: bold">Error:  settings flagged above are invalid, reverting:</td> </tr>
+        <tr><td colspan="2" style="color: red"><?=$check_errormsg;?></td></tr>
         <?php }
         ?>
 
       </table>
       </td></tr></table>
-      <input value="Save Changes" type=submit><input value="Clear Changes" type=reset>
-      <?php if (!isset($_GET["adduser"])) { 
+      <input value="Save Changes" type="submit"><input value="Clear Changes" type="reset" />
+      <?php if (!isset($_GET["adduser"])) {
           echo "&nbsp;&nbsp;&nbsp;    <a href=\"config-users.php?delete=".$user->id."\">Delete This User</a><br>";
           }?>
       </form>
@@ -231,54 +228,51 @@
     if (isset($_GET["action"]) && $_GET["action"]) {
       $action = $_GET["action"];
     }
-
+    header_html('Dispatch :: Configuration :: Users')
 ?>
-<HTML>
-<HEAD>
-  <TITLE>Dispatch :: Configuration :: Users</title>
-  <LINK REL=StyleSheet HREF="style.css" TYPE="text/css" MEDIA=screen>
-</head>
-<body vlink=blue link=blue alink=cyan>
-<?php 
+<body vlink="blue" link="blue" alink="cyan">
+<?
   include('include-title.php');
-  include('include-footer.php'); 
 ?>
 
 <p>
-<span style=h1><b>User Administration</b></span>
+<span style="h1"><b>User Administration</b></span>
 <table style="border: blue ridge 3px; background-color: gray" >
 <tr>
-  <td class=th>Login</td>
-  <td class=th>Name</td>
-  <td class=th>Access Level</td>
-  <td class=th>Access ACL</td>
-  <td class=th>Timeout</td>
-  <?php if ($moduser) {
-    echo "<td class=th>Status</td>\n";
+  <td class="th">Login</td>
+  <td class="th">Name</td>
+  <td class="th">Access Level</td>
+  <td class="th">Access ACL</td>
+  <td class="th">Timeout</td>
+<? if ($moduser) {
+    echo "<td class=\"th\">Status</td>\n";
   }
-  ?>
+?>
 </tr>
 <?php
     $userlist = MysqlQuery("SELECT * FROM users ORDER BY username");
     while ($user = mysql_fetch_object($userlist)) {
-      echo "<tr><td class=message><a href=\"config-users.php?edituser=$user->id\">" . $user->username . "</a></td>\n";
-      echo "<td class=message>" . $user->name . "</td>\n";
-      echo "<td class=message>" . $user->access_level . "</td>\n";
-      echo "<td class=message>" . $user->access_acl . "</td>\n";
-      echo "<td class=message>" . $user->timeout . "</td>\n";
+      echo "<tr>\n";
+      echo "  <td class=\"message\"><a href=\"config-users.php?edituser=$user->id\">" . 
+           MysqlUnClean($user->username) . "</a></td>\n";
+      echo "  <td class=\"message\">" . MysqlUnClean($user->name) . "</td>\n";
+      echo "  <td class=\"message\">" . MysqlUnClean($user->access_level) . "</td>\n";
+      echo "  <td class=\"message\">" . MysqlUnClean($user->access_acl) . "</td>\n";
+      echo "  <td class=\"message\">" . MysqlUnClean($user->timeout) . "</td>\n";
       if ($moduser) {
         if ($moduser == $user->id) {
-          echo "<td class=notice>$action user.</td>\n";
+          echo "  <td class=\"notice\">$action user.</td>\n";
         }
         else {
-          echo "<td class=message>&nbsp;</td>\n";
+          echo "  <td class=\"message\">&nbsp;</td>\n";
         }
       }
-      
-      echo "</tr>\n\n";
+
+      echo "</tr>";
     }
     if ($action == "Deleted") {
-      echo "<tr><td colspan=100% class=notice>Deleted user '".$_GET["username"]."'.</td></tr>";
+      echo "<tr>";
+      echo "  <td colspan=\"100%\" class=\"notice\">Deleted user '".$_GET["username"]."'.</td></tr>";
     }
 ?>
 </table>
@@ -288,4 +282,4 @@
     <?php
   }
 
-  echo "</body></html>";
+  echo "</body>\n</html>\n";
