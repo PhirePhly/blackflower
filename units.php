@@ -7,8 +7,7 @@
   require_once('functions.php');
 
   header_html("Dispatch :: Unit Listing",
-              "  <script src=\"js/clock.js\" type=\"text/javascript\"></script>",
-              $refreshURL);
+              "  <script src=\"js/clock.js\" type=\"text/javascript\"></script>");
 ?>
 <body vlink="blue" link="blue" alink="cyan"
       onload="displayClockStart()"

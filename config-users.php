@@ -178,6 +178,7 @@
                value="<?=MysqlUnClean($user->access_level);?>"
                onChange="this.style.backgroundColor='yellow'" />
                <?php if ($check_accesslevel) echo "<font color=\"red\">*"; ?>
+               <span class=text> (1 = normal user; 5 = supervisor; 9 = asst/dep/chief; 10 = system admin)</span>
                </td>
       <tr><td class="message">Access ACL
           <td><input type="text" size="10" name="access_acl"

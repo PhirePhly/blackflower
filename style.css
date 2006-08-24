@@ -3,6 +3,14 @@ li { font-size: 10pt; text-align: justify }
 .text 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
 .textj 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm; text-align: justify }
 .time 	{ background-color: #cccccc; color: black; font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
+
+
+.iconred    { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid red; color: red }
+.iconyellow { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid yellow; background-color: gray; color: yellow }
+.iconblue   { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid blue; color: blue }
+.iconwhite  { font-size:9px; padding-left: 2px; padding-right: 2px; background-color: white; border: 1px solid gray; color: black; font-weight: bold }
+.icongray   { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid gray; color: gray }
+
 .message {
     font-family: tahoma, sans;
     background-color: #cccccc;

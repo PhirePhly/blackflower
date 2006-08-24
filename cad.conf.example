@@ -8,4 +8,6 @@
   $DEFAULT_ADMIN_PW = "admin";
 
   $BULLETIN_TITLE_SCAN = 1;
+
+  $INCIDENT_UNIT_COLUMNS = 4;
 ?>

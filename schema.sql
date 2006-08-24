@@ -102,16 +102,27 @@ CREATE TABLE messages (
 	);
 
 CREATE TABLE units (
-	unit	varchar(20) not null primary key,
-	status	varchar(30),
-	status_comment varchar(255),
-	update_ts datetime,
-	role	set('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Law Enforcement', 'Other'),
-	type	set('Unit', 'Individual', 'Generic'),
-	personnel varchar(100),
+	unit	        VARCHAR(20) NOT NULL PRIMARY KEY,
+	status	      VARCHAR(30),
+	status_comment VARCHAR(255),
+	update_ts     DATETIME,
+	role	        SET('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Law Enforcement', 'Other'),
+	type	        SET('Unit', 'Individual', 'Generic'),
+	personnel     VARCHAR(100),
+  assignment    VARCHAR(20),
 
   INDEX (status, type)
 	);
+
+CREATE TABLE unit_assignments (
+  assignment      VARCHAR(20),
+  description     VARCHAR(40),
+  display_class   VARCHAR(80),
+  display_style   TEXT,
+
+  PRIMARY KEY (assignment)
+  );
+
 
 CREATE TABLE incidents (
 	incident_id	int not null auto_increment primary key,
@@ -205,4 +216,12 @@ INSERT INTO unitcolors VALUES ('Medical', 'Blue', 'Blue');
 INSERT INTO unitcolors VALUES ('MHB', 'Green', 'Green');
 INSERT INTO unitcolors VALUES ('Other', 'Black', 'Black');
 
-insert into users (username, password, name, access_level) values ('Administrator', PASSWORD('admin'), 'Administrator Role Account', 15);
+INSERT INTO unit_assignments (assignment, description, display_class, display_style) VALUES
+('BC', 'Battalion Chief', 'iconyellow', NULL),
+('IC', 'Incident Commander', 'iconwhite', NULL),
+('DC', 'Duty Chief', 'iconred', NULL),
+('MDC', 'Medical Duty Chief', 'iconblue', NULL),
+('S', 'Supervisor', 'icongray', NULL);
+
+INSERT INTO users (username, password, name, access_level) VALUES 
+('Administrator', PASSWORD('admin'), 'Administrator Role Account', 15);
