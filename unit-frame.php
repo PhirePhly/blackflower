@@ -23,13 +23,8 @@
   while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
     $rolecolor[$line["role"]] = $line["color_html"];
   }
-  $refreshURL = $_SERVER["PHP_SELF"];
-  if (isset($_GET["search"]))
-    $refreshURL .= "?search=".MysqlClean($_GET,"search",20);
-  if (isset($_GET["hour"]))
-    $refreshURL .= "&hour=".MysqlClean($_GET,"hour",2);
 
-  header_html("Dispatch :: Unit Listing","",$refreshURL);
+  header_html("Dispatch :: Unit Listing");
 
 ?>
 <body vlink="blue" link="blue" alink="cyan"
@@ -47,7 +42,7 @@
       $title = "&nbsp;&nbsp;<b>$type</b> Class Units";
     }
 
-    $unitquery = "SELECT * from units $wheretype ORDER BY unit ASC ";
+    $unitquery = "SELECT * from units u LEFT OUTER JOIN unit_assignments a ON u.assignment=a.assignment $wheretype ORDER BY unit ASC ";
     $unitresult = mysql_query($unitquery) or die("unit Query failed : ".mysql_error());
 
     $unitarray = array();
@@ -104,8 +99,17 @@
         }
         mysql_free_result($oidresult);
 
+        $icon = "";
+        if (isset($unitrow["assignment"])) {
+          $icon = "<span class=" . $unitrow["display_class"] . " title=\"" .
+                  $unitrow["description"] . "\">" . $unitrow["assignment"] .
+                  "</span>";
+        }
+
         echo "\n  <tr>\n";
-        echo $td, "<a href=\"edit-unit.php?unit=", $u_name, "\" onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit(edit)',500,700)\">", $u_name_html,"</a></td>\n";
+        echo $td, "<a href=\"edit-unit.php?unit=", $u_name, "\" onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit(edit)',500,700)\">", $u_name_html,"</a>&nbsp;&nbsp;$icon</td>\n";
+
+
         echo $td, $unitrow["role"], "</td>\n";
         if ($u_status_tm != "")
           echo $td, "$u_status_html&nbsp;($u_status_tm)</td>\n";

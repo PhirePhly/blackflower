@@ -6,6 +6,15 @@ require_once('db-open.php');
 include('local-dls.php');
 require_once('session.inc');
 $subsys="reports";
+
+
+  if ($_SESSION["access_level"] < 5) {
+    header_html('Dispatch :: Access Restricted');
+    include('include-title.php');
+    print "Access level too low to access Reports page.";
+    exit;
+  }
+
 header('Content-type: application/pdf');
 
 class PDF extends FPDF

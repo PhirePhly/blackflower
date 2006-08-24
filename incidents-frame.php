@@ -136,10 +136,8 @@
      }
      mysql_free_result($result);
 
-     echo "<ul>\n  <li>\n";
-     $query = "SELECT * from units ORDER BY unit";
+     $query = "SELECT * FROM units u LEFT OUTER JOIN unit_assignments a on u.assignment=a.assignment";
      $result = mysql_query($query) or die ("In query: $query<br>\nError: ".mysql_error());
-     $maxdisplayrows = 0;
      $unitnames = array();
      $unitarray = array();
      while ($unitrow = mysql_fetch_array($result, MYSQL_ASSOC)) {
@@ -147,7 +145,33 @@
        $unitarray[$unitrow["unit"]] = $unitrow;
      }
      natsort($unitnames);
+
+     $columns = 1;
+     $columnwidthpct = 25;
+     if (count($unitnames) > 10) {
+       $columns = $INCIDENT_UNIT_COLUMNS;
+       if ($columns >= 3) {
+         $columnwidthpct = (int)100/$columns;
+       }
+     }
+
+     $displayunits = array();
+
+     print "<table >\n";
+     print "<tr><td></td></tr>\n";
+     print "<tr><td colspan=100>\n";
+     print "<span class=text><b>Unit Availability</b> &nbsp; &nbsp; (Units shown in <b>Bold</b>, Generic Units shown in <span style=\"border: 2px dotted gray; background-color: #cccccc\">Dashed Bold</span>.  Icons indicate designated supervisory Assignment.)</span>\n";
+     print "</td></tr>\n";
+     print "<tr><td></td></tr>\n";
+
+     print "<tr>\n";
+     print "<td valign=top width=\"$columnwidthpct%\" align=left>";
+     print "<table cellpadding=\"1\" cellspacing=\"1\" bgcolor=\"#aaaaaa\">";
+
+     $threshold = sizeof($unitnames) / $columns;
+     $pos_counter = 0;
      foreach ($unitnames as $u_name) {
+       $pos_counter++;
        $unitrow = $unitarray[$u_name];
 
        $u_name_html = str_replace(" ", "&nbsp;", $u_name);
@@ -158,64 +182,58 @@
            $unitrow["status"] == "Off Playa") {
          $u_name_html = "<span style='color: gray;'>$u_name_html</span>";
        }
+       elseif ($unitrow["status"] == "Attached to Incident") {
+         $u_status_html = "<span style=\"font-size:9px\">Attached&nbsp;to&nbsp;Incident</font>";
+         $u_name_html = "<span style='background-color: yellow; color:black'>$u_name_html</span>";
+       }
        elseif (((isset($_COOKIE["units_color"]) && $_COOKIE["units_color"] == "yes")
              || !isset($_COOKIE["units_color"]))
              &&  isset($rolecolor[$unitrow["role"]])) {
-         $u_name_html = "<span style='color: ".$rolecolor[$unitrow["role"]].";'>$u_name_html</span>";
+         $u_name_html_build = "<span style='";
+
+         if ($unitrow["type"] == 'Unit') {
+           $u_name_html_build .= "font-weight: Bold; ";
+         }
+
+         elseif ($unitrow["type"] == 'Generic') {
+           $u_name_html_build .= " background-color: #bbbbbb; border: 2px dotted gray; padding-left: 1px; padding-right: 1px; font-weight: bold; ";
+         }
+
+         $u_name_html_build .= "color: ".$rolecolor[$unitrow["role"]].";'>$u_name_html</span>";
+         $u_name_html = $u_name_html_build;
        }
 
-       if ($unitrow["status"] == "Attached to Incident") {
-         $u_name_html = "<span style='background-color: yellow; color:black'>$u_name_html</span>";
+       if ($unitrow["status"] == "Available on Pager") {
+         $u_status_html = "<span style=\"font-size:9px\">Available&nbsp;on&nbsp;Pager</font>";
        }
-       $display = "<td class=\"message\">"
-                . "<a href=\"edit-unit.php?unit=".$u_name."\""
-                . " onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit-".str_replace(" ", "&nbsp;", $unitrow["unit"])."',500,700)\">"
-                . $u_name_html."</a></td><td class=\"message\">$u_status_html</td>";
-       $type = $unitrow["type"];
-       if (isset($units[$type]))
-         $units[$type][sizeof($units[$type])+1] = $display;
-       else
-         $units[$type][1] = $display;
 
-       if (sizeof($units[$type]) > $maxdisplayrows)
-         $maxdisplayrows = sizeof($units[$type]);
+
+       $icon = "";
+       if (isset($unitrow["assignment"])) {
+         $icon = "<span class=" . $unitrow["display_class"] . " title=\"" .
+                 $unitrow["description"] . "\">" . $unitrow["assignment"] .
+                 "</span>";
+       }
+
+       print "<tr><td class=\"message\">"
+             . "<a href=\"edit-unit.php?unit=".$u_name."\""
+             . " onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit-".str_replace(" ", "&nbsp;", $unitrow["unit"])."',500,700)\">"
+             . $u_name_html."</a>&nbsp;&nbsp;$icon</td><td class=\"message\">$u_status_html</td></tr>\n";
+
+       if ($pos_counter >= $threshold) {
+         print "</table></td>\n\n";
+         print "<td valign=top width=\"$columnwidthpct%\" align=left>\n";
+         print "<table cellpadding=\"1\" cellspacing=\"1\" bgcolor=\"#aaaaaa\">\n";
+         $pos_counter = 0;
+       }
+
      }
      mysql_free_result($result);
-
-     $types = array("Unit", "Individual", "Generic", "");
-     echo "  <table>\n  <tr><td><table cellpadding=\"1\" cellspacing=\"1\">\n    <tr>";
-     foreach ($types as $type) {
-       if (isset($units[$type])) {
-         if ($type == "")
-           $type = "Other";
-         echo "<td class=\"text\" valign=\"top\" style='padding-right: 25px;'><b>$type</b> Class Units</td>";
-       }
-     }
-     echo "    </tr>\n    <tr>\n";
-     foreach ($types as $type) {
-       if (isset($units[$type])) {
-         echo "      <td valign=\"top\" style='padding-right: 25px;'>\n";
-         echo "      <table cellpadding=\"1\" cellspacing=\"1\" bgcolor=\"#aaaaaa\">\n";
-         for ($i=1; $i <= $maxdisplayrows; $i++) {
-           if (isset($units[$type][$i]))
-             echo "        <tr>",$units[$type][$i],"</tr>\n";
-           else
-             echo "        <tr><td style='font-size: 12px; background-color: #bbbbbb' colspan=\"2\">&nbsp;</td></tr>\n";
-         }
-         echo "      </table></td>\n";
-       }
-     } ?>
-    </tr></table></td>
-  </tr></table>
-  </li>
-</ul>
-<?
    }
 
    mysql_close($link);
  ?>
+ </table></td><td></td><td></td></tr></table>
 
 </body>
 </html>
-
-

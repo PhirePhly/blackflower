@@ -11,6 +11,7 @@
       if (isset($_POST['status'])) $status = MysqlClean($_POST,'status',30); else $status = "";
       if (isset($_POST['status_comment'])) $status_comment = MysqlClean($_POST,'status_comment',255); else $status_comment= "";
       if (isset($_POST['type'])) $type = MysqlClean($_POST,'type',20); else $type= "Unit";
+      if (isset($_POST['assignment'])) $assignment = MysqlClean($_POST,'assignment',20); else $assignment= "";
       if (isset($_POST['role'])) $role = MysqlClean($_POST,'role',20); else $role= "Other";
       if (isset($_POST['personnel'])) $personnel = MysqlClean($_POST,'personnel',100); else $personnel= "";
   }
@@ -32,7 +33,7 @@
 
       // update units
       // TODO: sanity check $unit input characters here?
-      $query = "INSERT INTO units (unit, status, status_comment, type, role, personnel, update_ts) VALUES ('$unit', '$status', '$status_comment', '$type', '$role', '$personnel', NOW())";
+      $query = "INSERT INTO units (unit, status, status_comment, type, role, personnel, update_ts, assignment) VALUES ('$unit', '$status', '$status_comment', '$type', '$role', '$personnel', NOW(), '$assignment')";
       mysql_query($query) or die("In query: $query\nError: " . mysql_error());
     }
 
@@ -60,7 +61,7 @@
       if ($_POST['status'] <> $_POST['previous_status'])
          $fragment = "status='$status', update_ts=NOW(),";
       else $fragment="";
-      $query = "UPDATE units SET $fragment status_comment='$status_comment', type='$type', role='$role', personnel='$personnel' WHERE unit='$unit'";
+      $query = "UPDATE units SET $fragment status_comment='$status_comment', type='$type', role='$role', personnel='$personnel', assignment='$assignment' WHERE unit='$unit'";
       mysql_query($query) or die("In query: $query\nError: " . mysql_error());
     }
     print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
@@ -93,6 +94,7 @@
     $unitline["status"] = "(new unit)";
     $unitline["role"] = "Other";
     $unitline["type"] = "Unit";
+    $unitline["assignment"] = "";
     $unitline["status_comment"] = "";
     $unitline["personnel"] = "";
     $unitline["update_ts"] = "";
@@ -123,15 +125,14 @@
   <p />
   <table width="660">
   <tr>
-  <td width="20">&nbsp;</td>
-  <td colspan="2" bgcolor="#aaaaaa" width="580">
+  <td colspan="3" bgcolor="#aaaaaa" width="580">
      <table cellpadding="2" cellspacing="0" width="100%">
      <tr>
 
   <?php
   if ($newunit) {
     print "<td class=\"message\"><b>Unit name</b></td>\n";
-    print "<td colspan=\"3\" class=\"message\"><input type=\"text\" name=\"unit\"><input type=\"hidden\" name=\"new-unit-entered\"></td>\n";
+    print "<td colspan=\"5\" class=\"message\"><input type=\"text\" name=\"unit\"><input type=\"hidden\" name=\"new-unit-entered\"></td>\n";
     print "</tr>\n<tr>\n";
     print "</tr>\n<tr>\n";
   }
@@ -140,7 +141,7 @@
   }
   ?>
 
-       <td class="message" width="150" STYLE="width: 150px"><u>S</u>tatus</td>
+       <td class="message" width="80" STYLE="width: 80px"><u>S</u>tatus</td>
        <td class="message">
          <label for="status" accesskey="s">
          <select name="status" id="status">
@@ -158,7 +159,7 @@
 	       echo "value=\"". MysqlUnClean($line["status"])."\">". $line["status"]."</option>\n";
        }
        if (!$statusset) {
-         echo "        <option selected value=\"none\">\n";
+         echo "        <option selected value=\"\">\n";
        }
 	     mysql_free_result($statusresult);
    /*----------------------------------------------------------------------*/?>
@@ -174,7 +175,7 @@
 <? /*----------------------------------------------------------------------*/
        $avail_types = array('Unit', 'Individual', 'Generic');
        if (array_search($unitline["type"], $avail_types) === FALSE) {
-         print "<option selected value=\"\"></option>\n";
+         print "<option selected value=\"\">(none)</option>\n";
        }
        foreach ($avail_types as $type) {
          print "<option ";
@@ -186,19 +187,42 @@
 
   </select>
   </label>
+  </td>
+
+<td class="message" width="50"><u>A</u>ssignment</td>
+<td class="message" width=150 style="width: 150px">
+  <label for="assignment" accesskey="a">
+  <select name="assignment" id="assignment" width="150" STYLE="width:150px">
+<? /*----------------------------------------------------------------------*/
+       $avail_asses = MysqlQuery('SELECT * FROM unit_assignments');
+       
+       print "<option value=\"\">(none)</option>\n";
+       while ($avail_assignment = mysql_fetch_object ($avail_asses)) {
+         print "<option ";
+         if ($unitline["assignment"] == $avail_assignment->assignment)
+           print "selected ";
+
+         print "value=\"".$avail_assignment->assignment."\">".
+               $avail_assignment->description."</option>\n";
+       }
+   /*----------------------------------------------------------------------*/?>
+   </select>
+
+</td>
 </tr>
+
 <tr>
  <td class="message" align="right">Updated:</td>
  <td class="message" align="right" width="150"><?=dls_utime($unitline["update_ts"])?></td>
  <td class="message" align="right">B<u>r</u>anch</td>
- <td class="message" align="right">
+ <td class="message" align="right" colspan=3>
     <label for="role" accesskey="role">
     <select name="role" id="role" width="100" STYLE="width: 100px">
 
        <?php /*--------------------------------------------------------------------------------------*/
          $avail_roles = array('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other');
          if (array_search($unitline["role"], $avail_roles) === FALSE) {
-		         print "<option selected value=\"\"></option>\n";
+		         print "<option selected value=\"\">(not set)</option>\n";
          }
          foreach ($avail_roles as $role) {
            print "<option ";

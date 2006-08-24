@@ -699,10 +699,10 @@
    <?php
    if (!$row->completed) {
      print "<td class=\"label\" colspan=3 valign=top>".
-           "<p name=\"release_label\" title=\"This option becomes available after a disposition is set.\">".
+           "<span name=\"release_label\" title=\"This option becomes available after a disposition is set.\">".
            "Release Assigned Units On Incident Completion".
-           "<input type=\"checkbox\" name=\"release_query\" tabindex=\"62\" disabled value=\"0\">".
-           "</td>\n";
+           "<input type=\"checkbox\" checked name=\"release_query\" tabindex=\"62\" disabled value=\"0\">".
+           "</span></td>\n";
    }
    else {
      print "<td>&nbsp;</td>\n";

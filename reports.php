@@ -11,6 +11,10 @@
 <body vlink="blue" link="blue" alink="cyan">
 <?php
   include('include-title.php');
+  if ($_SESSION["access_level"] < 5) {
+    print "Access level too low to access Reports page.";
+    exit;
+  }
 
   // Initialize date arrays for choosers, unit array for unit chooser
   $incidents_dates = array();
@@ -43,6 +47,7 @@
   while ($line = mysql_fetch_object($result)) {
     array_push($units, $line->unit);
   }
+  natsort($units);
   mysql_free_result($result);
 
   $query = "SELECT message_type FROM message_types";

@@ -65,10 +65,15 @@
      <select name="unit" id="unit" tabindex="3" style="width:150px">
      <option selected value=""></option>
 <?php
-      $unitquery = "SELECT unit FROM units ORDER BY unit ASC";
+      $unitquery = "SELECT unit FROM units";
       $unitresult = mysql_query($unitquery) or die("In query: $unitquery<br />\nError: " . mysql_error());
+      $unitnames = array();
       while ($line = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
-         echo "<option value=\"". $line["unit"] ."\">". $line["unit"] ."</option>\n";
+        array_push($unitnames, $line["unit"]);
+      }
+      natsort($unitnames);
+      foreach ($unitnames as $unitname) {
+         echo "<option value=\"$unitname\">$unitname</option>\n";
       }
       mysql_free_result($unitresult);
  ?>

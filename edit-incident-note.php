@@ -69,17 +69,22 @@
    }
    $query = "SELECT unit FROM units";
    $result = mysql_query($query) or die("Query failed : " . mysql_error());
-  
-   $selected=0;
+   $unitnames = array();
    while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
-      if (!strcmp($line["unit"], $unit)) {
-        echo "<option selected value=\"". $line["unit"] ."\">". $line["unit"] ."\n";
-	$selected=1;
-      }
-      else
-        echo "<option value=\"". $line["unit"] ."\">". $line["unit"] ."\n";
+     array_push($unitnames, $line["unit"]);
    }
-   if (!$selected)
+   natsort($unitnames);
+  
+   $foundselected=0;
+   foreach ($unitnames as $oneunit) {
+      echo "<option ";
+      if (!strcmp($oneunit, $unit)) {
+        echo " selected ";
+	      $foundselected=1;
+      }
+      echo " value=\"$oneunit\">$oneunit</option>\n";
+   }
+   if (!$foundselected)
       echo "<option selected value=\"\"></option>";
    print "</select>\n";
 ?>
