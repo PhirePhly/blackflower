@@ -26,9 +26,9 @@ header_html("Dispatch :: Main Menu");
 
 <div style='font-family: Tahoma; font-size: 18'><a href='incidents.php'>Incidents</a></div><p>
 <div style='font-family: Tahoma; font-size: 18'><a href='units.php'>Units</a></div><p>
-<div style='font-family: Tahoma; font-size: 18'><a href='cad.php'>Log Messages</a></div><p>
-<div style='font-family: Tahoma; font-size: 18'><a href='config.php'>Settings</a></div><p>
-<div style='font-family: Tahoma; font-size: 18'><a href='reports.php'>Reports</a></div><p>
+<div style='font-family: Tahoma; font-size: 18'><a href='cad.php'>Log Viewer</a></div><p>
+<div style='font-family: Tahoma; font-size: 18'><a href='bulletins.php'>Bulletins</a></div><p>
+<div style='font-family: Tahoma; font-size: 18'><a href='config.php'>Preferences</a></div><p>
 <div style='font-family: Tahoma; font-size: 18'><a href='help.php'>Help</a></div><p>
 </ul>
 </body>
