@@ -63,7 +63,7 @@ CREATE TABLE bulletins (
   PRIMARY KEY (bulletin_id),
   INDEX (updated),
   INDEX (access_level),
-  INDEX (closed),
+  INDEX (closed)
 );
 
 CREATE TABLE bulletin_views (
