@@ -501,6 +501,14 @@
     function handleIncidentType() {
       if (document.myform.call_type.value == "not selected") {
         document.myform.disposition.selectedIndex = 0;
+        document.myform.ts_complete.value = "0000-00-00 00:00:00";
+        document.myform.dts_complete.value = "";
+        // If the release_query checkbox is present, disable it and reset values
+        if (document.myform.release_query != null) {
+          document.myform.release_query.disabled = 1;
+          document.myform.release_query.checked = 0;
+          document.myform.release_query.value = 0;
+        }
       }
     }
 
@@ -715,16 +723,17 @@
 <tr>
    <td class="label">&nbsp;</td>
    <td class="label" align="middle">
-   <input type="submit" name="save_incident" tabindex="41" value="Save">
-   <input type="submit" name="save_incident_closewin" tabindex="42" value="Save & Return">
+   <button type="submit" name="save_incident" tabindex="41" accesskey="1"><u>1</u>  Save</button>
+   <button type="submit" name="save_incident_closewin" tabindex="42" value="Save & Return" accesskey="2"><u>2</u>  Save & Return</button>
 <?php
   if (!$row->visible && !$row->completed) {
-    echo "<input type=\"submit\" name=\"incident_abort\" tabindex=\"43\" value=\"Abort Incident\">\n";
+    echo "<button type=\"submit\" name=\"incident_abort\" tabindex=\"43\" accesskey=\"3\"><u>3</u>  Abort Incident</button>\n";
     echo "</td>\n<td class=\"label\" colspan=\"4\" align=\"left\">&nbsp;</td>\n";
   }
   else {
-    echo "<input type=\"button\" name=\"cancel_changes\" tabindex=\"43\" value=\"Cancel\" ";
+    echo "<button type=\"button\" name=\"cancel_changes\" tabindex=\"44\" accesskey=\"3\" ";
     echo "onClick='if (window.opener){window.opener.location.reload()} self.close()'>\n";
+    echo "<u>3</u>  Cancel</button> ";
     echo "</td>\n<td class=\"label\" colspan=\"4\" align=\"left\">&nbsp;";
     echo "<NOSCRIPT><B>Warning</B>: Javascript is disabled. Close this incident popup to cancel changes.</NOSCRIPT>";
     echo "</td>\n";

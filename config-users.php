@@ -1,5 +1,5 @@
 <?php
-  $subsys = "config";
+  $subsys = "admin";
   require_once('session.inc');
   require_once('db-open.php');
   require_once('functions.php');
