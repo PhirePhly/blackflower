@@ -188,6 +188,7 @@ INSERT INTO incident_types VALUES ('LAW ENFORCEMENT');
 INSERT INTO incident_types VALUES ('ILLNESS');
 INSERT INTO incident_types VALUES ('INJURY');
 INSERT INTO incident_types VALUES ('MENTAL HEALTH');
+INSERT INTO incident_types VALUES ('PUBLIC ASSIST');
 INSERT INTO incident_types VALUES ('TRAFFIC CONTROL');
 INSERT INTO incident_types VALUES ('TRAINING');
 INSERT INTO incident_types VALUES ('OTHER');
@@ -219,7 +220,7 @@ INSERT INTO unitcolors VALUES ('Other', 'Black', 'Black');
 INSERT INTO unit_assignments (assignment, description, display_class, display_style) VALUES
 ('BC', 'Battalion Chief', 'iconyellow', NULL),
 ('IC', 'Incident Commander', 'iconwhite', NULL),
-('DC', 'Duty Chief', 'iconred', NULL),
+('FDC', 'Fire Duty Chief', 'iconred', NULL),
 ('MDC', 'Medical Duty Chief', 'iconblue', NULL),
 ('S', 'Supervisor', 'icongray', NULL);
 

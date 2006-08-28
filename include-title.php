@@ -28,7 +28,7 @@
     while ($view = mysql_fetch_object($bulletin_views)) {
       $LastRead[$view->bulletin_id] = $view->last_read;
     }
-    $bulletins = MysqlQuery('SELECT bulletin_id, updated FROM bulletins WHERE closed=0');
+    $bulletins = MysqlQuery('SELECT bulletin_id, updated FROM bulletins WHERE access_level <= '.(int)$_SESSION['access_level'] .' AND closed=0');
     while ($bull = mysql_fetch_object($bulletins)) {
       if (!isset($LastRead[$bull->bulletin_id])) {
         $new_bull++;

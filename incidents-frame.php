@@ -160,7 +160,7 @@
      print "<table >\n";
      print "<tr><td></td></tr>\n";
      print "<tr><td colspan=100>\n";
-     print "<span class=text><b>Unit Availability</b> &nbsp; &nbsp; (Units shown in <b>Bold</b>, Generic Units shown in <span style=\"border: 2px dotted gray; background-color: #cccccc\">Dashed Bold</span>.  Icons indicate designated supervisory Assignment.)</span>\n";
+     print "<span class=text><b>Unit Availability</b> &nbsp; &nbsp; (Units shown in <b>Bold</b>, Generic Units shown in <span style=\"border: 2px dotted gray; background-color: #cccccc\"><b>Dashed Bold</b></span>.  Icons indicate designated supervisory Assignment.)</span>\n";
      print "</td></tr>\n";
      print "<tr><td></td></tr>\n";
 
