@@ -309,7 +309,6 @@
   </table>
 
 <?php 
-  // TODO: set access level dynamically
   if (isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
 
     $paginglink = mysql_connect($PAGINGHOST, $PAGINGUSER, $PAGINGPASS) or die("Could not connect : " . mysql_error());
@@ -319,7 +318,8 @@
       $Pagers[$pager_option->pager_id] = $pager_option->name;
     }
     $pageout_query = mysql_query("SELECT * FROM unit_incident_paging WHERE unit='$unit'", $paginglink);
-    if (mysql_num_rows($pageout_query)) {
+    // TODO: set access level dynamically
+    if (mysql_num_rows($pageout_query) || $_SESSION['access_level'] >= 5) {
       ?>
 
   <table width="300" valign=top>
@@ -334,6 +334,7 @@
 
      <?php
       while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
+        // TODO: set access level dynamically
         if ($_SESSION['access_level'] >= 5) {
           print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td><td align=right class=message><input type=submit name=\"delete_pageout_". $pageout_rcpt->row_id . "\" value=\"Delete\"></td></tr>";
           unset($Pagers[$pageout_rcpt->to_pager_id]);

@@ -1,6 +1,10 @@
 CHANGES
 -------
 
+Version 1.4.3 - 2006-08-30
+* Cosmetic fix for edit-unit auto-page fields
+* Removed JS alert() debugging statement from edit-incident
+
 Version 1.4.2 - 2006-08-30
 * Auto page on unit dispatch
   - Updated: edit-incident.php, schema.sql, cad.conf.example, cad.conf,
