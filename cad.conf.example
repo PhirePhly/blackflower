@@ -1,13 +1,22 @@
 <?php
+// Database links:
   $DBHOST = "localhost";
   $DBUSER = "cad";
   $DBPASS = "cad-password";
   $DB = "cad";
 
+  $PAGINGDB = "paging";
+  $PAGINGHOST = "localhost";
+  $PAGINGUSER = "cad";
+  $PAGINGPASS = "cad-password";
+
+// Booleans:
+  $BULLETIN_TITLE_SCAN = 1;
+  $USE_PAGING_LINK = 1;
+
+// Config values:
   $DEFAULT_ADMIN = "Administrator";
   $DEFAULT_ADMIN_PW = "admin";
-
-  $BULLETIN_TITLE_SCAN = 1;
 
   $INCIDENT_UNIT_COLUMNS = 4;
 ?>
