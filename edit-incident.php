@@ -573,7 +573,7 @@
           alert('You must choose a Call Type before marking the incident as Completed.');
         }
         else {
-          alert('type ok setting times and release');
+          //alert('type ok setting times and release'); -- debugging code!  don't leave in production checkins...
           // If the completed timestamps do not already have values, fill them in now
           // just in case maybe we're changing the disposition type after completion of the incident
           if ((document.myform.ts_complete.value == "0000-00-00 00:00:00" ||
