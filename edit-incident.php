@@ -203,9 +203,62 @@
           if ($ts_dispatch == "" || $ts_dispatch == "0000-00-00 00:00:00") {
             $ts_dispatch = "NOW()";
           }
+
+          // If there are Auto-Pageout pagers associated with this unit, page them out (insert into
+          // paging tables..)  Do this AFTER unlocking the CAD tables, since there may be delays
+          // getting the page batches and messages all built and entered.
+          if (isset($PAGINGDB) && isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+            $paginglink = mysql_connect($PAGINGHOST, $PAGINGUSER, $PAGINGPASS) or die("Could not connect : " . mysql_error());
+            $pageout_query = mysql_query("SELECT * FROM unit_incident_paging WHERE unit='$unit'", $paginglink);
+            if (mysql_num_rows($pageout_query)) {
+          
+              $fromuser = 'CAD Auto Page';
+              $ipaddr = $_SERVER['REMOTE_ADDR'];
+              $message = ">>> $unit Assigned to Incident #$incident_id";
+              if (isset($_POST['location'])) {
+                $message .= ' - Location [' . MysqlClean($_POST, 'location', 80) . ']';
+              }
+  
+              if (strlen($message) < 110 && isset($_POST['call_details'])) {
+                $message = $message . ' - ' . MysqlClean($_POST, 'call_details', 80);
+              }
+              if (strlen($message) >= 128) {
+                $message = substr($message, 0, 127);
+              }
+            
+              if (!mysql_query("INSERT into $PAGINGDB.batches (from_user, from_ipaddr, orig_message, entered) ".
+                               " VALUES ('$fromuser', '$ipaddr', '$message', NOW() )", $paginglink) || 
+                  mysql_affected_rows() != 1) {
+                syslog(LOG_WARNING, "Error inserting row into database $PAGINGDB.batches as [$PAGINGHOST/$PAGINGUSER]");
+              }
+              else {
+                $batch_id = mysql_insert_id();
+            
+                while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
+                  if (!mysql_query("INSERT into $PAGINGDB.messages (from_user, to_pager_id, message) VALUES ".
+                                   "('$fromuser', " . $pageout_rcpt->to_pager_id . ", '$message')", $paginglink) ||
+                      mysql_affected_rows() != 1) {
+                    syslog(LOG_WARNING, "Error inserting row into $PAGINGDB.messages as [$PAGINGHOST/$PAGINGUSER]");
+                  }
+                  $msg_id = mysql_insert_id();
+                
+                  if (!mysql_query("INSERT into $PAGINGDB.batch_messages (batch_id, msg_id) VALUES ".
+                                      "($batch_id, $msg_id)", $paginglink) ||
+                      mysql_affected_rows() != 1) {
+                    syslog(LOG_WARNING, "Error inserting row into $PAGINGDB.batch_messages as [$PAGINGHOST/$PAGINGUSER]");
+                  }
+
+                  if (!mysql_query("INSERT into $PAGINGDB.send_queue (status, msg_id, queued) VALUES ".
+                                      "('Queued', $msg_id, NOW())", $paginglink) ||
+                      mysql_affected_rows() != 1) {
+                    syslog(LOG_WARNING, "Error inserting row into $PAGINGDB.send_queue as [$PAGINGHOST/$PAGINGUSER]");
+                  }
+                }
+              }
+            }
+          }
         }
       }
-
 
       // Clean and store the arrival timestamp
       $ts_arrival = MysqlClean($_POST, "ts_arrival", 40);
@@ -513,8 +566,6 @@
     }
 
     function handleDisposition() {
-      // Do we really need this?
-      //document.myform.dts_complete.disabled = false;
       if (document.myform.disposition.value != "") {
         // We don't want to complete the incident unless it has a defined type assiciated with it
         if (document.myform.call_type.value == "not selected") {
@@ -522,9 +573,12 @@
           alert('You must choose a Call Type before marking the incident as Completed.');
         }
         else {
+          alert('type ok setting times and release');
           // If the completed timestamps do not already have values, fill them in now
           // just in case maybe we're changing the disposition type after completion of the incident
-          if (document.myform.ts_complete.value == "0000-00-00 00:00:00" && document.myform.dts_complete.value == "") {
+          if ((document.myform.ts_complete.value == "0000-00-00 00:00:00" ||
+               document.myform.ts_complete.value == "")
+              && document.myform.dts_complete.value == "") {
             document.myform.ts_complete.value = stampFulltime();
             document.myform.dts_complete.value = stampTimestamp();
           }

@@ -114,6 +114,17 @@ CREATE TABLE units (
   INDEX (status, type)
 	);
 
+
+CREATE TABLE unit_incident_paging (
+  row_id        INT NOT NULL AUTO_INCREMENT,
+  unit          VARCHAR(20) NOT NULL,
+  to_pager_id   INT NOT NULL,
+
+  PRIMARY KEY (row_id),
+  INDEX (unit)
+  );
+
+
 CREATE TABLE unit_assignments (
   assignment      VARCHAR(20),
   description     VARCHAR(40),

@@ -80,6 +80,7 @@
   <td colspan=3 class=menubg> 
 <?php
   $CSS = array ( 
+    "main" => "headermenu",
     "incidents" => "headermenu",
     "units" => "headermenu",
     "cad" => "headermenu",

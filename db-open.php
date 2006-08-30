@@ -5,7 +5,8 @@
   mysql_select_db($DB) or die("Could not select database");
 
   function MysqlQuery ($sqlquery) {
-    $return = mysql_query($sqlquery) or die("CRITICAL ERROR\nIn query: $sqlquery<br>\nError: ".mysql_error());
+    global $link;
+    $return = mysql_query($sqlquery, $link) or die("CRITICAL ERROR\nIn query: $sqlquery<br>\nError: ".mysql_error());
     return $return;
   }
 

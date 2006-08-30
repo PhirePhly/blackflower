@@ -64,6 +64,8 @@
       $query = "UPDATE units SET $fragment status_comment='$status_comment', type='$type', role='$role', personnel='$personnel', assignment='$assignment' WHERE unit='$unit'";
       mysql_query($query) or die("In query: $query\nError: " . mysql_error());
     }
+
+
     print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
     die("(Error: JavaScript not enabled or not present) Action completed. Close this window to continue.");
   }
@@ -107,8 +109,30 @@
     $unitline = mysql_fetch_array($unitresult, MYSQL_ASSOC) or die ("unit not found in table");
 	  mysql_free_result($unitresult);
   }
-  else
-    die ('Unknown options to edit-unit.php page load.');
+  elseif (isset($_POST['add_pageout'])) {
+    $newval = MysqlClean($_POST, 'newpageout', 20);
+    MysqlQuery("INSERT INTO unit_incident_paging (unit, to_pager_id) VALUES ('$unit', $newval)");
+    header("Location: edit-unit.php?unit=".$_POST['unit']);
+    exit;
+  }
+  else {
+    $action = 0;
+    foreach (array_keys($_POST) as $postkey) {
+      if (preg_match("/delete_pageout_(\d+)/", $postkey, $matches)) {
+        MysqlQuery("DELETE FROM unit_incident_paging WHERE row_id=" . $matches[1] );
+        if (mysql_affected_rows() != 1) {
+          syslog(LOG_WARNING, "Error while deleting row_id " . $matches[1] . " from unit_incident_paging");
+        }
+        $action = 1;
+        header("Location: edit-unit.php?unit=".$_POST['unit']);
+        exit;
+      }
+    }
+    // If no row was found in the pattern match case
+    if (!$action) {
+      die ('Unknown options to edit-unit.php page load.');
+    }
+  }
 
   header_html('Dispatch :: Unit Details');
 /*-------------------------------------------------------------------------*/?>
@@ -283,7 +307,65 @@
     }
 ?>
   </table>
+
+<?php 
+  // TODO: set access level dynamically
+  if (isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+
+    $paginglink = mysql_connect($PAGINGHOST, $PAGINGUSER, $PAGINGPASS) or die("Could not connect : " . mysql_error());
+    $options_query = mysql_query("SELECT * FROM $PAGINGDB.pagers ORDER BY name", $paginglink) or die ("Problem with query on $PAGINGDB.pagers");
+    $Pagers = array();
+    while ($pager_option = mysql_fetch_object($options_query)) {
+      $Pagers[$pager_option->pager_id] = $pager_option->name;
+    }
+    $pageout_query = mysql_query("SELECT * FROM unit_incident_paging WHERE unit='$unit'", $paginglink);
+    if (mysql_num_rows($pageout_query)) {
+      ?>
+
+  <table width="300" valign=top>
+  <tr valign=top>
+    <td> <span class=header>Page-out&nbsp;on&nbsp;incident&nbsp;assignment&nbsp;of&nbsp;this&nbsp;unit:&nbsp;&nbsp;</span></td>
+    <td width=50>&nbsp;</td>
+    <td> <span class=header>Add&nbsp;page-out&nbsp;notification&nbsp;of:</span></td>
+  </tr>
+  <tr valign=top>
+    <td bgcolor="#aaaaaa" width="280">
+     <table cellpadding="2" cellspacing="1" width="100%">
+
+     <?php
+      while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
+        if ($_SESSION['access_level'] >= 5) {
+          print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td><td align=right class=message><input type=submit name=\"delete_pageout_". $pageout_rcpt->row_id . "\" value=\"Delete\"></td></tr>";
+          unset($Pagers[$pageout_rcpt->to_pager_id]);
+        }
+        else {
+          print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td></tr>";
+        }
+      }
+      print "</table></td>\n";
+    }
+    if ($_SESSION['access_level'] >= 5) {
+    ?>
+
+</td><td> </td> <td>
+
+     <table cellpadding="2" cellspacing="1" width="100%">
+     <?php
+      print "<tr><td class=message><SELECT name=newpageout>\n";
+      foreach (array_keys($Pagers) as $pager) {
+        print "<option value=$pager>" . $Pagers[$pager] . "</option>\n";
+      }
+      print "</SELECT></td><td class=message><input type=submit value=\"Add\" name=\"add_pageout\"></td></tr>\n";
+    }
+  }
+
+?>
+  </table>
+  </td></tr>
+  </table>
   </form>
+  <p>
+
 
 <?php if (!$newunit) { ?>
 <b>Last 10 Messages</b><br />
