@@ -62,7 +62,7 @@
           exit;
       }
 
-      $pwcheck = MysqlQuery("SELECT PASSWORD('$oldpw') AS enteredpw, password FROM cad.users WHERE username='".$_SESSION['username']."'");
+      $pwcheck = MysqlQuery("SELECT PASSWORD('$oldpw') AS enteredpw, password FROM $DB_NAME.users WHERE username='".$_SESSION['username']."'");
       $rows = mysql_num_rows($pwcheck);
       if ($rows != 1) {
         syslog(LOG_CRITICAL, "Checking [".$_SESSION['username']."] password for change, found $rows rows (expected 1)");
@@ -92,7 +92,7 @@
           //setcookie("pwsdontmatch", "yes");
         }
         else {
-          MysqlQuery("UPDATE cad.users SET password=PASSWORD('$newpw') WHERE username='".$_SESSION['username']."'");
+          MysqlQuery("UPDATE $DB_NAME.users SET password=PASSWORD('$newpw') WHERE username='".$_SESSION['username']."'");
           //setcookie("pwchanged", "yes");
         }
       }

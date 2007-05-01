@@ -33,7 +33,7 @@
     $query = "CREATE TABLE cadarchives.messages_$ts (oid int not null auto_increment primary key, ts datetime not null, unit varchar(20), message varchar(255) not null, deleted bool not null default 0, creator varchar(20), message_type varchar(20))";
        mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
 
-    $query = "CREATE TABLE cadarchives.units_$ts (unit varchar(20) not null primary key, status varchar(30), status_comment varchar(255), update_ts datetime, 	role	set('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other'), type	set('Unit', 'Individual', 'Generic'), personnel varchar(100))";
+    $query = "CREATE TABLE cadarchives.units_$ts (unit varchar(20) not null primary key, status varchar(30), status_comment varchar(255), update_ts datetime, 	role	set('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other'), type	set('Unit', 'Individual', 'Generic'), personnel varchar(100), assignment varchar(20))";
        mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
 
     $query = "CREATE TABLE cadarchives.incidents_$ts (incident_id int not null auto_increment primary key, call_type varchar(40), call_details varchar(80), ts_opened datetime not null, ts_dispatch datetime, ts_arrival datetime, ts_complete datetime, location varchar(80), location_num varchar(15), reporting_pty varchar(80), contact_at varchar(80), disposition varchar(80), visible bool not null default 0, primary_unit varchar(20), completed bool not null default 0, updated datetime not null)";

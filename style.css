@@ -17,7 +17,7 @@ li { font-size: 10pt; text-align: justify }
     font-size: 10pt;
     text-align: justify;
     padding-left: 0.2cm;
-    padding-right: 0.2cm
+    padding-right: 0.2cm;
 }
 .messageold {
     font-family: tahoma, sans;
@@ -26,7 +26,7 @@ li { font-size: 10pt; text-align: justify }
     font-size: 10pt;
     text-align: justify;
     padding-left: 0.2cm;
-    padding-right: 0.2cm
+    padding-right: 0.2cm;
 }
 .bulletin-info {
     font-family: tahoma, sans;
@@ -34,7 +34,7 @@ li { font-size: 10pt; text-align: justify }
     font-size: 9pt;
     text-align: center;
     padding-left: 0.2cm;
-    padding-right: 0.2cm
+    padding-right: 0.2cm;
 }
 .bulletin {
     font-family: tahoma, sans;
@@ -42,8 +42,8 @@ li { font-size: 10pt; text-align: justify }
     font-size: 10pt;
     text-align: center;
     padding-left: 0.5cm;
-    padding-right: 0.5cm
-    border: 1px solid #999999;
+    padding-right: 0.5cm;
+    border: 1px solid #999999
 }
 a.menua { color: white; text-decoration: none }
 a.menua:hover { color: #ccccff; }
@@ -162,16 +162,9 @@ td.login {
   background-color: black;
   border: 1px groove black;
   color: white;
-  text-align:
-  center;
+  text-align: center;
   padding: 3px;
   font-size: 14pt;
   font-weight: bold ;
-}
-.loginlable {
-  background-color: #cccc99;
-  font-family: ariel;
-  border: 1px outset black;
-  position: right;
 }
 
