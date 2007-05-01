@@ -1,8 +1,8 @@
-DROP DATABASE IF EXISTS cad;
-DROP DATABASE IF EXISTS cadarchives;
-CREATE DATABASE cad;
-CREATE DATABASE cadarchives;
-USE cad;
+-- DROP DATABASE IF EXISTS cad;
+-- DROP DATABASE IF EXISTS cadarchives;
+-- CREATE DATABASE cad;
+-- CREATE DATABASE cadarchives;
+-- USE cad;
 
 /* enum (reference) tables */
 
@@ -235,5 +235,3 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('MDC', 'Medical Duty Chief', 'iconblue', NULL),
 ('S', 'Supervisor', 'icongray', NULL);
 
-INSERT INTO users (username, password, name, access_level) VALUES 
-('Administrator', PASSWORD('admin'), 'Administrator Role Account', 15);

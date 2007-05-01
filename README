@@ -1,4 +1,4 @@
-Black Flower CAD v1.4.2 - 2006/08/30
+Black Flower CAD v1.5.0 - 2007/04/28
 
 OVERVIEW
 
@@ -15,6 +15,16 @@ OVERVIEW
   For bug reports, questions, etc, send email to:
     cad-info@forlorn.net
   
+
+UPGRADE INSTRUCTIONS
+
+For new installations, see INSTALLATION below.  To upgrade from
+1.4.3 or previous to the 1.5.0 version, follow these instructions:
+
+* Compare cad.conf.example to your current cad.conf (or run initialize.sh
+  if you do not yet have cad.conf) and adjust variable names as necessary.
+
+
 INSTALLATION
   
   Server Requirements:
@@ -46,30 +56,69 @@ INSTALLATION
   1) Install the MySQL database server on the target server.
      *** Linux instructions coming later; refer to MySQL documentation ***
      *** Windows instructions coming later; refer to MySQL documentation ***
-     Currently, a MySQL installation with NO permission/password 
-     configurations *is required*.  Upcoming changes to the initialization 
-     script will alter this requirement.  Or, if you have a fair level of
-     MySQL command line administration skills, read the installation script
-     and initialize the system manually using the MySQL root account.
+
+     When installing this server, assign and memorize a password to
+     the MySQL "root" user account.  This will be required during CAD
+     installation.
+
+     Unless you know exactly what you are doing, it is STRONGLY advised 
+     to allow MySQL (port 3306) connections *only* from localhost.
   
   2) Install Apache and PHP on the target server.
      *** Linux instructions coming later; refer to Apache/PHP docs ***
      *** Windows instructions coming later; refer to Apache/PHP docs ***
-  
+
   3) Unpack the CAD distribution archive in the desired Web directory.
+
+     Example (for Debian Linux -- HTML documents directory may be different
+     on other operating systems):
+
+     # Acquire adequate (root) permissions to write to destination, then:
+
+       cd /var/www/
+       tar zvxf ~/cad-<version>.tar.gz
+       chown -R www-data.www-data cad-<version>
+       ln -sf cad-<version> cad
   
   4) Configure the CAD system.
+
      If bash and perl are available on your Linux or UNIX server, change 
      to the CAD directory and execute the "initialize.sh" script.  
+
+       cd /var/www/cad
+       sh ./initialize.sh
+
      This will create and load the default SQL tables and otherwise 
      prepare the system for running.  You will be prompted to enter
      certain usernames and passwords.  Or, if you have a fair level of
      MySQL command line administration skills, read the installation script
      and initialize the system manually using the MySQL root account.
+
+     The initialize.sh script does not currently error-detect for an 
+     already existing database or user with specified names.  To run
+     the script multiple times, you must first change or delete conflicting 
+     data.  Be careful.
   
+     If you are on a multiuser system, ensure that cad.conf is owned
+     by a user/group that is readable only by the webserver, and change
+     file permissions to match, so as to safeguard your passwords.
+
      *** Manual/Windows documentation to be added ***  
-  
+     
   5) Configure your Apache installation to serve the CAD application.
+
+     The Apache configuration for your desired CAD HTML directory must
+     permit the "AllowOverride Limit" configuration.  A ".htaccess" file
+     is used to block access to sensitive application files.  If your
+     Apache config does not permit this, update it and reload Apache
+     at this time.
+  
+     Test this configuration by trying to load a file that should
+     be forbidden by the .htaccess rules: 
+       http://<server>/<path-to-CAD-application>/cad.conf
+
+     This should NOT succeed.  If you ARE able to load this file,
+     troubleshoot the Apache site config and provided .htaccess file.
 
   6) Synchronize the server and all clients to the same time.  
      See NTP discussion below.
@@ -80,15 +129,12 @@ INSTALLATION
   On the server, start or restart Apache and MySQL as needed.
   On the client, load your web browser and go to the CAD URL, e.g.:
 
-    http://servername.domainname.com/path-to-CAD-application/
+    http://<server>/<path-to-CAD-application>/
 
-  *or* (if you have configured your system for HTTPS:)
-
-    https://secureservername.domainname.com/path-to-CAD-application/
+  (or https:// if you have configured your system for HTTPS.)
   
   Log in with the CAD administrator username and password created 
-  during step 4 above.  The default username is 'Administrator' 
-  and the default password is 'admin' (case sensitive.)
+  during step 4 above.  The password is case sensitive.
   
   Click on the "Settings" tab, then "Edit Users" in the Administration 
   dialog, and create the required usernames and passwords for CAD users.
@@ -124,7 +170,9 @@ INSTALLATION
   
   Any network running CAD or other such systems should be kept 
   isolated from insecure network traffic such as the Internet.  
-  Any consumer grade or better hardware firewall is sufficient for 
+  The CAD server should be reachable from the CAD clients but they
+  should not be reachable from untrusted (outside/Internet) systems.
+  Any consumer-grade or better hardware firewall is sufficient for 
   purposes of CAD network security.  
   
   In an extremely small or field-deployable CAD installation, it is 
@@ -135,7 +183,8 @@ INSTALLATION
   recommended for any Microsoft Windows client or server systems 
   which will be exposed to insecure network traffic.  
   
-  Ports required to be open on CAD server for client communication:
+  Ports required to be accessible on CAD server by the CAD clients
+  for application communication:
   
     80 (http)   - Normal operation: HTTP on a secure network.
   *or*

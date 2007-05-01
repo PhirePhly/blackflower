@@ -61,16 +61,19 @@
     <td bgcolor="#aaaaaa">
     <table width="100%" cellpadding="0" cellspacing="1">
     <tr>
- <?php if (isset($_COOKIE['cad_show_creator'])) {
-     print '      <td bgcolor="#cccccc" class="text"><font size="-2" color="gray">Logged By</font></td>'; } ?>
-      <td bgcolor="#cccccc" class="text"><b>Time</b></td>
-      <td bgcolor="#cccccc" class="text"><b>Unit</b></td>
- <?php if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') {
-     print '      <td bgcolor="#cccccc" class="text"><b>Type</b></td>'; } ?>
-      <td width="100%" bgcolor="#cccccc" class="text"><b>Message</b></td>
-    </tr>
+ <?php 
 
-<?php
+   if (!isset($_COOKIE['cad_show_creator']) || $_COOKIE['cad_show_creator'] == 'yes') {
+     print '      <td bgcolor="#cccccc" class="text"><font size="-2" color="gray">Logged By</font></td>'; 
+   } 
+   print " <td bgcolor=\"#cccccc\" class=\"text\"><b>Time</b></td>\n";
+   print " <td bgcolor=\"#cccccc\" class=\"text\"><b>Unit</b></td>\n";
+   if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes') {
+     print '      <td bgcolor="#cccccc" class="text"><b>Type</b></td>'; 
+   } 
+   print "    <td width=\"100%\" bgcolor=\"#cccccc\" class=\"text\"><b>Message</b></td>\n";
+   print " </tr>\n";
+
   // Prepare unit query
   $query = "SELECT unit FROM units";
   $unitresult = mysql_query($query) or die("unit query failed: ".mysql_error());
@@ -96,7 +99,7 @@
        ((int)THIS_PAGETS - date("U", strtotime($line["ts"]))) < 300 ? $quality="<b>" : $quality="";
 
       echo "<tr>\n";
-      if (isset($_COOKIE['cad_show_creator'])) {
+      if (!isset($_COOKIE['cad_show_creator']) || $_COOKIE['cad_show_creator'] == 'yes') {
         if (isset($line["creator"]) && $line["creator"] != "NULL" && $line["creator"] != "") {
           echo $td, "<font color=\"gray\">", $line["creator"], "</td>\n";
         } else {
@@ -110,7 +113,7 @@
       else
         echo $td, $quality, dls_ustr($line["unit"]), "</td>\n";
 
-      if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') {
+      if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes') {
         if (isset($line["message_type"]) && $line["message_type"] != "NULL" && $line["message_type"] != "") {
           echo $td, "<font color=\"gray\">", $line["message_type"], "</font></td>\n";
         } else {

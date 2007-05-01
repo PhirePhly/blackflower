@@ -47,7 +47,7 @@
      <table width="100%" cellpadding="0" cellspacing="1">
      <tr bgcolor="darkgray">
 <?
-  if (isset($_COOKIE['incidents_show_creator'])) {
+  if (!isset($_COOKIE['incidents_show_creator']) || $_COOKIE['incidents_show_creator'] == 'yes') {
     print "      <td class=\"ihsmall\"><font size=\"-2\" color=\"gray\">Logged By</font></td>";
   } ?>
         <td class="ihsmall">Time</td>
@@ -63,7 +63,7 @@
     while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
       ((int)THIS_PAGETS - date("U", strtotime($line["ts"]))) < 300 ? $quality="<b>" : $quality="";
       echo "<tr>\n";
-      if (isset($_COOKIE['incidents_show_creator'])) {
+      if (!isset($_COOKIE['incidents_show_creator']) || $_COOKIE['incidents_show_creator'] == 'yes') {
         if (isset($line["creator"] ) && $line["creator"] != "NULL" && $line["creator"] != "")
           echo "<td class=\"message\"><font color=\"gray\">", $line["creator"], "</font></td>";
         else

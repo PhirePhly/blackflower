@@ -169,6 +169,14 @@ function DLSColumnHeader() {
   $this->Cell(38,5,'Time Closed',1,0);
   $this->Ln(7);
 }
+
+function StatsColumnHeader() {
+  $this->SetY(30);
+  $this->SetFont('Arial','B',10);
+  $this->Cell(50,5,'Call Type',1,0);
+  $this->Cell(25,5,'No. Incidents', 1,0);
+  $this->Ln(7);
+}
 }
 
 // End subclass definition
@@ -181,6 +189,28 @@ function DLSColumnHeader() {
   $pdf->SetFont('Arial','',10);
   $pdf->Open();
   $pdf->AliasNbPages();
+
+  $pdf->AddPage('');
+  $pdf->SetWidths(array(50,25));
+
+  $query = "SELECT * FROM incident_types;";
+  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+
+  $pdf->StatsColumnHeader();
+  $totalincidents = 0;
+  while ($line = mysql_fetch_object($result)) {
+    $query = "SELECT COUNT(*) AS subtotal FROM incidents WHERE ts_opened LIKE '".MysqlClean($_GET, "selected-date", 20)."%' AND (visible = 1 OR completed = 1) AND call_type='".$line->call_type."'";
+    $subresult = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+    $subline = mysql_fetch_object($subresult);
+    $totalincidents = $totalincidents + $subline->subtotal;
+    $pdf->Row(array($line->call_type, $subline->subtotal));
+    mysql_free_result($subresult);
+  }
+  mysql_free_result($result);
+  $pdf->Ln(7);
+  $pdf->Row(array('TOTAL', $totalincidents));
+
+
   $pdf->AddPage('');
   $pdf->SetWidths(array(15,35,65,38,38,38,38));
   

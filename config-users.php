@@ -23,7 +23,7 @@
 
   if (isset($_GET["delete"]) && $_GET["delete"]) {
     $cleandelete = MysqlClean($_GET, "delete", 20);
-    $levelrow = MysqlQuery("SELECT username, access_level FROM cad.users WHERE id='$cleandelete'");
+    $levelrow = MysqlQuery("SELECT username, access_level FROM $DB_NAME.users WHERE id='$cleandelete'");
     $levelobj = mysql_fetch_object($levelrow);
     $username = $levelobj->username;
     if ($_SESSION['access_level'] < $levelobj->access_level ) {
@@ -33,7 +33,7 @@
     }
     else {
       syslog(LOG_INFO, "User [$username] was deleted by [".$_SESSION['username']."]");
-      MysqlQuery("DELETE FROM cad.users WHERE id='$cleandelete'");
+      MysqlQuery("DELETE FROM $DB_NAME.users WHERE id='$cleandelete'");
       header('Location: config-users.php?action=Deleted&username='.$username);
     }
   }
@@ -70,7 +70,7 @@
       $cleantimeout = MysqlClean($_POST, "timeout", 10);
       # TODO: form values currently nullify the database default for numerical values
 
-      $levelrow = MysqlQuery("SELECT username, access_level FROM cad.users WHERE id='$cleanid'");
+      $levelrow = MysqlQuery("SELECT username, access_level FROM $DB_NAME.users WHERE id='$cleanid'");
       $levelobj = mysql_fetch_object($levelrow);
       $username = $levelobj->username;
       $pswd = (((substr($cleanpassword,0,1)=="*") && (strlen($cleanpassword)==41)) ? "'".$cleanpassword."'" : "PASSWORD('".$cleanpassword."')");
@@ -94,13 +94,13 @@
         }
         else {
           syslog(LOG_INFO, "User [$cleanuser] was added by [".$_SESSION['username']."]");
-          MysqlQuery("INSERT INTO cad.users (username, password, name, access_level, access_acl, timeout) VALUES ('$cleanuser', ".$pswd.", '$cleanname', '$cleanaccesslevel', '$cleanaccessacl', '$cleantimeout')");
+          MysqlQuery("INSERT INTO $DB_NAME.users (username, password, name, access_level, access_acl, timeout) VALUES ('$cleanuser', ".$pswd.", '$cleanname', '$cleanaccesslevel', '$cleanaccessacl', '$cleantimeout')");
           header('Location: config-users.php?moduser='.mysql_insert_id().'&action=Added');
         }
       }
       elseif ($cleanid) {
         syslog(LOG_INFO, "User [$cleanuser] was edited by [".$_SESSION['username']."]");
-        MysqlQuery("UPDATE cad.users SET password=".$pswd.", access_level='$cleanaccesslevel', access_acl='$cleanaccessacl', timeout='$cleantimeout', name='$cleanname' WHERE id='$cleanid'");
+        MysqlQuery("UPDATE $DB_NAME.users SET password=".$pswd.", access_level='$cleanaccesslevel', access_acl='$cleanaccessacl', timeout='$cleantimeout', name='$cleanname' WHERE id='$cleanid'");
         header('Location: config-users.php?moduser='.$cleanid.'&action=Saved');
       }
       else {

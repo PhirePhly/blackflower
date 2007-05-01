@@ -1,6 +1,12 @@
 CHANGES
 -------
 
+Version 1.5.0 - 2006-xx-xx
+* Internal fixes to use generic database name, and better use
+  multiple database handles.
+* Improvements to initialize.sh
+
+
 Version 1.4.3 - 2006-08-30
 * Cosmetic fix for edit-unit auto-page fields
 * Removed JS alert() debugging statement from edit-incident

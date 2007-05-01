@@ -86,7 +86,7 @@
       $unitquery = "SELECT * from units where unit = '$unit'";
       $unitresult = mysql_query($unitquery) or die("unit query failed:" . mysql_error());
       $unitline = mysql_fetch_array($unitresult, MYSQL_ASSOC) or die ("unit not found in table");
-	    mysql_free_result($unitresult);
+      mysql_free_result($unitresult);
     }
   }
   elseif (isset($_GET["new-unit"])) {
@@ -107,7 +107,7 @@
     $unitquery = "SELECT * from units where unit = '$unit'";
     $unitresult = mysql_query($unitquery) or die("unit query failed:" . mysql_error());
     $unitline = mysql_fetch_array($unitresult, MYSQL_ASSOC) or die ("unit not found in table");
-	  mysql_free_result($unitresult);
+    mysql_free_result($unitresult);
   }
   elseif (isset($_POST['add_pageout'])) {
     $newval = MysqlClean($_POST, 'newpageout', 20);
@@ -141,7 +141,7 @@
 <font face="tahoma,ariel,sans">
 <form name="myform" action="edit-unit.php" method="post">
 
-<? if (!$newunit)
+<?php if (!$newunit)
      print " <b>Unit: $unit</b>";
    else
      print " <b>Creating a New Unit</b>";
@@ -177,15 +177,15 @@
        while ($line = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
          echo "        <option ";
          if (!strcmp($line["status"], $unitline["status"])) {
-	         $statusset=1;
-	         echo "selected ";
-	       }
-	       echo "value=\"". MysqlUnClean($line["status"])."\">". $line["status"]."</option>\n";
+           $statusset=1;
+           echo "selected ";
+         }
+         echo "value=\"". MysqlUnClean($line["status"])."\">". $line["status"]."</option>\n";
        }
        if (!$statusset) {
          echo "        <option selected value=\"\">\n";
        }
-	     mysql_free_result($statusresult);
+       mysql_free_result($statusresult);
    /*----------------------------------------------------------------------*/?>
           </status>
           </label>
@@ -246,14 +246,14 @@
        <?php /*--------------------------------------------------------------------------------------*/
          $avail_roles = array('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other');
          if (array_search($unitline["role"], $avail_roles) === FALSE) {
-		         print "<option selected value=\"\">(not set)</option>\n";
+           print "<option selected value=\"\">(not set)</option>\n";
          }
          foreach ($avail_roles as $role) {
            print "<option ";
            if ($unitline["role"] == $role) print "selected ";
            print "value=\"$role\">$role</option>\n";
          }
-	  /*--------------------------------------------------------------------------------------------*/ ?>
+         /*--------------------------------------------------------------------------------------------*/ ?>
      </select>
      </label>
    </td>
@@ -311,8 +311,8 @@
 <?php 
   if (isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
 
-    $paginglink = mysql_connect($PAGINGHOST, $PAGINGUSER, $PAGINGPASS) or die("Could not connect : " . mysql_error());
-    $options_query = mysql_query("SELECT * FROM $PAGINGDB.pagers ORDER BY name", $paginglink) or die ("Problem with query on $PAGINGDB.pagers");
+    $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) or die("Could not connect : " . mysql_error());
+    $options_query = mysql_query("SELECT * FROM $DB_PAGING_NAME.pagers ORDER BY name", $paginglink) or die ("Problem with query on $DB_PAGING_NAME.pagers");
     $Pagers = array();
     while ($pager_option = mysql_fetch_object($options_query)) {
       $Pagers[$pager_option->pager_id] = $pager_option->name;
@@ -345,59 +345,50 @@
       }
       print "</table></td>\n";
     }
+
     if ($_SESSION['access_level'] >= 5) {
-    ?>
-
-</td><td> </td> <td>
-
-     <table cellpadding="2" cellspacing="1" width="100%">
-     <?php
+      print "</td><td> </td> <td>\n";
+      print "<table cellpadding=\"2\" cellspacing=\"1\" width=\"100%\">\n";
       print "<tr><td class=message><SELECT name=newpageout>\n";
       foreach (array_keys($Pagers) as $pager) {
         print "<option value=$pager>" . $Pagers[$pager] . "</option>\n";
       }
       print "</SELECT></td><td class=message><input type=submit value=\"Add\" name=\"add_pageout\"></td></tr>\n";
     }
+    mysql_close($paginglink);
   }
 
+  print "</table>\n";
+  print "</td></tr>\n";
+  print "</table>\n";
+  print "</form>\n";
+  print "<p>\n";
+
+  if (!$newunit) { 
+    print '<b>Last 10 Messages</b><br />' . "\n";
+    print '  <table><tr><td width="20"></td><td bgcolor="#aaaaaa">' . "\n";
+    print '  <table cellpadding="2" cellspacing="1"> <tr>' . "\n";
+    print '    <td class="message">Time</td>' . "\n";
+    print '    <td class="message">Message</td>' . "\n";
+    print '  </tr>' . "\n";
+
+    $rowquery = "SELECT * FROM messages WHERE unit = '$unit' AND deleted=0 ORDER BY oid DESC LIMIT 10";
+    $rowresult = MysqlQuery($rowquery);
+
+    while ($line = mysql_fetch_array($rowresult, MYSQL_ASSOC)) {
+      echo "\t<tr>\n";
+      $td = "<td class=\"message\">";
+
+      echo $td, dls_utime($line["ts"]), "</td>";
+      echo $td, $line["message"], "</td>";
+      echo "\t</tr>\n";
+    }
+
+    print "</table>\n";
+    print "</table>\n";
+  }
+
+  print "</body>\n";
+  print "</html>\n";
+
 ?>
-  </table>
-  </td></tr>
-  </table>
-  </form>
-  <p>
-
-
-<?php if (!$newunit) { ?>
-<b>Last 10 Messages</b><br />
-  <table><tr><td width="20"></td><td bgcolor="#aaaaaa">
-  <table cellpadding="2" cellspacing="1"> <tr>
-    <td class="message">Time</td>
-    <td class="message">Message</td>
-  </tr>
-
-  <?php
-
-     $rowquery = "SELECT * FROM messages WHERE unit = '$unit' AND deleted=0 ORDER BY oid DESC LIMIT 10";
-     $rowresult = mysql_query($rowquery) or die("row Query failed : " . mysql_error());
-
-     while ($line = mysql_fetch_array($rowresult, MYSQL_ASSOC)) {
-        echo "\t<tr>\n";
-        $td = "<td class=\"message\">";
-
-        echo $td, dls_utime($line["ts"]), "</td>";
-        echo $td, $line["message"], "</td>";
-        echo "\t</tr>\n";
-     }
-     mysql_free_result($rowresult);
-     mysql_close($link);
-   ?>
-
-  </table>
-  </table>
-  <?php } ?>
-
-</body>
-</html>
-
-

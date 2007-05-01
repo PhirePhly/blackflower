@@ -207,8 +207,9 @@
           // If there are Auto-Pageout pagers associated with this unit, page them out (insert into
           // paging tables..)  Do this AFTER unlocking the CAD tables, since there may be delays
           // getting the page batches and messages all built and entered.
-          if (isset($PAGINGDB) && isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
-            $paginglink = mysql_connect($PAGINGHOST, $PAGINGUSER, $PAGINGPASS) or die("Could not connect : " . mysql_error());
+          if (isset($DB_PAGING_NAME) && isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+            $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
+              or die("Could not connect : " . mysql_error());
             $pageout_query = mysql_query("SELECT * FROM unit_incident_paging WHERE unit='$unit'", $paginglink);
             if (mysql_num_rows($pageout_query)) {
           
@@ -226,36 +227,37 @@
                 $message = substr($message, 0, 127);
               }
             
-              if (!mysql_query("INSERT into $PAGINGDB.batches (from_user, from_ipaddr, orig_message, entered) ".
+              if (!mysql_query("INSERT into $DB_PAGING_NAME.batches (from_user, from_ipaddr, orig_message, entered) ".
                                " VALUES ('$fromuser', '$ipaddr', '$message', NOW() )", $paginglink) || 
                   mysql_affected_rows() != 1) {
-                syslog(LOG_WARNING, "Error inserting row into database $PAGINGDB.batches as [$PAGINGHOST/$PAGINGUSER]");
+                syslog(LOG_WARNING, "Error inserting row into database $DB_PAGING_NAME.batches as [$DB_PAGING_HOST/$DB_PAGING_USER]");
               }
               else {
                 $batch_id = mysql_insert_id();
             
                 while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
-                  if (!mysql_query("INSERT into $PAGINGDB.messages (from_user, to_pager_id, message) VALUES ".
+                  if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user, to_pager_id, message) VALUES ".
                                    "('$fromuser', " . $pageout_rcpt->to_pager_id . ", '$message')", $paginglink) ||
                       mysql_affected_rows() != 1) {
-                    syslog(LOG_WARNING, "Error inserting row into $PAGINGDB.messages as [$PAGINGHOST/$PAGINGUSER]");
+                    syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
                   }
                   $msg_id = mysql_insert_id();
                 
-                  if (!mysql_query("INSERT into $PAGINGDB.batch_messages (batch_id, msg_id) VALUES ".
+                  if (!mysql_query("INSERT into $DB_PAGING_NAME.batch_messages (batch_id, msg_id) VALUES ".
                                       "($batch_id, $msg_id)", $paginglink) ||
                       mysql_affected_rows() != 1) {
-                    syslog(LOG_WARNING, "Error inserting row into $PAGINGDB.batch_messages as [$PAGINGHOST/$PAGINGUSER]");
+                    syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.batch_messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
                   }
 
-                  if (!mysql_query("INSERT into $PAGINGDB.send_queue (status, msg_id, queued) VALUES ".
+                  if (!mysql_query("INSERT into $DB_PAGING_NAME.send_queue (status, msg_id, queued) VALUES ".
                                       "('Queued', $msg_id, NOW())", $paginglink) ||
                       mysql_affected_rows() != 1) {
-                    syslog(LOG_WARNING, "Error inserting row into $PAGINGDB.send_queue as [$PAGINGHOST/$PAGINGUSER]");
+                    syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.send_queue as [$DB_PAGING_HOST/$DB_PAGING_USER]");
                   }
                 }
               }
             }
+            mysql_close($paginglink);
           }
         }
       }
@@ -279,26 +281,17 @@
 
       // If we have a unit that has arrived, save the information in the DB
       if (isset($update_arrived_unit_uid)) {
-        $lockquery = "LOCK TABLES incident_units WRITE";
-        mysql_query($lockquery) or die ("In query: $lockquery<br>\nError: ".mysql_error());
-
-        $arrivedquery = "UPDATE incident_units SET arrival_time=NOW() where uid='$update_arrived_unit_uid'";
-        mysql_query($arrivedquery) or die ("In query: $arrivedquery<br>\nError: ".mysql_error());
-
-        $lockquery = "UNLOCK TABLES";
-        mysql_query($lockquery) or die ("In query: $lockquery<br>\nError: ".mysql_error());
+        MysqlQuery('LOCK TABLES incident_units WRITE');
+        MysqlQuery("UPDATE incident_units SET arrival_time=NOW() where uid='$update_arrived_unit_uid'");
+        MysqlQuery('UNLOCK TABLES');
       }
 
       // If we have a unit that has been released, save the information in the DB
       if (isset($update_release_unit_uid)) {
-        $lockquery = "LOCK TABLES units WRITE, incident_units WRITE, messages WRITE";
-        mysql_query($lockquery) or die ("In query: $lockquery<br>\nError: ".mysql_error());
+        MysqlQuery('LOCK TABLES units WRITE, incident_units WRITE, messages WRITE');
+        MysqlQuery("UPDATE incident_units SET cleared_time=NOW() where uid='$update_release_unit_uid'");
 
-        $releasequery = "UPDATE incident_units SET cleared_time=NOW() where uid='$update_release_unit_uid'";
-        mysql_query($releasequery) or die ("In query: $releasequery<br>\nError: ".mysql_error());
-
-        $unitquery = "SELECT * FROM incident_units where uid='$update_release_unit_uid'";
-        $unitresult = mysql_query($unitquery) or die ("In query: $unitquery<br>\nError: ".mysql_error());
+        $unitresult = MysqlQuery("SELECT * FROM incident_units where uid='$update_release_unit_uid'");
         if (mysql_num_rows($unitresult) <> 1)
           die ("In query: $unitquery<br>\nExpected 1 result row, got: ".mysql_num_rows($unitresult));
         $unitrow = mysql_fetch_array($unitresult, MYSQL_ASSOC);
@@ -307,17 +300,14 @@
 
         $unitprevstatus = FindPrevUnitStatus($unitrow["unit"]);
 
-        $unitstatusquery = "UPDATE units SET status='$unitprevstatus', ".
-                           "status_comment='Released from Incident #$incident_id at ".date('H:m:s')."', ".
-                           "update_ts=NOW() where unit='$release_unit_name'";
-        mysql_query($unitstatusquery) or die ("In query: $unitstatusquery<br>\nError: ".mysql_error());
+        MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
+                   "status_comment='Released from Incident #$incident_id at ".date('H:m:s')."', ".
+                   "update_ts=NOW() where unit='$release_unit_name'");
 
-        $messagequery="INSERT INTO messages (ts, unit, message) ".
-                      "VALUES (NOW(), '$release_unit_name', 'Status Change: In Service (was: Attached to Incident)')";
-        mysql_query($messagequery) or die("In query: $messagequery<br>\nError: ".mysql_error());
+        MysqlQuery("INSERT INTO messages (ts, unit, message) ".
+                   "VALUES (NOW(), '$release_unit_name', 'Status Change: In Service (was: Attached to Incident)')");
 
-        $lockquery = "UNLOCK TABLES";
-        mysql_query($lockquery) or die ("In query: $lockquery<br>\nError: ".mysql_error());
+        MysqlQuery("UNLOCK TABLES");
       }
 
 
@@ -327,9 +317,7 @@
         $completed = 1;
 
         // Check the DB for a previous completion of this incident
-        $checkcompletedquery = "SELECT completed FROM incidents WHERE incident_id=$incident_id";
-        $checkcompletedresult = mysql_query($checkcompletedquery) or
-          die ("Couldn't check incident completion: ".mysql_error());
+        $checkcompletedresult = MysqlQuery("SELECT completed FROM incidents WHERE incident_id=$incident_id");
         $checkcompletedrow = mysql_fetch_array($checkcompletedresult, MYSQL_ASSOC);
         $previously_completed = $checkcompletedrow["completed"];
         mysql_free_result($checkcompletedresult);
@@ -340,8 +328,7 @@
           $stackids = array();
           $stackunits = array();
 
-          $unitsrelquery = "SELECT * FROM incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL";
-          $unitsrelresult = mysql_query($unitsrelquery) or die("In query: $unitsrelquery<br>\nError: ".mysql_error());
+          $unitsrelresult = MysqlQuery("SELECT * FROM incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL");
           if (mysql_num_rows($unitsrelresult) > 0) {
             $i=1;
             while ($unitsrelrow = mysql_fetch_array($unitsrelresult, MYSQL_ASSOC)) {
@@ -351,19 +338,16 @@
             mysql_free_result($unitsrelresult);
 
             foreach ($stackids as $stackid) {
-              $iuquery = "UPDATE incident_units SET cleared_time=NOW() WHERE uid='$stackid'";
-              mysql_query($iuquery) or die("In query: $iuquery<br>\nError: ".mysql_error());
+              MysqlQuery("UPDATE incident_units SET cleared_time=NOW() WHERE uid='$stackid'");
             }
 
             foreach ($stackunits as $stackunit) {
               $unitprevstatus = FindPrevUnitStatus($stackunit);
-              $unitsquery="UPDATE units SET status='$unitprevstatus', ".
-                          "status_comment='Released from Incident #$incident_id at ".date('H:m:s')."', ".
-                          "update_ts=NOW() WHERE unit='$stackunit'";
-              mysql_query($unitsquery) or die("In query: $unitsquery<br>\nError: ".mysql_error());
-              $messagequery="INSERT INTO messages (ts, unit, message) ".
-                            "VALUES (NOW(), '$stackunit', 'Status Change: $unitprevstatus (was: Attached to Incident)')";
-              mysql_query($messagequery) or die("In query: $messagequery<br>\nError: ".mysql_error());
+              MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
+                         "status_comment='Released from Incident #$incident_id at ".date('H:m:s')."', ".
+                         "update_ts=NOW() WHERE unit='$stackunit'");
+              MysqlQuery("INSERT INTO messages (ts, unit, message) ".
+                         "VALUES (NOW(), '$stackunit', 'Status Change: $unitprevstatus (was: Attached to Incident)')");
             }
           }
         }
@@ -396,7 +380,7 @@
       $incidentquery = str_replace("'NOW()'", "NOW()", $incidentquery);
 
       // Enter the master incident query into the DB
-      mysql_query($incidentquery) or die("In query: $incidentquery<br>\nError: ".mysql_error());
+      MysqlQuery($incidentquery);
 
 
       // If the save_incident_closewin button was explicitly activated, set
@@ -405,6 +389,7 @@
 
       if (isset($_POST["save_incident_closewin"])) {
         print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
+        exit;
       }
       else {
         print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()}</SCRIPT>";
@@ -419,7 +404,10 @@
                    "\\n"."Please make note of this data, click the cancel button, and then re-enter your changes.";
       print "<SCRIPT language=\"JavaScript\">alert('$changemsg');</SCRIPT>";
     }
+
   }
+
+  # end - save updated incident
 
 
   // Check the Major GET points
@@ -432,24 +420,20 @@
     // Or a new incident?
     else {
       // Ok. We have a new incident. Create the placeholder first in the database to assign the incident ID number.
-      $lockquery = "LOCK TABLES incidents WRITE";
-      mysql_query($lockquery) or
-        die ("Database could not lock table - is another incident being created right now?<br>Error was: " . mysql_error());
+      MysqlQuery("LOCK TABLES incidents WRITE");
+      // if this fails ... is another incident being created right now?
 
-      $newincidentquery = "INSERT INTO incidents (ts_opened, visible) VALUES (NOW(), 0)";
-      mysql_query($newincidentquery) or die ("Could not create new incident row: ". mysql_error());
+      MysqlQuery("INSERT INTO incidents (ts_opened, visible) VALUES (NOW(), 0)");
       if (mysql_affected_rows() != 1)
         die("Critical error: ".mysql_affected_rows()." is a bad number of rows when inserting new incident.");
       $findlastIDquery = "SELECT LAST_INSERT_ID()";
-      $findlastIDresult = mysql_query($findlastIDquery) or die ("Could not select new incident row: ". mysql_error());
+      $findlastIDresult = MysqlQuery($findlastIDquery) or die ("Could not select new incident row: ". mysql_error());
       $newIDrow = mysql_fetch_array($findlastIDresult, MYSQL_NUM);
       $incident_id = $newIDrow[0];
       mysql_free_result($findlastIDresult);
-
-      $lockquery = "UNLOCK TABLES";
-      mysql_query($lockquery) or die ("Could not unlock tables: ". mysql_error());
-
+      MysqlQuery("UNLOCK TABLES");
       header("Location: edit-incident.php?incident_id=$incident_id");
+      exit;
     }
   }
   else {
@@ -464,8 +448,7 @@
    */
   if (!isset($incident_id)) die ("Critical error: incident_id wasn't set at this point.");
 
-  $incidentdataquery = "SELECT * FROM incidents WHERE incident_id=$incident_id";
-  $incidentdataresult = mysql_query($incidentdataquery) or die("Select query failed: $incidentdataquery " . mysql_error());
+  $incidentdataresult = MysqlQuery("SELECT * FROM incidents WHERE incident_id=$incident_id");
   if (mysql_num_rows($incidentdataresult) != 1) {
     die("Critical error: ".mysql_num_rows($incidentdataresult).
         " is a bad number of rows when looking for incident_id $incident_id");
@@ -481,33 +464,25 @@
 
   // FindPrevUnitStatus
   // Nasty hack to find a unit's previous status before being attached to an incident
-  // from the text in their status comment
+  // from the text in their status comment -- TODO: bug 23, others should change this:
   function FindPrevUnitStatus($unit) {
-    $lockquery = "LOCK TABLES status_options READ, messages READ";
-    mysql_query($lockquery) or die ("In query: $lockquery<br>\nError: ".mysql_error());
+    MysqlQuery("LOCK TABLES status_options READ, messages READ");
 
-    $statusquery = "SELECT * from status_options";
-    $statusresult = mysql_query($statusquery) or
-      die ("Status query failed: $statusquery " . mysql_error());
-    $lastunitmsgquery = "SELECT message FROM messages WHERE unit='$unit' ORDER BY oid DESC LIMIT 1";
-    $lastunitmsgresult = mysql_query($lastunitmsgquery) or
-      die ("Unit's Last Message query failed: $lastunitmsgquery " .  mysql_error());
-
-    if ($msgline = mysql_fetch_array($lastunitmsgresult, MYSQL_ASSOC)) {
+    $msg = "";
+    if ($msgline = 
+      mysql_fetch_array(
+        MysqlQuery("SELECT message FROM messages WHERE unit='$unit' ORDER BY oid DESC LIMIT 1"),
+        MYSQL_ASSOC)) {
       $msg = $msgline["message"];
-    }
-    else {
-      $msg = "";
     }
 
     $return = "";
+    $statusresult = MysqlQuery("SELECT * from status_options");
     while ($statusline = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
       if (strpos($msg, $statusline["status"])) $return = $statusline["status"];
     }
 
-    $lockquery = "UNLOCK TABLES";
-    mysql_query($lockquery) or die ("In query: $lockquery<br>\nError: ".mysql_error());
-
+    MysqlQuery("UNLOCK TABLES");
     return $return;
   }
 ?>
@@ -653,10 +628,10 @@
       <Label for="call_type" accesskey="y">
       <select name="call_type" id="call_type" tabindex="5" onChange="handleIncidentType()" onKeyUp="handleIncidentType()">
 <?php
-        $type_query = "SELECT * from incident_types";
-	$type_result = mysql_query($type_query) or die ("error in call type query: ".mysql_error());
 	if (!$row->call_type || !strcmp("not selected", $row->call_type))
 	  echo "<option selected value=\"not selected\">not selected</option>\n";
+
+	$type_result = MysqlQuery("SELECT * from incident_types");
 	while ($type_row = mysql_fetch_object($type_result)) {
           echo "<option ";
 	  if (!strcmp($type_row->call_type, $row->call_type)) echo "selected ";
@@ -729,8 +704,7 @@
     <label for="disposition" accesskey="p">
     <select name="disposition" id="disposition" tabindex="61" onChange="handleDisposition()" onKeyUp="handleDisposition()">
 <?php
-   $dispquery = "SELECT disposition FROM incident_disposition_types";
-   $dispresult = mysql_query($dispquery) or die ("Error querying units; ".mysql_error());
+   $dispresult = MysqlQuery("SELECT disposition FROM incident_disposition_types");
    if (!$row->disposition)
      echo "<option selected value=\"\"></option>\n";
    while ($disprow = mysql_fetch_array($dispresult,MYSQL_ASSOC)) {
@@ -824,8 +798,7 @@
           <label for="note_unit" accesskey="o">
           <select name="note_unit" id="note_unit" tabindex="81">
 <?php
-    $query="SELECT unit FROM units";
-    $formresult = mysql_query($query) or die("In query: $query  <br>\nError: " . mysql_error());
+    $formresult = MysqlQuery("SELECT unit FROM units");
 
     # TODO: we do a very similar query below - instead, select * here, and dynamically
     # fill a second array if it meets the conditionals for the second query.
@@ -884,8 +857,7 @@
     <label for="unit_to_attach" accesskey="u">
     <select name="unit_to_attach" id="unit_to_attach" tabindex="101">
 <?php
-   $unitquery = "SELECT unit FROM units WHERE status <> 'Attached to Incident' OR type='Generic'";
-   $unitresult = mysql_query($unitquery) or die ("In query: $unitquery<br>\nError: ".mysql_error());
+   $unitresult = MysqlQuery("SELECT unit FROM units WHERE status IN ('In Service', 'Available on Pager', 'Busy') OR type='Generic'");
 
    $unitnames = array();
    $unitarray = array();
@@ -921,10 +893,9 @@
 
   <?php
      // List units currently attached to this incident
-     $attachedunitsquery =
-       "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL ORDER BY dispatch_time DESC";
-     $attachedunitsresult = mysql_query($attachedunitsquery) or
-       die ("In query: $attachedunitsquery<br>\nError: ".mysql_error());
+     $attachedunitsresult = MysqlQuery(
+       "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL ORDER BY dispatch_time DESC");
+
      if (!mysql_num_rows($attachedunitsresult)) {
              print "<tr><td class=\"messageold\" colspan=\"4\">No units attached</td></tr>";
      }
@@ -964,10 +935,9 @@
 
   <?php
      // List units previously attached to this incident
-     $prevunitsquery =
-       "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NOT NULL ORDER BY dispatch_time DESC";
-     $prevunitsresult = mysql_query($prevunitsquery) or
-       die ("In query: $prevunitsquery<br>\nError: ".mysql_error());
+     $prevunitsresult = MysqlQuery(
+       "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NOT NULL ORDER BY dispatch_time DESC");
+
      if (!mysql_num_rows($prevunitsresult)) {
              print "<tr><td class=\"messageold\" colspan=\"4\">No units attached previously</td></tr>";
      }

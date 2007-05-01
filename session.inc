@@ -6,7 +6,7 @@
     openlog('cad', LOG_CONS|LOG_PID, LOG_USER);
   }
   else {
-    openlog('cad', LOG_CONS|LOG_PID, LOG_LOCAL4);
+    openlog('cad', LOG_CONS|LOG_PID, $SYSLOG_FACILITY);
   }
 
 /*
@@ -115,8 +115,12 @@ function setFocus(str) {
     $testpw = MysqlClean($_POST, "password", 40);
     $username = MysqlClean($_POST, "username", 40);
 
-    $users = MysqlQuery("SELECT id, username, name, password, PASSWORD('$testpw') as testpw, access_level, access_acl, timeout from cad.users WHERE UPPER(username) = '".strtoupper($username)."'");
-    if (mysql_num_rows($users) == 1) {
+    $users = MysqlQuery("SELECT id, username, name, password, PASSWORD('$testpw') as testpw, access_level, access_acl, timeout from $DB_NAME.users WHERE UPPER(username) = '".strtoupper($username)."'");
+
+    if (mysql_num_rows($users) >= 1) {
+      if (mysql_num_rows($users) > 1) {
+        syslog(LOG_WARNING, "During login - More than one user in db with username [$username], using first returned.");
+      }
       $answer = mysql_fetch_object($users);
       if ($answer->password == $answer->testpw) {
         $_SESSION['id'] = MysqlUnClean($answer->id);

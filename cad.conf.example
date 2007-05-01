@@ -1,18 +1,26 @@
 <?php
 // Database links:
-  $DBHOST = "localhost";
-  $DBUSER = "cad";
-  $DBPASS = "cad-password";
-  $DB = "cad";
+  $DB_HOST = "localhost";
+  $DB_USER = "cad";
+  $DB_PASS = "cad-password";
+  $DB_NAME = "cad";
 
-  $PAGINGDB = "paging";
-  $PAGINGHOST = "localhost";
-  $PAGINGUSER = "cad";
-  $PAGINGPASS = "cad-password";
+  $USE_PAGING_LINK = 0;
+  $DB_PAGING_NAME = "paging--unused-by-default";
+  $DB_PAGING_HOST = "localhost--unused-by-default";
+  $DB_PAGING_USER = "cad--unused-by-default";
+  $DB_PAGING_PASS = "cad-password--unused-by-default";
+
+// Header display:
+  $HEADER_LOGO = "Logos/logo.png";
+  $HEADER_TITLE = "Black&nbsp;Flower<br>Computer&nbsp;Aided&nbsp;Dispatch";
 
 // Booleans:
   $BULLETIN_TITLE_SCAN = 1;
-  $USE_PAGING_LINK = 1;
+
+// Logging:
+  $USE_SYSLOG = 1;
+  $SYSLOG_FACILITY = LOG_LOCAL4;
 
 // Config values:
   $DEFAULT_ADMIN = "Administrator";

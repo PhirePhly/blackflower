@@ -48,9 +48,9 @@
    <td width="10">&nbsp;</td>
    <td class="text"><u>S</u>elect unit from list:</td>
  <?php
-      if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') {
-   print '<td width="10">&nbsp;</td>';
-   print '<td class="text">Message type:</td>';
+   if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes') {
+     print '<td width="10">&nbsp;</td>';
+     print '<td class="text">Message type:</td>';
    }
    ?>
 
@@ -82,7 +82,7 @@
    </td>
 
  <?php
-      if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') {
+      if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes') {
         print '<td colspan="2">';
         print '<select tabindex="4" style="width:150px" name="message_type">';
         print '<option selected value=""></option>';
@@ -105,7 +105,7 @@
 <tr>
    <td colspan="4"></td>
 <?
-      if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes')
+      if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes')
         print "<td colspan=2></td>";
 ?>
    <td align="right"><input tabindex="5" type="submit" value="Save New Entry"><input tabindex="6" type="reset" value="Clear"></td>

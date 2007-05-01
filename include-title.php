@@ -43,8 +43,8 @@
 <!-- Display Header - custom to client -->
 <table cellspacing="0" cellpadding="0" width="100%" >
 <tr>
-<td rowspan=5 valign="top" style="padding-right: 0.02cm"><img src="Logos/logo-esd.png" height="72" width="72" alt="" /></td>
-<td class=headertext>Black&nbsp;Rock&nbsp;City<br>Emergency&nbsp;Services&nbsp;Department</td>
+<td rowspan=5 valign="top" style="padding-right: 0.02cm"><img src="<?=$HEADER_LOGO?>" height="72" width="72" alt="" /></td>
+<td class=headertext><?=$HEADER_TITLE?></td>
 
 <td align=right class=headerinfo title="Release Date <?=$OC_RELEASE_DATE?>">
   Black Flower CAD v<?=$OC_VERSION?> <?=$OC_LEVEL?> 
