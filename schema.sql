@@ -103,13 +103,18 @@ CREATE TABLE messages (
 
 CREATE TABLE units (
 	unit	        VARCHAR(20) NOT NULL PRIMARY KEY,
-	status	      VARCHAR(30),
-	status_comment VARCHAR(255),
-	update_ts     DATETIME,
+	status	        VARCHAR(30),
+	status_comment  VARCHAR(255),
+	update_ts       DATETIME,
 	role	        SET('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Law Enforcement', 'Other'),
 	type	        SET('Unit', 'Individual', 'Generic'),
-	personnel     VARCHAR(100),
-  assignment    VARCHAR(20),
+	personnel       VARCHAR(100),
+	assignment      VARCHAR(20),
+        personnel_ts	DATETIME,
+	location	VARCHAR(255),
+	location_ts	DATETIME,
+	notes		VARCHAR(255),
+	notes_ts	DATETIME,
 
   INDEX (status, type)
 	);

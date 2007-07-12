@@ -1,7 +1,12 @@
 CHANGES
 -------
 
-Version 1.5.0 - 2006-xx-xx
+Version 1.5.1 - 2006-07-12
+* Fixed bug 31 - page units from Edit Unit dialog
+* Worked on bug 74 - added diagnostic logging
+* Worked on bug 80 - added diagnostic logging
+
+Version 1.5.0 - 2006-05-01
 * Internal fixes to use generic database name, and better use
   multiple database handles.
 * Improvements to initialize.sh

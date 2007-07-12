@@ -40,27 +40,34 @@
   header_html("Dispatch :: Log Viewer","  <script src=\"js/clock.js\" type=\"text/javascript\"></script>");
 ?>
 <body vlink="blue" link="blue" alink="cyan" onload="displayClockStart()" onunload="displayClockStop()" onresize="resizeMe()">
-<? include('include-title.php'); ?><p />
-<form name="myform" action="cad.php" method="post">
-<table cellspacing=0 cellpadding=0 style="padding-bottom: 0">
-<tr valign="bottom" style='font-size: 8pt;'>
-   <td class="text" align="right">Message time:</td>
-   <td width="10">&nbsp;</td>
-   <td class="text"><u>S</u>elect unit from list:</td>
+<? include('include-title.php'); ?>
+<form name="myform" action="cad.php" method="post" style="margin: 0px;">
+
+<b class="text">Log Viewer :: Add a Message:</b><br>
+
+<table width="100%" style="margin-bottom: 8px;">
+<tr>
+<td bgcolor="#aaaaaa">
+
+<table width="100%" cellspacing="1" cellpadding="2">
+<tr valign="bottom" style='font-size: 8pt;' class='message'>
+   <td class="text" nowrap>Message time:</td>
+   <td class="text" nowrap><u>S</u>elect unit from list:&nbsp;</td>
  <?php
    if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes') {
-     print '<td width="10">&nbsp;</td>';
-     print '<td class="text">Message type:</td>';
+     print '<td class="text" nowrap>Message type:&nbsp;</td>';
    }
-   ?>
-
-   <td width="10">&nbsp;</td>
+ ?>
    <td class="text">Enter <u>m</u>essage</td>
+   <td nowrap rowspan="2">
+     <input type="submit" value="" style="visibility: hidden; width: 0px; height: 0px;"><br>
+     &nbsp;&crarr;&nbsp;
+     <input type="reset" value="Clear" tabindex="5">
+   </td>
 </tr>
-<tr>
-   <td style="text-align: right;"><input type="text" name="displayClock" size="8" /></td>
-   <td></td>
-   <td colspan="2">
+<tr class="message">
+   <td><input type="text" name="displayClock" size="8" /></td>
+   <td>
      <label for="unit" accesskey="s">
      <select name="unit" id="unit" tabindex="3" style="width:150px">
      <option selected value=""></option>
@@ -83,7 +90,7 @@
 
  <?php
       if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes') {
-        print '<td colspan="2">';
+        print '<td>';
         print '<select tabindex="4" style="width:150px" name="message_type">';
         print '<option selected value=""></option>';
         $typequery = "SELECT message_type FROM message_types ORDER BY message_type ASC";
@@ -98,23 +105,19 @@
 
    <td>
    <label for="message" accesskey="m">
-   <input type="text" name="message" id="message" tabindex="5" size="80" maxlength="250" />
+   <input type="text" name="message" id="message" tabindex="4" size="70" maxlength="250" />
    </label>
    </td>
 </tr>
-<tr>
-   <td colspan="4"></td>
-<?
-      if (!isset($_COOKIE['cad_show_message_type']) || $_COOKIE['cad_show_message_type'] == 'yes')
-        print "<td colspan=2></td>";
-?>
-   <td align="right"><input tabindex="5" type="submit" value="Save New Entry"><input tabindex="6" type="reset" value="Clear"></td>
- </tr>
-</table><p />
+</table>
+
+</td>
+</tr>
+</table>
 
 <iframe name="log" src="cad-log-frame.php"
         width=<?=trim($_COOKIE['width'])-30; ?>
-        height=<?=trim($_COOKIE['height'])-190; ?>
+        height=<?=trim($_COOKIE['height'])-180; ?>
         marginheight="0" marginwidth="0" frameborder="0"> </iframe>
 <?php
    mysql_close($link);

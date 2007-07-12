@@ -8,15 +8,17 @@
 
   if (isset($_POST['unit'])) {
       $unit = strtoupper(MysqlClean($_POST,'unit',20));
-      if (isset($_POST['status'])) $status = MysqlClean($_POST,'status',30); else $status = "";
-      if (isset($_POST['status_comment'])) $status_comment = MysqlClean($_POST,'status_comment',255); else $status_comment= "";
-      if (isset($_POST['type'])) $type = MysqlClean($_POST,'type',20); else $type= "Unit";
-      if (isset($_POST['assignment'])) $assignment = MysqlClean($_POST,'assignment',20); else $assignment= "";
-      if (isset($_POST['role'])) $role = MysqlClean($_POST,'role',20); else $role= "Other";
-      if (isset($_POST['personnel'])) $personnel = MysqlClean($_POST,'personnel',100); else $personnel= "";
+      if (isset($_POST['status'])) $status = MysqlClean($_POST,'status',30); else $status="";
+      // if (isset($_POST['status_comment'])) $status_comment = MysqlClean($_POST,'status_comment',255); else $status_comment="";
+      if (isset($_POST['type'])) $type = MysqlClean($_POST,'type',20); else $type="Unit";
+      if (isset($_POST['assignment'])) $assignment = MysqlClean($_POST,'assignment',20); else $assignment="";
+      if (isset($_POST['role'])) $role = MysqlClean($_POST,'role',20); else $role="Other";
+      if (isset($_POST['location'])) $location = MysqlClean($_POST,'location',100); else $location="";
+      if (isset($_POST['notes'])) $notes = MysqlClean($_POST,'notes',100); else $notes="";
+      if (isset($_POST['personnel'])) $personnel = MysqlClean($_POST,'personnel',100); else $personnel="";
   }
 
-  if (isset($_POST['saveunit'])) {
+  if (isset($_POST['saveunit']) || isset($_POST['saveunit_closewin'])) {
     if (isset($_POST['new-unit-entered'])) {
       $unit = strtoupper(MysqlClean($_POST,'unit',20));
       $pattern = "/[\\/[\]'!@#$\^%&*()+=,;:{}|<>~`?\"]/";
@@ -26,56 +28,62 @@
       }
       // update status
       if ($personnel != "")
-        $query = "INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit created - personnel: $personnel')";
+        MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit created - personnel: $personnel')");
       else
-        $query = "INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit created.')";
-      mysql_query($query) or die("In query: $query\nError: " . mysql_error());
+        MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit created.')");
 
       // update units
       // TODO: sanity check $unit input characters here?
-      $query = "INSERT INTO units (unit, status, status_comment, type, role, personnel, update_ts, assignment) VALUES ('$unit', '$status', '$status_comment', '$type', '$role', '$personnel', NOW(), '$assignment')";
-      mysql_query($query) or die("In query: $query\nError: " . mysql_error());
+      MysqlQuery("INSERT INTO units (unit, status, status_comment, type, role, personnel, update_ts, assignment, personnel_ts, location, location_ts, notes, notes_ts) VALUES ('$unit', '$status', '$status_comment', '$type', '$role', '$personnel', NOW(), '$assignment', '', '$location', '', '$notes', '')");
     }
 
     else {
-      // update status and personnel notes
+      // update status
       if ($_POST['status'] <> $_POST['previous_status']) {
-        $query = "INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Status change: $status";
-        if ($_POST['previous_status'] <> "") {
-              $query .= " (was: ".MysqlClean($_POST, 'previous_status', 200).")";
-        }
-        $query .= "')";
-        mysql_query($query) or die("In query: $query\nError: " . mysql_error());
+        $fragment = "status='$status', status_comment='Status changed to: $status', update_ts=NOW(),";
+
+        if ($_POST['previous_status'] <> "")
+          MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Status change: $status (was: ".MysqlClean($_POST, 'previous_status', 200).")')");
+        else
+          MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Status change: $status')");
 
         if ($_POST['previous_status'] == 'Attached to Incident') {
-          $query = "UPDATE incident_units SET cleared_time=NOW() WHERE unit='$unit' AND cleared_time IS NULL";
-          mysql_query($query) or die("In query: $query\nError: " . mysql_error());
+          MysqlQuery("UPDATE incident_units SET cleared_time=NOW() WHERE unit='$unit' AND cleared_time IS NULL");
         }
       }
+      else {
+        $fragment="";
+      }
+
+      // update location
+      // not implimented yet
+
+      // update notes
+      // not implimented yet 
+
+      // update personnel
       if ($_POST['personnel'] <> $_POST['previous_personnel']) {
-        $query = "INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Personnel change logged: $personnel')";
-        mysql_query($query) or die("In query: $query\nError: " . mysql_error());
+        MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Personnel change logged: $personnel')");
       }
 
       // update units
-      if ($_POST['status'] <> $_POST['previous_status'])
-         $fragment = "status='$status', update_ts=NOW(),";
-      else $fragment="";
-      $query = "UPDATE units SET $fragment status_comment='$status_comment', type='$type', role='$role', personnel='$personnel', assignment='$assignment' WHERE unit='$unit'";
-      mysql_query($query) or die("In query: $query\nError: " . mysql_error());
+      MysqlQuery("UPDATE units SET $fragment type='$type', role='$role', assignment='$assignment', location='$location', notes='$notes', personnel='$personnel' WHERE unit='$unit'");
     }
 
-
-    print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
-    die("(Error: JavaScript not enabled or not present) Action completed. Close this window to continue.");
+    if (isset($_POST['saveunit_closewin'])) {
+      print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
+      die("(Error: JavaScript not enabled or not present) Action completed. Close this window to continue.");
+    }
+    else {
+      header("Location: edit-unit.php?unit=".$_POST['unit']);
+      exit;
+    }
   }
 
   elseif (isset($_POST["deleteunit"])) {
     if (isset($_POST['deleteforsure'])) {
-      $query = "DELETE FROM units WHERE unit='".MysqlClean($_POST,"unit",20)."'";
-      mysql_query($query) or die("In query: $query<br>\nError: " . mysql_error());
-      $query = "INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit deleted.')";
-      mysql_query($query) or die("In query: $query<br>\nError: " . mysql_error());
+      MysqlQuery("DELETE FROM units WHERE unit='".MysqlClean($_POST,"unit",20)."'");
+      MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit deleted.')");
       print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
       die("(Error: JavaScript not enabled or not present) Action completed. Close this window to continue.");
     }
@@ -83,10 +91,9 @@
       $_GET['unit'] = MysqlClean($_POST,'unit',20);
       $unit = $_GET['unit'];
       $newunit = 0;
-      $unitquery = "SELECT * from units where unit = '$unit'";
-      $unitresult = mysql_query($unitquery) or die("unit query failed:" . mysql_error());
-      $unitline = mysql_fetch_array($unitresult, MYSQL_ASSOC) or die ("unit not found in table");
-      mysql_free_result($unitresult);
+      $unitresult = MysqlQuery("SELECT * from units where unit = '$unit'");
+      $unitline = mysql_fetch_array($unitresult, MYSQL_ASSOC) or die ("Unit $unit not found in table!");
+       mysql_free_result($unitresult);
     }
   }
   elseif (isset($_GET["new-unit"])) {
@@ -104,10 +111,9 @@
   elseif (isset($_GET["unit"])) {
     $unit = MysqlClean($_GET,"unit",20);
     $newunit = 0;
-    $unitquery = "SELECT * from units where unit = '$unit'";
-    $unitresult = mysql_query($unitquery) or die("unit query failed:" . mysql_error());
+    $unitresult = MysqlQuery("SELECT * from units where unit = '$unit'");
     $unitline = mysql_fetch_array($unitresult, MYSQL_ASSOC) or die ("unit not found in table");
-    mysql_free_result($unitresult);
+     mysql_free_result($unitresult);
   }
   elseif (isset($_POST['add_pageout'])) {
     $newval = MysqlClean($_POST, 'newpageout', 20);
@@ -115,6 +121,66 @@
     header("Location: edit-unit.php?unit=".$_POST['unit']);
     exit;
   }
+
+  elseif (isset($_POST['pageunit']) && 
+          isset($DB_PAGING_NAME) &&
+          isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+
+    $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
+      or die("Could not connect : " . mysql_error());
+
+    $ipaddr = $_SERVER['REMOTE_ADDR'];
+    MysqlClean($_POST,'to_pager_id',30);
+    MysqlClean($_POST,'unit',40);
+    MysqlClean($_POST,'pagetext',80);
+    $message = "[CAD] FR " . $_SESSION['username'] . " TO $unit: " . $_POST['pagetext'];
+    $success = 1; // unless overridden below:
+
+    if (strlen($message) >= 128) {
+    # TODO: try to work around this limitation?  reimplement part of paging... or wait for API?
+      $message = substr($message, 0, 127);
+    }
+
+    if (!mysql_query("INSERT into $DB_PAGING_NAME.batches (from_user_id, from_ipaddr, orig_message, entered) ".
+                     " VALUES (0, '$ipaddr', '$message', NOW() )", $paginglink) || 
+        mysql_affected_rows() != 1) {
+      syslog(LOG_WARNING, "Error inserting row into database $DB_PAGING_NAME.batches as [$DB_PAGING_HOST/$DB_PAGING_USER]");
+      $success = 0;
+    }
+    else {
+      $batch_id = mysql_insert_id();
+   
+      if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user_id, to_pager_id, message) VALUES ".
+                       "(0, " . $_POST['to_pager_id'] . ", '$message')", $paginglink) ||
+            mysql_affected_rows() != 1) {
+        syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
+        $success = 0;
+      }
+      $msg_id = mysql_insert_id();
+        
+      if (!mysql_query("INSERT into $DB_PAGING_NAME.batch_messages (batch_id, msg_id) VALUES ".
+                          "($batch_id, $msg_id)", $paginglink) ||
+          mysql_affected_rows() != 1) {
+        syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.batch_messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
+        $success = 0;
+      }
+
+      if (!mysql_query("INSERT into $DB_PAGING_NAME.send_queue (status, msg_id, queued) VALUES ".
+                          "('Queued', $msg_id, NOW())", $paginglink) ||
+          mysql_affected_rows() != 1) {
+        syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.send_queue as [$DB_PAGING_HOST/$DB_PAGING_USER]");
+        $success = 0;
+      }
+    }
+    if ($success) {
+      syslog(LOG_INFO, $_SESSION['username'] . " sent a page to unit [$unit], pager [".$_POST['to_pager_id']."]");
+    }
+    mysql_close($paginglink);
+
+    header("Location: edit-unit.php?unit=".$_POST['unit']."&pagesent=".$success);
+    exit;
+  }
+
   else {
     $action = 0;
     foreach (array_keys($_POST) as $postkey) {
@@ -137,217 +203,357 @@
   header_html('Dispatch :: Unit Details');
 /*-------------------------------------------------------------------------*/?>
 <body vlink="blue" link="blue" alink="cyan">
-
-<font face="tahoma,ariel,sans">
 <form name="myform" action="edit-unit.php" method="post">
 
-<?php if (!$newunit)
-     print " <b>Unit: $unit</b>";
-   else
-     print " <b>Creating a New Unit</b>";
-?>
-  <p />
-  <table width="660">
+<!-- Begin Outer Table -->
+<table cellspacing="3" cellpadding="0">
+
+<!-- Begin Outer Table Row 1 -->
+<tr>
+<td colspan="3" bgcolor="darkblue" class="text">
+
+  <!-- Title Bar Table -->
+  <table width=100%>
   <tr>
-  <td colspan="3" bgcolor="#aaaaaa" width="580">
-     <table cellpadding="2" cellspacing="0" width="100%">
-     <tr>
-
-  <?php
-  if ($newunit) {
-    print "<td class=\"message\"><b>Unit name</b></td>\n";
-    print "<td colspan=\"5\" class=\"message\"><input type=\"text\" name=\"unit\"><input type=\"hidden\" name=\"new-unit-entered\"></td>\n";
-    print "</tr>\n<tr>\n";
-    print "</tr>\n<tr>\n";
-  }
-  else {
-    print "<input type=\"hidden\" name=\"unit\" value=\"".$unit."\" />";
-  }
-  ?>
-
-       <td class="message" width="80" STYLE="width: 80px"><u>S</u>tatus</td>
-       <td class="message">
-         <label for="status" accesskey="s">
-         <select name="status" id="status">
-    <?php /*--------------------------------------------------------------------------------------*/
-
-       $statusset=0;
-       $statusquery = "SELECT * from status_options";
-       $statusresult = mysql_query($statusquery) or die ("status query failed:" . mysql_error());
-       while ($line = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
-         echo "        <option ";
-         if (!strcmp($line["status"], $unitline["status"])) {
-           $statusset=1;
-           echo "selected ";
-         }
-         echo "value=\"". MysqlUnClean($line["status"])."\">". $line["status"]."</option>\n";
-       }
-       if (!$statusset) {
-         echo "        <option selected value=\"\">\n";
-       }
-       mysql_free_result($statusresult);
-   /*----------------------------------------------------------------------*/?>
-          </status>
-          </label>
-<input type="hidden" name="previous_status" value="<?=MysqlUnClean($unitline["status"]);?>" />
-</td>
-
-<td class="message" width="50">T<u>y</u>pe</td>
-<td class="message">
-  <label for="type" accesskey="y">
-  <select name="type" id="type" width="100" STYLE="width: 100px">
-<? /*----------------------------------------------------------------------*/
-       $avail_types = array('Unit', 'Individual', 'Generic');
-       if (array_search($unitline["type"], $avail_types) === FALSE) {
-         print "<option selected value=\"\">(none)</option>\n";
-       }
-       foreach ($avail_types as $type) {
-         print "<option ";
-         if ($unitline["type"] == $type)
-           print "selected ";
-         print "value=\"$type\">$type</option>\n";
-       }
-   /*----------------------------------------------------------------------*/?>
-
-  </select>
-  </label>
-  </td>
-
-<td class="message" width="50"><u>A</u>ssignment</td>
-<td class="message" width=150 style="width: 150px">
-  <label for="assignment" accesskey="a">
-  <select name="assignment" id="assignment" width="150" STYLE="width:150px">
-<? /*----------------------------------------------------------------------*/
-       $avail_asses = MysqlQuery('SELECT * FROM unit_assignments');
-       
-       print "<option value=\"\">(none)</option>\n";
-       while ($avail_assignment = mysql_fetch_object ($avail_asses)) {
-         print "<option ";
-         if ($unitline["assignment"] == $avail_assignment->assignment)
-           print "selected ";
-
-         print "value=\"".$avail_assignment->assignment."\">".
-               $avail_assignment->description."</option>\n";
-       }
-   /*----------------------------------------------------------------------*/?>
-   </select>
+  <td><font color="white" size="+1"><b><? if (!$newunit) print "Unit: $unit"; else print "Creating a New Unit"; ?></b></font></td>
+  </tr>
+  </table>
 
 </td>
 </tr>
 
 <tr>
- <td class="message" align="right">Updated:</td>
- <td class="message" align="right" width="150"><?=dls_utime($unitline["update_ts"])?></td>
- <td class="message" align="right">B<u>r</u>anch</td>
- <td class="message" align="right" colspan=3>
+<td colspan="3" bgcolor="#bbbbbb">
+
+  <!-- Begin Unit Form Outer Table -->
+  <table cellpadding="0" cellspacing="0" border="1" width="100%">
+  <tr>
+  <td>
+
+    <!-- Begin Unit Form Inner Table -->
+    <table cellpadding="2" cellspacing="0" width="100%">
+
+    <!-- Begin Unit Form Row: Unit Name -->
+    <?php
+      if ($newunit) {
+        print "<tr>";
+        print "<td class=\"label\" align=\"right\"><b>Unit name</b></td>\n";
+        print "<td colspan=\"5\" class=\"text\"><input type=\"text\" name=\"unit\"><input type=\"hidden\" name=\"new-unit-entered\"></td>\n";
+        print "</tr>\n";
+      }
+      else {
+        print "<input type=\"hidden\" name=\"unit\" value=\"".$unit."\" />\n";
+      }
+    ?>
+
+    <!-- Begin Unit Form Row: Branch / Type / Assignment -->
+    <tr>
+    <td class="label" align="right">B<u>r</u>anch</td>
+    <td class="text" width="100%">
     <label for="role" accesskey="role">
-    <select name="role" id="role" width="100" STYLE="width: 100px">
+    <select name="role" id="role">
+    <?php
+      $avail_roles = array('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other');
+      if (array_search($unitline["role"], $avail_roles) === FALSE)
+        print "<option selected value=\"\">(not set)</option>\n";
+      foreach ($avail_roles as $role) {
+        print "<option ";
+        if ($unitline["role"] == $role)
+          print "selected ";
+        print "value=\"$role\">$role</option>\n";
+      }
+    ?>
+    </select>
+    </label>
+    </td>
 
-       <?php /*--------------------------------------------------------------------------------------*/
-         $avail_roles = array('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other');
-         if (array_search($unitline["role"], $avail_roles) === FALSE) {
-           print "<option selected value=\"\">(not set)</option>\n";
-         }
-         foreach ($avail_roles as $role) {
-           print "<option ";
-           if ($unitline["role"] == $role) print "selected ";
-           print "value=\"$role\">$role</option>\n";
-         }
-         /*--------------------------------------------------------------------------------------------*/ ?>
-     </select>
-     </label>
-   </td>
-   </tr>
-   <tr>
-     <td class="message"  width="90">C<u>o</u>mment</td>
-     <td class="message" colspan="5">
-     <label for="status_comment" accesskey="o">
-     <input name="status_comment" id="status_comment" type="text" maxlength="250" size="80"
-      value="<?php print MysqlUnClean($unitline["status_comment"])?>" />
-     </label>
-     </td>
-   </tr>
+    <td class="label" align="right">T<u>y</u>pe</td>
+    <td class="text" width="100%">
+    <label for="type" accesskey="y">
+    <select name="type" id="type">
+    <?php
+      $avail_types = array('Unit', 'Individual', 'Generic');
+      if (array_search($unitline["type"], $avail_types) === FALSE)
+        print "<option selected value=\"\">(none)</option>\n";
+      foreach ($avail_types as $type) {
+        print "<option ";
+        if ($unitline["type"] == $type)
+          print "selected ";
+        print "value=\"$type\">$type</option>\n";
+      }
+    ?>
 
-   <tr>
-     <td class="message"  width="90"><u>P</u>ersonnel</td>
-     <td class="message" colspan="5">
-         <label for="personnel" accesskey="p">
-         <input name="personnel" id="personnel" type="text" maxlength="250" size="80"
-          value="<?=MysqlUnClean($unitline["personnel"]);?>" />
-         </label>
-         <input type="hidden" name="previous_personnel" value="<?=$unitline["personnel"];?>" />
-     </td>
-   </tr>
-<?
+    </select>
+    </label>
+    </td>
+
+    <td class="label" align="right"><u>A</u>ssignment</td>
+    <td class="text" width="100%">
+    <label for="assignment" accesskey="a">
+    <select name="assignment" id="assignment">
+    <?php
+      $avail_asses = MysqlQuery('SELECT * FROM unit_assignments');
+
+      print "<option value=\"\">(none)</option>\n";
+      while ($avail_assignment = mysql_fetch_object ($avail_asses)) {
+        print "<option ";
+        if ($unitline["assignment"] == $avail_assignment->assignment)
+          print "selected ";
+        print "value=\"".$avail_assignment->assignment."\">".
+              $avail_assignment->description."</option>\n";
+      }
+    ?>
+    </select>
+    </td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Spacer -->
+    <tr>
+    <td colspan="6"></td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Status -->
+    <tr>
+    <td class="label" align="right"><u>S</u>tatus</td>
+    <td class="text" width="100%">
+    <label for="status" accesskey="s">
+    <select name="status" id="status">
+    <?php
+      $statusset=0;
+      $statusresult = MysqlQuery("SELECT * from status_options");
+      while ($line = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
+        echo "        <option ";
+        if (!strcmp($line["status"], $unitline["status"])) {
+          $statusset=1;
+          echo "selected ";
+        }
+        echo "value=\"". MysqlUnClean($line["status"])."\">". $line["status"]."</option>\n";
+      }
+      if (!$statusset) {
+        echo "        <option selected value=\"\">\n";
+      }
+      mysql_free_result($statusresult);
+    ?>
+    </select>
+    </label>
+    <input type="hidden" name="previous_status" value="<?=MysqlUnClean($unitline["status"]);?>" />
+    </td>
+
+    <td colspan="2">&nbsp;</td>
+
+    <td class="label" align="right">Updated</td>
+    <td class="text"><?=dls_utime($unitline["update_ts"]);?></td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Status Redux -->
+    <tr>
+    <td>&nbsp;</td>
+    <td class="label" colspan="5" nowrap>Comment: <?php print MysqlUnClean($unitline["status_comment"])?></td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Spacer -->
+    <tr>
+    <td colspan="6"></td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Last Location -->
+    <tr>
+    <td class="label" align="right" nowrap>Last <u>L</u>ocation</td>
+    <td class="text" colspan="5">
+    <label for="location" accesskey="l">
+    <input name="location" id="location" type="text" maxlength="250" size="80"
+     value="<?php print MysqlUnClean($unitline["location"])?>" />
+    </label>
+    <input type="hidden" name="previous_location" value="<?=$unitline["location"];?>" />
+    </td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Notes -->
+    <tr>
+    <td class="label" align="right">N<u>o</u>tes</td>
+    <td class="text" colspan="5">
+    <label for="notes" accesskey="o">
+    <input name="notes" id="notes" type="text" maxlength="250" size="80"
+     value="<?php print MysqlUnClean($unitline["notes"])?>" />
+    </label>
+    <input type="hidden" name="previous_notes" value="<?=$unitline["notes"];?>" />
+    </td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Personnel -->
+    <tr>
+    <td class="label" align="right"><u>P</u>ersonnel</td>
+    <td class="text" colspan="5">
+    <label for="personnel" accesskey="p">
+    <input name="personnel" id="personnel" type="text" maxlength="250" size="80"
+     value="<?=MysqlUnClean($unitline["personnel"]);?>" />
+    </label>
+    <input type="hidden" name="previous_personnel" value="<?=$unitline["personnel"];?>" />
+    </td>
+    </tr>
+
+
+<?php
+  // Begin Unit Form Row: Generic Notice
   if ($unitline["type"] == "Generic")
-    print "<tr>\n<td class=\"message\" colspan=\"6\"><b>Note: As a generic unit, multiple instances of this unit may be simultaneously assigned to separate incidents.</b></td></tr>"
+    print "<tr>\n<td class=\"label\" colspan=\"6\"><b>Note: As a generic unit, multiple instances of this unit may be simultaneously assigned to separate incidents.</b></td></tr>"
 ?>
-   </table>
-   </td>
- </tr>
- <tr><td></td></tr>
- <tr><td></td>
-     <td class="label"><input type="submit" name="saveunit" value="Save" />
-     <input type="reset" value="Cancel" onClick='if (window.opener){window.opener.location.reload()} self.close()' />
-     <NOSCRIPT><B>Warning</B>: Javascript disabled. Close popup to cancel changes.</NOSCRIPT>
-     </td>
-<?
-    if ($newunit) {
-      print "</tr>\n";
+
+    <!-- Begin Unit Form Row: Buttons -->
+    <tr>
+    <td>&nbsp;</td>
+    <td class="label" colspan="5">
+    <button type="submit" id="saveunit" name="saveunit" tabindex="41" accesskey="1"><u>1</u>  Save</button>
+    <button type="submit" id="saveunit_closewin" name="saveunit_closewin" tabindex="42" value="Save & Return" accesskey="2"><u>2</u>   Save & Return</button>
+    <button type="button" id="cancel" name="cancel" tabindex="43" accesskey="3"
+     onClick='if (window.opener){window.opener.location.reload()} self.close()'><u>3</u>  Cancel</button>
+    <noscript><b>Warning</b>: Javascript disabled. Close popup to cancel changes.</noscript>
+    </td>
+    </tr>
+
+<?php
+  // Begin Unit Form Row: If Existing Unit
+  if(!$newunit) {
+    print "<tr>\n";
+    print "<td colspan=\"6\" class=\"label\" align=\"right\">";
+    if (isset($_POST["deleteunit"])) {
+      print "<input type=\"checkbox\" name=\"deleteforsure\" />&nbsp;";
+      print "<span style=\"color: red; font-weight: bold; text-decoration: blink;\">Confirm</span> " .
+            "you want to delete this unit?&nbsp;&nbsp;";
+    }
+    print "<input type=\"submit\" id=\"deleteunit\" name=\"deleteunit\" value=\"Delete Unit\" /></td>\n";
+    print "</tr>\n";
+  }
+?>
+
+    </table>
+    <!-- End Unit Form Inner Table -->
+
+  </td>
+  </tr>
+  </table>
+  <!-- End Unit Form Outer Table -->
+
+</td>
+</tr>
+<!-- End Outer Table Row 1 -->
+
+<!-- Outer Table Spacer Row -->
+<tr><td></td></tr>
+
+  <?php 
+  if (isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+  ?>
+<!-- Begin Outer Table Row 2 -->
+<tr>
+<td colspan="3" bgcolor="#bbbbbb">
+  <!-- Begin Page Now Form Outer Table -->
+  <table cellpadding="0" cellspacing="0" border="1" width="100%">
+  <tr>
+  <td>
+
+    <!-- Begin Page Now Form Inner Table -->
+    <table cellpadding="2" cellspacing="0" width="100%">
+
+    <?php
+    $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
+      or die("Could not connect : " . mysql_error());
+    $querytext = "SELECT pager_id,capcode,name FROM $DB_PAGING_NAME.pagers ".
+      " WHERE UPPER(REPLACE(name, ' ', '')) = '" . strtoupper(str_replace(' ', '', $unit)) . "'";
+    $pager_query = mysql_query($querytext, $paginglink) or die ("Problem with query $querytext on $DB_PAGING_NAME.pagers");
+    if (mysql_num_rows($pager_query)) {
+      $pager = mysql_fetch_object($pager_query);
+      print "<tr><td class=label>Send page to <b>$unit</b>: \n";
+      print "<INPUT type=hidden name=\"to_pager_id\" value=\"" . $pager->pager_id."\">\n";
+      print "<INPUT type=text onfocus=\"focusPaging(true)\" name=\"pagetext\" size=\"40\" maxlength=\"80\">\n";
+      print "<BUTTON type=submit name=\"pageunit\" tabindex=\"42\" accesskey=\"4\"><u>4</u>  Send Page</button>\n";
+      print "<BUTTON type=button onfocus =\"focusPaging(false)\" name=\"cancelpageunit\" tabindex=\"43\" accesskey=\"5\"><u>5</u>  Cancel Page</button>\n";
+      print "</td></tr>\n";
+      print "<tr><td><span class=\"label\" style=\"color:blue\" id=\"pagehelp\">&nbsp;";
     }
     else {
-      print "<td align=\"right\"><input type=\"submit\" name=\"deleteunit\" value=\"Delete Unit\" /></td>\n";
-      print "</tr>\n";
-      print "<tr><td colspan=\"2\"><td align=\"right\" style=\"color: lightgray; font-size: 9pt; font-style: italic;\">";
-      if (isset($_POST["deleteunit"])) {
-         print "<span style=\"color: red; text-decoration: blink;\">Confirm</span> delete unit?&nbsp;<input type=\"checkbox\" name=\"deleteforsure\" /></td></tr>";
-      } else {
-         print "Confirm delete unit?&nbsp;<input type=\"checkbox\" disabled name=\"deleteforsure\" /></td></tr>";
-      }
+      print "<tr><td class=label style=\"color:blue\">Cannot page this unit directly from CAD: No pager defined for &quot;<b>$unit</b>&quot;.<br>";
+      print "<font size=-1>&nbsp; If this unit has a pager, try the Paging system directly, as the pager may be named differently.</font></td></tr>\n";
     }
-?>
+    
+    if ($_GET['pagesent'] == 1) {
+      print "Your page was sent.";
+    }
+    elseif (isset($_GET['pagesent']) && $_GET['pagesent'] == 0) {
+      print "Error sending page.";
+    }
+    print "</span></td></tr>\n"; 
+    ?>
+    </table>
+
+  </td>
+  </tr>
   </table>
 
-<?php 
-  if (isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+</td>
+</tr>
+<!-- End Outer Table Row 2 -->
 
-    $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) or die("Could not connect : " . mysql_error());
+<!-- Outer Table Spacer Row -->
+<tr><td></td></tr>
+
+<!-- Begin Outer Table Row 3 -->
+<tr>
+<td colspan="3" bgcolor="#bbbbbb">
+
+  <!-- Begin AutoPage Form Outer Table -->
+  <table cellpadding="0" cellspacing="0" border="1" width="100%">
+  <tr>
+  <td>
+
+    <!-- Begin AutoPage Form Inner Table -->
+    <table cellpadding="2" cellspacing="0" width="100%">
+
+<?php 
+
     $options_query = mysql_query("SELECT * FROM $DB_PAGING_NAME.pagers ORDER BY name", $paginglink) or die ("Problem with query on $DB_PAGING_NAME.pagers");
     $Pagers = array();
     while ($pager_option = mysql_fetch_object($options_query)) {
       $Pagers[$pager_option->pager_id] = $pager_option->name;
     }
-    $pageout_query = mysql_query("SELECT * FROM unit_incident_paging WHERE unit='$unit'", $paginglink);
+    $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
     // TODO: set access level dynamically
     if (mysql_num_rows($pageout_query) || $_SESSION['access_level'] >= 5) {
-      ?>
+?>
 
-  <table width="300" valign=top>
-  <tr valign=top>
-    <td> <span class=header>Page-out&nbsp;on&nbsp;incident&nbsp;assignment&nbsp;of&nbsp;this&nbsp;unit:&nbsp;&nbsp;</span></td>
-    <td width=50>&nbsp;</td>
-    <td> <span class=header>Add&nbsp;page-out&nbsp;notification&nbsp;of:</span></td>
+  <!-- Begin Unit AutoPage Row: Labels -->
+  <tr>
+  <td class="label" width="100%" nowrap>CAD will auto-page the pagers listed below when this<br> unit [<b><?php print $unit?></b>] is assigned to an incident:</td>
+  <td></td>
+  <td class="label" nowrap>Add this pager to <?php print $unit?>'s auto-page list:</td>
   </tr>
-  <tr valign=top>
-    <td bgcolor="#aaaaaa" width="280">
-     <table cellpadding="2" cellspacing="1" width="100%">
 
-     <?php
-      while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
-        // TODO: set access level dynamically
-        if ($_SESSION['access_level'] >= 5) {
-          print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td><td align=right class=message><input type=submit name=\"delete_pageout_". $pageout_rcpt->row_id . "\" value=\"Delete\"></td></tr>";
-          unset($Pagers[$pageout_rcpt->to_pager_id]);
+  <!-- Begin Unit AutoPage Row: Current List / Add -->
+  <tr>
+  <td valign="top">
+
+    <table cellpadding="2" cellspacing="1" width="100%">
+<?php
+      if (mysql_num_rows($pageout_query)) {
+        while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
+          // TODO: set access level dynamically
+          if ($_SESSION['access_level'] >= 5) {
+            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td><td align=right class=message><input type=submit name=\"delete_pageout_". $pageout_rcpt->row_id . "\" value=\"Delete\"></td></tr>";
+            unset($Pagers[$pageout_rcpt->to_pager_id]);
+          }
+          else {
+            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td></tr>";
+          }
         }
-        else {
-          print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td></tr>";
-        }
+      }
+      else {
+        print "<tr><td class=label style=\"color:blue\">No auto-page pagers are defined for this unit.</td></tr>";
       }
       print "</table></td>\n";
     }
 
     if ($_SESSION['access_level'] >= 5) {
-      print "</td><td> </td> <td>\n";
+      print "</td><td></td><td>\n";
       print "<table cellpadding=\"2\" cellspacing=\"1\" width=\"100%\">\n";
       print "<tr><td class=message><SELECT name=newpageout>\n";
       foreach (array_keys($Pagers) as $pager) {
@@ -356,39 +562,29 @@
       print "</SELECT></td><td class=message><input type=submit value=\"Add\" name=\"add_pageout\"></td></tr>\n";
     }
     mysql_close($paginglink);
-  }
-
-  print "</table>\n";
-  print "</td></tr>\n";
-  print "</table>\n";
-  print "</form>\n";
-  print "<p>\n";
-
-  if (!$newunit) { 
-    print '<b>Last 10 Messages</b><br />' . "\n";
-    print '  <table><tr><td width="20"></td><td bgcolor="#aaaaaa">' . "\n";
-    print '  <table cellpadding="2" cellspacing="1"> <tr>' . "\n";
-    print '    <td class="message">Time</td>' . "\n";
-    print '    <td class="message">Message</td>' . "\n";
-    print '  </tr>' . "\n";
-
-    $rowquery = "SELECT * FROM messages WHERE unit = '$unit' AND deleted=0 ORDER BY oid DESC LIMIT 10";
-    $rowresult = MysqlQuery($rowquery);
-
-    while ($line = mysql_fetch_array($rowresult, MYSQL_ASSOC)) {
-      echo "\t<tr>\n";
-      $td = "<td class=\"message\">";
-
-      echo $td, dls_utime($line["ts"]), "</td>";
-      echo $td, $line["message"], "</td>";
-      echo "\t</tr>\n";
-    }
-
-    print "</table>\n";
-    print "</table>\n";
-  }
-
-  print "</body>\n";
-  print "</html>\n";
 
 ?>
+      </table>
+
+    </td>
+    </tr>
+    </table>
+    <!-- End Unit AutoPage Inner Table -->
+
+  </td>
+  </tr>
+  </table>
+  <!-- End Unit AutoPage Outer Table -->
+
+</td>
+</tr>
+<!-- End Outer Table Row 2 -->
+<?php } ?>
+
+</table>
+<!-- End Outer Table -->
+
+</form>
+
+</body>
+</html>
