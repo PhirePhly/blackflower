@@ -21,6 +21,7 @@
 // Logging:
   $USE_SYSLOG = 1;
   $SYSLOG_FACILITY = LOG_LOCAL4;
+  $SYSLOG_LEVEL = LOG_INFO;
 
 // Config values:
   $DEFAULT_ADMIN = "Administrator";

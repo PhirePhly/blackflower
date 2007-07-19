@@ -48,7 +48,7 @@
     $unitarray = array();
     $unitnames = array();
     if (mysql_num_rows($unitresult) > 0) {
-      echo $title;
+      echo "<span class=\"text\">".$title."</span>";
       while ($urow = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
         $unitarray[$urow["unit"]] = $urow;
         array_push($unitnames, $urow["unit"]);
@@ -59,10 +59,10 @@
 ?>
 
 <table width="98%"><tr><td bgcolor="#aaaaaa">
-  <table width="100%" cellpadding="2" cellspacing="2">
+  <table width="100%" cellpadding="1" cellspacing="1">
   <tr>
     <td width="100" class="th">Unit Name</td>
-    <td width="80"  class="th">Branch/Role</td>
+    <td width="80" class="th">Branch/Role</td>
     <td width="120" class="th">Status</td>
     <td width="550" class="th">Last Message</td>
   </tr>
@@ -107,7 +107,7 @@
         }
 
         echo "\n  <tr>\n";
-        echo $td, "<a href=\"edit-unit.php?unit=", $u_name, "\" onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit(edit)',500,700)\">", $u_name_html,"</a>&nbsp;&nbsp;$icon</td>\n";
+        echo $td, "<a href=\"edit-unit.php?unit=", $u_name, "\" onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit(edit)',500,700)\" TARGET=\"_blank\">", $u_name_html,"</a>&nbsp;&nbsp;$icon</td>\n";
 
 
         echo $td, $unitrow["role"], "</td>\n";

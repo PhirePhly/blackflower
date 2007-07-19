@@ -64,8 +64,9 @@
         $quality="<span style='font-weight: bold;'>";
       else
         $quality="<span style='font-weight: normal;'>";
-      $href = "<a href='edit-incident.php?incident_id=$incident_id' "
-            . "onClick=\"return popup('edit-incident.php?incident_id=$incident_id','incident-$incident_id',600,1000)\">";
+      $href = "<a href='edit-incident.php?incident_id=$incident_id' " .
+              "onClick=\"return popup('edit-incident.php?incident_id=$incident_id','incident-$incident_id',600,1000)\" ".
+              "TARGET=\"_blank\">";
 
       // First Column "Number"
       echo $td, $quality, $href, $incident_id, "</span></a>";
@@ -217,7 +218,7 @@
 
        print "<tr><td class=\"message\">"
              . "<a href=\"edit-unit.php?unit=".$u_name."\""
-             . " onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit-".str_replace(" ", "&nbsp;", $unitrow["unit"])."',500,700)\">"
+             . " onClick=\"return popup('edit-unit.php?unit=".$unitrow["unit"]."','unit-".str_replace(" ", "&nbsp;", $unitrow["unit"])."',500,700)\" TARGET=\"_blank\">"
              . $u_name_html."</a>&nbsp;&nbsp;$icon</td><td class=\"message\">$u_status_html</td></tr>\n";
 
        if ($pos_counter >= $threshold) {

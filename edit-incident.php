@@ -17,6 +17,7 @@
   require_once('db-open.php');
   require('local-dls.php');
   require_once('session.inc');
+  require_once('functions.php');
 
   // Initialize the COMPLETED state to false.
   $completed=0;
@@ -141,9 +142,9 @@
         else
           $creator = "";
 
-        $note_query = "INSERT INTO incident_notes (incident_id, ts, unit, message, creator) ".
-                      "VALUES ($incident_id, NOW(), '$unit', '$message', '$creator')";
-        mysql_query($note_query) or die("In query: $note_query<br>\nError: ".mysql_error());
+        MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) ".
+                   "VALUES ($incident_id, NOW(), '$unit', '$message', '$creator')");
+        syslog(LOG_INFO, $_SESSION['username'] . " added a note to incident $incident_id");
       }
 
 
@@ -179,25 +180,22 @@
         }
         else {
           // The unit is available to be attached.
-          $attachquery = "INSERT INTO incident_units (incident_id, unit, dispatch_time, is_primary, is_generic) ".
-                         "VALUES ('$incident_id', '$unit', NOW(), 0";
           if ($unitrow["type"] == "Generic") {
-            $attachquery .= ",1)";
+            $unit_is_generic_bool = 1;
           }
           else {
-            $attachquery .= ",0)";
-            $unitquery = "UPDATE units SET status='Attached to Incident', ".
-                         "status_comment='Attached to Incident #$incident_id at ".date('H:m:s') . "', ".
-                         "update_ts=NOW() WHERE unit='$unit'";
-            mysql_query($unitquery) or die ("In query: $unitquery<br>\nError: ".mysql_error());
-            $messagequery = "INSERT INTO messages (ts, unit, message, creator) ".
-                            "VALUES (NOW(), '$unit', 'Status Change: Attached to Incident (was: ".
-                            $unitrow["status"].")', '".$_SESSION['username']."')";
-            mysql_query($messagequery) or die("In query: $messagequery<br>\nError: ".mysql_error());
+            $unit_is_generic_bool = 0;
+            MysqlQuery("UPDATE units SET status='Attached to Incident', ".
+                       "status_comment='Attached to Incident #$incident_id at ".date('H:m:s') . "', ".
+                       "update_ts=NOW() WHERE unit='$unit'");
+            MysqlQuery("INSERT INTO messages (ts, unit, message, creator) ".
+                       "VALUES (NOW(), '$unit', 'Status Change: Attached to Incident (was: ".
+                       $unitrow["status"].")', '".$_SESSION['username']."')");
           }
-          mysql_query($attachquery) or die ("In query: $attachquery<br>\nError: ".mysql_error());
-          $lockquery = "UNLOCK TABLES";
-          mysql_query($lockquery) or die ("In query: $lockquery<br>\nError: ".mysql_error());
+          MysqlQuery("INSERT INTO incident_units (incident_id, unit, dispatch_time, is_primary, is_generic) ".
+                     "VALUES ('$incident_id', '$unit', NOW(), 0, $unit_is_generic_bool)");
+          MysqlQuery("UNLOCK TABLES");
+          syslog(LOG_INFO, $_SESSION['username'] . " attached unit [$unit] to incident $incident_id");
 
           // If this is the first unit to be attached to this incident, set the dispatched timestamp
           if ($ts_dispatch == "" || $ts_dispatch == "0000-00-00 00:00:00") {
@@ -208,10 +206,10 @@
           // paging tables..)  Do this AFTER unlocking the CAD tables, since there may be delays
           // getting the page batches and messages all built and entered.
           if (isset($DB_PAGING_NAME) && isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
-            $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
-              or die("Could not connect : " . mysql_error());
-            $pageout_query = mysql_query("SELECT * FROM unit_incident_paging WHERE unit='$unit'", $paginglink);
+            $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
             if (mysql_num_rows($pageout_query)) {
+              $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
+                or die("Could not connect : " . mysql_error());
           
               $fromuser = 'CAD Auto Page';
               $ipaddr = $_SERVER['REMOTE_ADDR'];
@@ -227,8 +225,8 @@
                 $message = substr($message, 0, 127);
               }
             
-              if (!mysql_query("INSERT into $DB_PAGING_NAME.batches (from_user, from_ipaddr, orig_message, entered) ".
-                               " VALUES ('$fromuser', '$ipaddr', '$message', NOW() )", $paginglink) || 
+              if (!mysql_query("INSERT into $DB_PAGING_NAME.batches (from_user_id, from_ipaddr, orig_message, entered) ".
+                               " VALUES (0, '$ipaddr', '$message', NOW() )", $paginglink) || 
                   mysql_affected_rows() != 1) {
                 syslog(LOG_WARNING, "Error inserting row into database $DB_PAGING_NAME.batches as [$DB_PAGING_HOST/$DB_PAGING_USER]");
               }
@@ -236,8 +234,8 @@
                 $batch_id = mysql_insert_id();
             
                 while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
-                  if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user, to_pager_id, message) VALUES ".
-                                   "('$fromuser', " . $pageout_rcpt->to_pager_id . ", '$message')", $paginglink) ||
+                  if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user_id, to_pager_id, message) VALUES ".
+                                   "(0, " . $pageout_rcpt->to_pager_id . ", '$message')", $paginglink) ||
                       mysql_affected_rows() != 1) {
                     syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
                   }
@@ -255,9 +253,10 @@
                     syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.send_queue as [$DB_PAGING_HOST/$DB_PAGING_USER]");
                   }
                 }
+                syslog(LOG_INFO, $_SESSION['username'] . " auto-paged unit [$unit] to incident $incident_id with paging batch $batch_id");
               }
+              mysql_close($paginglink);
             }
-            mysql_close($paginglink);
           }
         }
       }
@@ -281,9 +280,12 @@
 
       // If we have a unit that has arrived, save the information in the DB
       if (isset($update_arrived_unit_uid)) {
+        $unit = mysql_fetch_object( MysqlQuery("SELECT unit FROM incident_units WHERE uid='$update_arrived_unit_uid'") );
+
         MysqlQuery('LOCK TABLES incident_units WRITE');
         MysqlQuery("UPDATE incident_units SET arrival_time=NOW() where uid='$update_arrived_unit_uid'");
         MysqlQuery('UNLOCK TABLES');
+        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [" . $unit->unit . "] arrival at incident $incident_id");
       }
 
       // If we have a unit that has been released, save the information in the DB
@@ -308,6 +310,7 @@
                    "VALUES (NOW(), '$release_unit_name', 'Status Change: In Service (was: Attached to Incident)')");
 
         MysqlQuery("UNLOCK TABLES");
+        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [$release_unit_name] release from incident $incident_id");
       }
 
 
@@ -324,6 +327,7 @@
 
         // Check to see if units need to be released from the completed incident
         if (!$previously_completed && isset($_POST["release_query"])) {
+          syslog(LOG_INFO, $_SESSION['username'] . " marked incident $incident_id as complete");
 
           $stackids = array();
           $stackunits = array();
@@ -348,6 +352,7 @@
                          "update_ts=NOW() WHERE unit='$stackunit'");
               MysqlQuery("INSERT INTO messages (ts, unit, message) ".
                          "VALUES (NOW(), '$stackunit', 'Status Change: $unitprevstatus (was: Attached to Incident)')");
+              syslog(LOG_INFO, $_SESSION['username'] . " released unit [$stackunit] from incident $incident_id upon completion");
             }
           }
         }
@@ -381,6 +386,7 @@
 
       // Enter the master incident query into the DB
       MysqlQuery($incidentquery);
+      syslog(LOG_INFO, $_SESSION['username'] . " updated incident $incident_id");
 
 
       // If the save_incident_closewin button was explicitly activated, set
@@ -407,7 +413,7 @@
 
   }
 
-  # end - save updated incident
+  // end - save updated incident
 
 
   // Check the Major GET points
@@ -432,6 +438,7 @@
       $incident_id = $newIDrow[0];
       mysql_free_result($findlastIDresult);
       MysqlQuery("UNLOCK TABLES");
+      syslog(LOG_INFO, $_SESSION['username'] . " created incident $incident_id");
       header("Location: edit-incident.php?incident_id=$incident_id");
       exit;
     }
@@ -485,99 +492,85 @@
     MysqlQuery("UNLOCK TABLES");
     return $return;
   }
+
+  header_html("Dispatch :: Edit Incident $incident_id",
+              "  <script src=\"js/clock.js\" type=\"text/javascript\"></script>\n");
 ?>
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<html>
-<head>
-  <title>Dispatch :: Edit Incident #<?php print $incident_id?></title>
-  <meta http-equiv="content-language" content="en" />
-  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-  <link rel="StyleSheet"
-        href="style.css"
-        type="text/css"
-        media="screen, print" />
-  <link rel="shortcut icon"
-        href="favicon.ico"
-        type="image/x-icon" />
-  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+<script type="text/javascript">
+function stampTimestamp() {
+  var stampTime = new Date()
+  var hours = stampTime.getHours()
+  hours=((hours < 10) ? "0" : "") + hours
+  var minutes = stampTime.getMinutes()
+  minutes=((minutes < 10) ? "0" : "") + minutes
+  var seconds = stampTime.getSeconds()
+  seconds=((seconds < 10) ? "0" : "") + seconds
+  var value = hours + ":" + minutes + ":" + seconds
+  return (value)
+}
 
-  <script src="js/clock.js" type="text/javascript"></script>
-  <script type="text/javascript">
-    function stampTimestamp() {
-      var stampTime = new Date()
-      var hours = stampTime.getHours()
-      hours=((hours < 10) ? "0" : "") + hours
-      var minutes = stampTime.getMinutes()
-      minutes=((minutes < 10) ? "0" : "") + minutes
-      var seconds = stampTime.getSeconds()
-      seconds=((seconds < 10) ? "0" : "") + seconds
-      var value = hours + ":" + minutes + ":" + seconds
-      return (value)
+function stampFulltime() {
+  var stampTime = new Date()
+  var year = stampTime.getFullYear()
+  var month = stampTime.getMonth()+1
+  month=((month < 10) ? "0" : "") + month
+  var day = stampTime.getDate()
+  day=((day < 10) ? "0" : "") + day
+  var mytime = year + "-" + month + "-" + day + " " + stampTimestamp()
+  return (mytime)
+}
+
+function handleIncidentType() {
+  if (document.myform.call_type.value == "not selected") {
+    document.myform.disposition.selectedIndex = 0;
+    document.myform.ts_complete.value = "0000-00-00 00:00:00";
+    document.myform.dts_complete.value = "";
+    // If the release_query checkbox is present, disable it and reset values
+    if (document.myform.release_query != null) {
+      document.myform.release_query.disabled = 1;
+      document.myform.release_query.checked = 0;
+      document.myform.release_query.value = 0;
     }
+  }
+}
 
-    function stampFulltime() {
-      var stampTime = new Date()
-      var year = stampTime.getFullYear()
-      var month = stampTime.getMonth()+1
-      month=((month < 10) ? "0" : "") + month
-      var day = stampTime.getDate()
-      day=((day < 10) ? "0" : "") + day
-      var mytime = year + "-" + month + "-" + day + " " + stampTimestamp()
-      return (mytime)
+function handleDisposition() {
+  if (document.myform.disposition.value != "") {
+    // We don't want to complete the incident unless it has a defined type assiciated with it
+    if (document.myform.call_type.value == "not selected") {
+      document.myform.disposition.selectedIndex = 0;
+      alert('You must choose a Call Type before marking the incident as Completed.');
     }
-
-    function handleIncidentType() {
-      if (document.myform.call_type.value == "not selected") {
-        document.myform.disposition.selectedIndex = 0;
-        document.myform.ts_complete.value = "0000-00-00 00:00:00";
-        document.myform.dts_complete.value = "";
-        // If the release_query checkbox is present, disable it and reset values
-        if (document.myform.release_query != null) {
-          document.myform.release_query.disabled = 1;
-          document.myform.release_query.checked = 0;
-          document.myform.release_query.value = 0;
-        }
+    else {
+      //alert('type ok setting times and release'); -- debugging code!  don't leave in production checkins...
+      // If the completed timestamps do not already have values, fill them in now
+      // just in case maybe we're changing the disposition type after completion of the incident
+      if ((document.myform.ts_complete.value == "0000-00-00 00:00:00" ||
+           document.myform.ts_complete.value == "")
+          && document.myform.dts_complete.value == "") {
+        document.myform.ts_complete.value = stampFulltime();
+        document.myform.dts_complete.value = stampTimestamp();
+      }
+      // If the release_query checkbox is present, enable it and populate default values
+      if (document.myform.release_query != null) {
+        document.myform.release_query.disabled = 0;
+        document.myform.release_query.checked = 1;
+        document.myform.release_query.value = 1;
       }
     }
-
-    function handleDisposition() {
-      if (document.myform.disposition.value != "") {
-        // We don't want to complete the incident unless it has a defined type assiciated with it
-        if (document.myform.call_type.value == "not selected") {
-          document.myform.disposition.selectedIndex = 0;
-          alert('You must choose a Call Type before marking the incident as Completed.');
-        }
-        else {
-          //alert('type ok setting times and release'); -- debugging code!  don't leave in production checkins...
-          // If the completed timestamps do not already have values, fill them in now
-          // just in case maybe we're changing the disposition type after completion of the incident
-          if ((document.myform.ts_complete.value == "0000-00-00 00:00:00" ||
-               document.myform.ts_complete.value == "")
-              && document.myform.dts_complete.value == "") {
-            document.myform.ts_complete.value = stampFulltime();
-            document.myform.dts_complete.value = stampTimestamp();
-          }
-          // If the release_query checkbox is present, enable it and populate default values
-          if (document.myform.release_query != null) {
-            document.myform.release_query.disabled = 0;
-            document.myform.release_query.checked = 1;
-            document.myform.release_query.value = 1;
-          }
-        }
-      }
-      else {
-        document.myform.ts_complete.value = "0000-00-00 00:00:00";
-        document.myform.dts_complete.value = "";
-        // If the release_query checkbox is present, disable it and reset values
-        if (document.myform.release_query != null) {
-          document.myform.release_query.disabled = 1;
-          document.myform.release_query.checked = 0;
-          document.myform.release_query.value = 0;
-        }
-      }
+  }
+  else {
+    document.myform.ts_complete.value = "0000-00-00 00:00:00";
+    document.myform.dts_complete.value = "";
+    // If the release_query checkbox is present, disable it and reset values
+    if (document.myform.release_query != null) {
+      document.myform.release_query.disabled = 1;
+      document.myform.release_query.checked = 0;
+      document.myform.release_query.value = 0;
     }
-  </script>
-</head>
+  }
+}
+</script>
 
 <body onload="displayClockStart()" onunload="displayClockStop()" onBlur="self.focus()">
 <font face="tahoma,ariel,sans">
@@ -759,7 +752,7 @@
     echo "</td>\n<td class=\"label\" colspan=\"4\" align=\"left\">&nbsp;</td>\n";
   }
   else {
-    echo "<button type=\"button\" name=\"cancel_changes\" tabindex=\"44\" accesskey=\"3\" ";
+    echo "<button type=\"button\" name=\"cancel_changes\" tabindex=\"43\" accesskey=\"3\" ";
     echo "onClick='if (window.opener){window.opener.location.reload()} self.close()'>\n";
     echo "<u>3</u>  Cancel</button> ";
     echo "</td>\n<td class=\"label\" colspan=\"4\" align=\"left\">&nbsp;";

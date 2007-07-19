@@ -2,6 +2,18 @@
 //
 // Utilities that are typically used by the CAD system
 
+function focusPaging (which)
+// used by edit-unit.php
+{
+  editElements = new Array ( "role", "type", "assignment", "status" ,
+    "location", "notes", "personnel", "saveunit", "saveunit_closewin",
+    "cancel", "deleteunit" );
+  for (i = 0; i < editElements.length; i++) {
+    document.getElementById(editElements[i]).disabled = which;
+  }
+  document.getElementById("pagehelp").innerHTML = "Enter the text to send in a page, then select Send Page.";
+}
+
 function popup(url, name, height, width)
 {
   var myWindow = window.open(url,name,'width='+width+',height='+height+',scrollbars')

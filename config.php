@@ -25,15 +25,6 @@
     else
       setcookie("units_color", "no");
 
-    if ($_POST["cadmode"] == "all") {
-      setcookie("cadmode", "all");
-    }
-    elseif ($_POST["cadmode"] == "hourly") {
-      setcookie("cadmode", "hourly");
-    }
-    else {
-      setcookie("cadmode", "last25");
-    }
     if (isset($_POST["cad_show_creator"]))
       setcookie("cad_show_creator", "yes");
     else
@@ -160,26 +151,6 @@
     <td colspan=2>Use Message Type field<br /></td>
   </tr>
 
-  <tr><td></td></tr>
-
-  <tr>
-    <td valign=top align=right rowspan=3>Mode:</td>
-    <td align="right">
-       <input type="radio" name="cadmode" <?php
-         if (!isset($_COOKIE["cadmode"]) || $_COOKIE["cadmode"] == "last25") print "checked"?>
-         value="last25" /></td>
-    <td>25 Newest Messages</td></tr>
-  <tr>
-    <td align="right">
-       <input type="radio" name="cadmode" <?php
-         if (isset($_COOKIE["cadmode"]) && $_COOKIE["cadmode"] == "hourly") print "checked"?>
-         value="hourly" /></td>
-    <td>Hourly View</td></tr>
-  <tr>
-    <td align="right">
-       <input type="radio" name="cadmode" <?php if (isset($_COOKIE["cadmode"]) && $_COOKIE["cadmode"] == "all") print "checked"?> value="all" /></td>
-    <td>All Log Messages</td>
-  </tr>
 </table>
 
 <!-- Change Password -->
