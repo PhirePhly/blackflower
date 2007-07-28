@@ -59,8 +59,12 @@
   <form name="myform" action="edit-message.php" method="post">
   <table>
   <tr><td bgcolor="#dddddd">Timestamp</td><td bgcolor="#dddddd">Unit</td>
-  <?php if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') 
-            print "<td bgcolor=\"#dddddd\">Type</td>"; ?>
+  <?php
+    if ($USE_MESSAGE_TYPE) {
+      if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') 
+        print "<td bgcolor=\"#dddddd\">Type</td>";
+    }
+  ?>
   <td colspan=2 bgcolor="#dddddd">Message</td></tr>
 
   <tr>
@@ -89,23 +93,25 @@
    print "</select>\n";
 ?>
 <?php
-   if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') {
-     print "</td><td>";
-     if ($deleted) 
-       print "<select disabled name=\"message_type\">\n";
-     else 
-       print "<select name=\"message_type\">\n";
+   if ($USE_MESSAGE_TYPE) {
+     if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') {
+       print "</td><td>";
+       if ($deleted) 
+         print "<select disabled name=\"message_type\">\n";
+       else 
+         print "<select name=\"message_type\">\n";
      
-     $query = "SELECT message_type FROM message_types";
-     $result = mysql_query($query) or die("Query failed : " . mysql_error());
+       $query = "SELECT message_type FROM message_types";
+       $result = mysql_query($query) or die("Query failed : " . mysql_error());
   
-     while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
-        if (!strcmp($line["message_type"], $message_type)) 
-          echo "<option selected value=\"". $line["message_type"] ."\">". $line["message_type"] ."\n";
-        else
-          echo "<option value=\"". $line["message_type"] ."\">". $line["message_type"] ."\n";
+       while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+          if (!strcmp($line["message_type"], $message_type)) 
+            echo "<option selected value=\"". $line["message_type"] ."\">". $line["message_type"] ."\n";
+          else
+            echo "<option value=\"". $line["message_type"] ."\">". $line["message_type"] ."\n";
+       }
+       print "</select>\n";
      }
-     print "</select>\n";
    }
    else 
      print "<input type=hidden name=\"message_type\" value=\"$message_type\">\n";
@@ -119,7 +125,11 @@
    </td>
    </tr>
    <tr><td colspan=2></td>
-  <?php if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') print "<td></td>"; ?>
+<?php
+  if ($USE_MESSAGE_TYPE) {
+    if (isset($_COOKIE['cad_show_message_type']) && $_COOKIE['cad_show_message_type'] == 'yes') print "<td></td>";
+  }
+?>
    <td>
      <input <?php if ($deleted) print "disabled"?> type="submit" name="save" value="Save">
      <input <?php if ($deleted) print "disabled"?> type="submit" name="cancel" value="Cancel">

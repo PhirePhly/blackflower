@@ -18,7 +18,8 @@
   <td align="left" class="text"><b>Units</b></td>
   <td align="left" width="100%">
   <button type="submit" value="Add New Unit" title="Add New User - ALT-N" accesskey="n"
-   onClick="return popup('edit-unit.php?new-unit','unit-new',500,700)" />Add <u>N</u>ew Unit</button>
+   onClick="return popup('edit-unit.php?new-unit','unit-new',500,700)" class="newbutton"
+   >Add <u>N</u>ew Unit</button>
   </td>
   <td align="right"><input type="text" name="displayClock" size="8" /></td>
 </tr>

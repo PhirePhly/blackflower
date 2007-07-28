@@ -6,16 +6,92 @@
   require_once('session.inc');
   require_once('functions.php');
 
-  header_html("Dispatch :: Incidents","",$_SERVER['PHP_SELF']);
+  // Scroll incidents per page
+  $scrollipp = 15;
+
+  // Begin filter GET/POST parsing
+
+  // If apply_filters was posted...
+  if (isset($_POST['apply_filters'])) {
+
+    if ($_POST['date'] != "") {
+      $filterdate = $_POST['date'];
+    }
+
+    if ($_POST['calltype'] != "") {
+      $filtercalltype = $_POST['calltype'];
+    }
+
+    if (isset($_POST['scroll'])) {
+      $filterscroll = "yes";
+    }
+    else {
+      $filterscroll = "no";
+    }
+  }
+
+  // 'owever... if the remove filters button was posted, reset all filters
+  elseif (isset($_POST['remove_filters'])) {
+    unset ($filterdate, $filtercalltype, $filterscroll, $start);
+    $filterscroll = "yes";
+  }
+
+  // Process GETs
+  else {
+    if ($_GET['date'] != "") {
+      $filterdate = $_GET['date'];
+    }
+
+    if ($_GET['calltype'] != "") {
+      $filtercalltype = $_GET['calltype'];
+    }
+
+    if ($_GET['scroll'] == "yes") {
+      $filterscroll = "yes";
+    }
+    elseif($_GET['scroll'] == "no") {
+      $filterscroll = "no";
+    }
+
+    if ($_GET['start'] != "") {
+      $start = $_GET['start'];
+    }
+  }
+
+  if (isset($_POST["incidents_hide_units_oos"])) {
+    if ($_POST["incidents_hide_units_oos"] == "Hide Out of Service" &&
+        (!isset($_COOKIE["incidents_hide_units_oos"]) || $_COOKIE["incidents_hide_units_oos"] == "no")) {
+      setcookie("incidents_hide_units_oos", "yes");
+    }
+    elseif ($_POST["incidents_hide_units_oos"] == "Show All Units" &&
+            (!isset($_COOKIE["incidents_hide_units_oos"]) || $_COOKIE["incidents_hide_units_oos"] == "yes")) {
+      setcookie("incidents_hide_units_oos", "no");
+    }
+    header("Location: http://".$_SERVER['HTTP_HOST'].$_SERVER["PHP_SELF"]."?".
+           "date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll&start=$start");
+    exit;
+  }
+
+  header_html("Dispatch :: Incidents","",
+              $_SERVER['PHP_SELF']."?"."date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll&start=$start");
 ?>
 <body vlink="blue" link="blue" alink="cyan">
+
+<form name="myform" 
+ action="incidents-frame.php?<?php echo "date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll&start=$start";?>"
+ method="post" style="margin: 0px;" target="incidents">
 
 <!-- START Display Incidents -->
 <table width="100%">
 <tr><td bgcolor="#aaaaaa">
+<?php
+  if (isset($filterdate) || isset($filtercalltype)) {
+    print "<b class=\"text\" style=\"color: #dd0000;\">Filters Applied</b><br />\n";
+  }
+?>
   <table width="100%" cellpadding="1" cellspacing="1">
   <tr>
-    <td class="th" width="20">No.</td>
+    <td class="th" width="20">Call No.</td>
     <td class="th">Incident Details</td>
     <td class="th">Call Type</td>
     <td class="th" width="50">Call&nbsp;Time</td>
@@ -40,10 +116,39 @@
   mysql_free_result($result);
 
   // PREPARE MAIN QUERY
-  if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"]=="no")
-    $query = "SELECT * FROM incidents ORDER BY incident_id DESC";
-  else
+  if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"]=="no") {
+    $query = "SELECT * FROM incidents";
+
+    if (isset($filterdate) && isset($filtercalltype)) {
+      $query .= " WHERE DATE_FORMAT(ts_opened, '%Y-%m-%d') = '$filterdate' AND call_type = '$filtercalltype'";
+    }
+    elseif (isset($filterdate)) {
+      $query .= " WHERE DATE_FORMAT(ts_opened, '%Y-%m-%d') = '$filterdate'";
+    }
+    elseif (isset($filtercalltype)) {
+      $query .= " WHERE call_type = '$filtercalltype'";
+    }
+
+    $query .= " ORDER BY incident_id DESC";
+
+    // Prepare count of how many total results this query would return
+    $howmanyquery = $query;
+    $howmanyquery = str_replace("SELECT *", "SELECT COUNT(*) AS howmany", $howmanyquery);
+
+    // Prepare start and limit
+    if ($filterscroll == "yes") {
+      if (isset($start) && $start > 0) {
+        $query .= " LIMIT $start, $scrollipp";
+      }
+      else {
+        $query .= " LIMIT $scrollipp";
+      }
+    }
+  }
+  else {
     $query = "SELECT * FROM incidents WHERE visible=1 ORDER BY incident_id DESC";
+  }
+
   $result = mysql_query($query) or die("Query failed : " . mysql_error()."<p>query was:<br>".$query);
 
   $td = "    <td class=\"message\">";
@@ -69,7 +174,12 @@
               "TARGET=\"_blank\">";
 
       // First Column "Number"
-      echo $td, $quality, $href, $incident_id, "</span></a>";
+      if ($line["call_number"] != '') {
+        echo $td, $quality, $href, $line["call_number"], "</span></a>";
+      }
+      else {
+        echo $td, $quality, $href, 'legacy incident_id ', $incident_id, "</span></a>";  # bug 75 conversion
+      }
       if ($line["completed"]) {
         echo "&nbsp;&nbsp;<span style='font-size: 8pt;'>[completed]</span>";
         $quality = "<span style='color: #666666; font-style: italic;'>";
@@ -122,6 +232,60 @@
    }
 
    echo "  </table>\n</td></tr>\n</table>\n";
+
+   // Are we going to scroll the results?
+   if ($filterscroll == "yes") {
+     // Issue Howmany Query
+     $howmanyresult = MysqlQuery($howmanyquery);
+     $howmanyline = mysql_fetch_array($howmanyresult);
+     $howmany = $howmanyline['howmany'];
+
+     // Print page back / page forward links
+     echo "<center class=\"text\" style=\"margin-top: 8px;\">";
+
+     $prevpage = $start - $scrollipp;
+     if ($scrollipp > 0 && $start >= $scrollipp) {
+       echo "<a href=\"".$_SERVER["PHP_SELF"].
+            "?date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll".
+            "&start=$prevpage".
+            "\" TARGET=\"incidents\">&lt;&lt;</a> | ";
+     }
+     else {
+       echo "&lt;&lt; | ";
+     }
+
+     echo "<a href=\"".$_SERVER["PHP_SELF"].
+          "?date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll".
+          "\" TARGET=\"incidents\">First Page</a> | ";
+
+     if ($scrollipp > 0) {
+       $pages = ceil($howmany / $scrollipp);
+     }
+     else {
+       $pages = 1;
+     }
+     echo "Current filter will display $howmany incident";
+     if ($howmany != 1) echo "s";
+     echo " on $pages page";
+     if ($pages != 1) echo "s";
+     echo " | ";
+
+     $nextpage = $start + $scrollipp;
+     if ($scrollipp > 0 && $nextpage < $howmany) {
+       echo "<a href=\"".$_SERVER["PHP_SELF"].
+            "?date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll".
+            "&start=$nextpage".
+            "\" TARGET=\"incidents\">&gt;&gt;</a>";
+     }
+     else {
+       echo "&gt;&gt;";
+     }
+
+     echo "</center>\n";
+
+     mysql_free_result($howmanyresult);
+   }
+
    mysql_free_result($result);
    echo "<!-- END Display Incidents -->\n\n";
 
@@ -131,13 +295,20 @@
    if ((isset($_COOKIE["incidents_show_units"]) && $_COOKIE["incidents_show_units"] == "yes")
     || !isset($_COOKIE["incidents_show_units"])) {
      $query = "SELECT role, color_html FROM unitcolors";
+
      $result = mysql_query($query) or die ("In query: $query\nError: ".mysql_error());
      while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
        $rolecolor[$line["role"]] = $line["color_html"];
      }
      mysql_free_result($result);
 
-     $query = "SELECT * FROM units u LEFT OUTER JOIN unit_assignments a on u.assignment=a.assignment";
+     if ($_COOKIE["incidents_hide_units_oos"] == "yes") {
+       $query = "SELECT * FROM units u LEFT OUTER JOIN unit_assignments a on u.assignment=a.assignment".
+                " WHERE status NOT IN ('Out Of Service', 'Off Comm', 'Off Duty', 'Off Playa')";
+     }
+     else {
+       $query = "SELECT * FROM units u LEFT OUTER JOIN unit_assignments a on u.assignment=a.assignment";
+     }
      $result = mysql_query($query) or die ("In query: $query<br>\nError: ".mysql_error());
      $unitnames = array();
      $unitarray = array();
@@ -158,16 +329,30 @@
 
      $displayunits = array();
 
-     print "<table >\n";
-     print "<tr><td></td></tr>\n";
-     print "<tr><td colspan=100>\n";
-     print "<span class=text><b>Unit Availability</b> &nbsp; &nbsp; (Units shown in <b>Bold</b>, Generic Units shown in <span style=\"border: 2px dotted gray; background-color: #cccccc\"><b>Dashed Bold</b></span>.  Icons indicate designated supervisory Assignment.)</span>\n";
-     print "</td></tr>\n";
-     print "<tr><td></td></tr>\n";
+     print "<div style=\"width: auto; margin: 0px; margin-top: 8px; margin-bottom: 8px;\">\n";
+     print "<table width=\"100%\"><tr><td nowrap class=\"text\">\n";
+     print "<b>Unit Availability</b> &nbsp; &nbsp; (Units shown in <b>Bold</b>, Generic Units shown in ".
+           "<span style=\"border: 2px dotted gray; background-color: #cccccc\"><b>Dashed Bold</b></span>. ".
+           " Icons indicate designated supervisory Assignment.)\n";
+
+     print "</td><td class=\"text\" align=\"right\">\n";
+
+     if ($_COOKIE["incidents_hide_units_oos"] == "yes") {
+       print "<button type=\"submit\" name=\"incidents_hide_units_oos\" id=\"incidents_hide_units_oos\" ";
+       print "value=\"Show All Units\" title=\"Show All Units\">Show All Units</button>\n";
+     }
+     else {
+       print "<button type=\"submit\" name=\"incidents_hide_units_oos\" id=\"incidents_hide_units_oos\" ";
+       print "value=\"Hide Out of Service\" title=\"Hide Out of Service Units\">Hide Out of Service</button>\n";
+     }
+     print "</td></tr></table>\n";
+     print "</div>\n";
+
+     print "<table width=\"100%\" border=0>\n";
 
      print "<tr>\n";
      print "<td valign=top width=\"$columnwidthpct%\" align=left>";
-     print "<table cellpadding=\"1\" cellspacing=\"1\" bgcolor=\"#aaaaaa\">";
+     print "<table cellpadding=\"1\" cellspacing=\"1\" bgcolor=\"#aaaaaa\" width=\"100%\">";
 
      $threshold = sizeof($unitnames) / $columns;
      $pos_counter = 0;
@@ -224,7 +409,7 @@
        if ($pos_counter >= $threshold) {
          print "</table></td>\n\n";
          print "<td valign=top width=\"$columnwidthpct%\" align=left>\n";
-         print "<table cellpadding=\"1\" cellspacing=\"1\" bgcolor=\"#aaaaaa\">\n";
+         print "<table cellpadding=\"1\" cellspacing=\"1\" bgcolor=\"#aaaaaa\" width=\"100%\">\n";
          $pos_counter = 0;
        }
 
@@ -236,5 +421,6 @@
  ?>
  </table></td><td></td><td></td></tr></table>
 
+</form>
 </body>
 </html>

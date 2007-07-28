@@ -142,6 +142,7 @@ CREATE TABLE unit_assignments (
 
 CREATE TABLE incidents (
 	incident_id	int not null auto_increment primary key,
+        call_number     varchar(40),
 	call_type	varchar(40),
 	call_details	varchar(80),
 	ts_opened	datetime not null,
@@ -195,6 +196,7 @@ INSERT INTO incident_disposition_types VALUES ('Medical Transported');
 INSERT INTO incident_disposition_types VALUES ('Other');
 INSERT INTO incident_disposition_types VALUES ('Released AMA');
 INSERT INTO incident_disposition_types VALUES ('Transferred to Agency');
+INSERT INTO incident_disposition_types VALUES ('Transferred to Rangers');
 INSERT INTO incident_disposition_types VALUES ('Treated And Released');
 INSERT INTO incident_disposition_types VALUES ('Unable To Locate');
 INSERT INTO incident_disposition_types VALUES ('Unfounded');
@@ -238,5 +240,6 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('IC', 'Incident Commander', 'iconwhite', NULL),
 ('FDC', 'Fire Duty Chief', 'iconred', NULL),
 ('MDC', 'Medical Duty Chief', 'iconblue', NULL),
+('OC', 'On-Call', 'icongray', NULL),
 ('S', 'Supervisor', 'icongray', NULL);
 

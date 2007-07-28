@@ -15,6 +15,11 @@
     else
       setcookie("incidents_show_units", "no");
 
+    if (isset($_POST["incidents_hide_units_oos"]))
+      setcookie("incidents_hide_units_oos", "yes");
+    else
+      setcookie("incidents_hide_units_oos", "no");
+
     if (isset($_POST["incidents_show_creator"]))
       setcookie("incidents_show_creator", "yes");
     else
@@ -92,8 +97,21 @@
   }
   header_html("Dispatch :: Configuration")
 ?>
-<body vlink="blue" link="blue" alink="cyan">
+<body vlink="blue" link="blue" alink="cyan" onLoad='unitCheckboxState();'>
 <? include('include-title.php'); ?>
+
+<script language="JavaScript">
+
+function unitCheckboxState() {
+  if (document.getElementById('incidents_show_units').checked == true) {
+    document.getElementById('incidents_hide_units_oos').disabled = false;
+  }
+  else {
+    document.getElementById('incidents_hide_units_oos').disabled = true;
+  }
+}
+</script>
+
 <table>
 <tr>
   <td align="left" width="400">
@@ -103,22 +121,29 @@
 <br />&nbsp;<b>Incidents Preferences</b><br />
   <table width="350" style="background-color: #dddddd; border: 1px solid gray">
   <tr>
-    <td align="right"><input type="checkbox" name="incidents_show_units" <?php
-        if (!isset($_COOKIE["incidents_show_units"]) || $_COOKIE["incidents_show_units"] == "yes") print "checked";?>
-        value="yes" /></td>
-    <td>Show unit availability</td>
-  </tr>
-  <tr>
     <td align="right"><input type="checkbox" name="incidents_open_only" <?php
         if (!isset($_COOKIE["incidents_open_only"]) || $_COOKIE["incidents_open_only"] == "yes") print "checked"?>
         value="yes" /></td>
-    <td>Show open incidents only</td>
+    <td colspan=2>Show open incidents only</td>
+  </tr>
+  <tr>
+    <td align="right"><input type="checkbox" name="incidents_show_units" id="incidents_show_units" <?php
+        if (!isset($_COOKIE["incidents_show_units"]) || $_COOKIE["incidents_show_units"] == "yes") print "checked";?>
+        value="yes" onChange='unitCheckboxState();' /></td>
+    <td colspan=2>Show unit availability</td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td align="right"><input type="checkbox" name="incidents_hide_units_oos" id="incidents_hide_units_oos" <?php
+        if ($_COOKIE["incidents_hide_units_oos"] == "yes") print "checked";?>
+        value="yes" /></td>
+    <td>Hide Out of Service units</td>
   </tr>
   <tr>
     <td align="right"><input type="checkbox" name="incidents_show_creator" <?php
         if (!isset($_COOKIE["incidents_show_creator"]) || $_COOKIE["incidents_show_creator"] == "yes") print "checked"?>
         value="yes" /></td>
-    <td>Show incident notes creator</td>
+    <td colspan=2>Show incident notes creator</td>
   </tr>
 </table>
 
@@ -143,14 +168,18 @@
       print "checked"?> value="yes" /></td>
     <td colspan=2>Show message creator</td>
   </tr>
-  <tr>
-    <td align="right"><input type="checkbox" name="cad_show_message_type" <?php
+<?php
+  if ($USE_MESSAGE_TYPE) {
+    print "<tr>\n";
+    print "  <td align=\"right\"><input type=\"checkbox\" name=\"cad_show_message_type\" ";
     if (!isset($_COOKIE["cad_show_message_type"]) ||
                $_COOKIE["cad_show_message_type"] == "yes")
-      print "checked"?> value="yes" /></td>
-    <td colspan=2>Use Message Type field<br /></td>
-  </tr>
-
+      print "checked ";
+    print "value=\"yes\" /></td>\n";
+    print "  <td colspan=2>Use Message Type field<br /></td>\n";
+    print "</tr>\n";
+  }
+?>
 </table>
 
 <!-- Change Password -->

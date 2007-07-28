@@ -24,6 +24,7 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
   }
   $date = MysqlClean($_GET,"selected-date",20);
 
+  syslog(LOG_INFO, $_SESSION['username'] . " generated messages report");
   $query = "SELECT * FROM messages WHERE $optional_type_clause DATE_FORMAT(ts, '%Y-%m-%d') LIKE '$date%'";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
 
@@ -47,7 +48,10 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
   <div class="h1">Messages Report</div>
   <font size="-1">
     <div class="text"><ul>Message type: <?php print $message_type;?><br>
-    Selected date: <?php print $date ?></ul><p></font>
+    Selected date: <?php print $date ?><br>
+    Report written at: <?php print NOW ?> <br>
+    </ul><p></font>
+
   <table><tr><td bgcolor="#aaaaaa">
   <table cellspacing="1">
   <tr>

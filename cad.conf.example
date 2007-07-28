@@ -23,9 +23,71 @@
   $SYSLOG_FACILITY = LOG_LOCAL4;
   $SYSLOG_LEVEL = LOG_INFO;
 
+// Message Type Facility:
+  $USE_MESSAGE_TYPE = 1;
+
 // Config values:
   $DEFAULT_ADMIN = "Administrator";
   $DEFAULT_ADMIN_PW = "admin";
 
   $INCIDENT_UNIT_COLUMNS = 4;
+
+///////////////////////////////////////////////////////////////////////////
+// Call Number formatting /////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+
+// Default behavior is that each incident's Call Number is equal
+// to the database-generated incident_id key.  Two other modes of
+// operations are available, Date Prefix and Base Index modes.  To
+// use either of those modex, uncomment the desired CALLNUM_MODE
+// definition and read the mode customization details below.
+//
+// The maximum length of a Call Number field is 40 characters.  If
+// a formatted Call Number is longer than that, it will be masked
+// to show the TRAILING 40 characters of the formatted Call Number.
+//
+  $CALLNUM_MODE = "dateprefix";
+//  $CALLNUM_MODE = "baseindex";
+//
+
+// If CALLNUM_MODE is "dateprefix", define the Prefix Format and 
+// ID Format string values.  
+
+  $CALLNUM_PREFIX_FORMAT = "Y-";
+  $CALLNUM_ID_FORMAT = "%04d";
+
+// Details:
+//   The Prefix Format should be a PHP "date()" format string.
+//   The ID Format should be a PHP "sprintf()" format string.
+//   The Call Number will consist of the ID Format-formatted, 
+//    database-generated incident_id string, string-appended 
+//    to the current Prefix Format-formatted date.
+//
+// Examples for incident_id "123" on January 25th, 2007:
+//
+//  PREFIX FORMAT     ID FORMAT    Call Number
+//       y                           07123
+//       y              %04d         070123
+//       Y-                          2007-123
+//       Y-             %04d         2007-0123
+//       yW             %04d         07040123
+//
+
+// If CALLNUM_MODE is "baseindex", define the Base Index integer value.
+
+  $CALLNUM_BASEINDEX = 0;
+
+// Details:
+//   The Call Number for each incident will be the integer sum of the
+//   configured Base Index value and the database-generated incident_id 
+//   value.  Note that to preserve call number uniqueness when changing 
+//   servers or code versions, you must be very careful how you set this 
+//   value.
+//
+// Example for incident_id "123":
+//
+//  BASEINDEX          incident_id     Call Number
+//    0 or undefined        1                1
+//    500                   1              501
+//    500                 123              623
 ?>

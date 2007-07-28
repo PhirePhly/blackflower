@@ -1,5 +1,7 @@
 <?php
 
+require_once('cad.conf');
+
 // Check that this file is not loaded directly.
 if (basename(__FILE__)==basename($_SERVER["PHP_SELF"])) exit();
 
@@ -29,6 +31,27 @@ function header_html($title,$extras="",$refreshURI="") {
   echo "</head>\n";
 }
 
+function CallNumber($incident_id) {
+  global $CALLNUM_MODE;
+  global $CALLNUM_PREFIX_FORMAT;
+  global $CALLNUM_ID_FORMAT;
+  global $CALLNUM_BASEINDEX;
+  if (isset($CALLNUM_MODE)) {
+    if ($CALLNUM_MODE == 'dateprefix') {
+      return date($CALLNUM_PREFIX_FORMAT) . sprintf($CALLNUM_ID_FORMAT, $incident_id);
+    }
+    elseif ($CALLNUM_MODE == 'baseindex') {
+      return (int)$CALLNUM_BASEINDEX + (int)$incident_id;
+    }
+    else {
+      # TODO: log an error here -- but syslogging isn't opened yet.  
+      return $incident_id;
+    }
+  }
+  else {
+    return $incident_id;
+  }
+}
 
 
 ?>
