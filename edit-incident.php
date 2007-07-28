@@ -35,6 +35,7 @@
       die("Error while aborting, no incident ID seen in POST.");
 
     $incident_id = MysqlClean($_POST, "incident_id", 20);
+    syslog(LOG_INFO, $_SESSION['username'] . " aborted (deleted) incident $incident_id");
     $query = "DELETE FROM incidents WHERE incident_id=$incident_id";
     mysql_query($query) or die("delete query failed: ".mysql_error());
 
@@ -144,7 +145,7 @@
 
         MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) ".
                    "VALUES ($incident_id, NOW(), '$unit', '$message', '$creator')");
-        syslog(LOG_INFO, $_SESSION['username'] . " added a note to incident $incident_id");
+        syslog(LOG_INFO, $_SESSION['username'] . " added a note to call " . $oldline["call_number"] . " (incident $incident_id)");
       }
 
 
@@ -186,7 +187,7 @@
           else {
             $unit_is_generic_bool = 0;
             MysqlQuery("UPDATE units SET status='Attached to Incident', ".
-                       "status_comment='Attached to Incident #$incident_id at ".date('H:m:s') . "', ".
+                       "status_comment='Attached to Call #" .  $oldline["call_number"]. " at ".date('H:m:s') . "', ".
                        "update_ts=NOW() WHERE unit='$unit'");
             MysqlQuery("INSERT INTO messages (ts, unit, message, creator) ".
                        "VALUES (NOW(), '$unit', 'Status Change: Attached to Incident (was: ".
@@ -195,7 +196,7 @@
           MysqlQuery("INSERT INTO incident_units (incident_id, unit, dispatch_time, is_primary, is_generic) ".
                      "VALUES ('$incident_id', '$unit', NOW(), 0, $unit_is_generic_bool)");
           MysqlQuery("UNLOCK TABLES");
-          syslog(LOG_INFO, $_SESSION['username'] . " attached unit [$unit] to incident $incident_id");
+          syslog(LOG_INFO, $_SESSION['username'] . " attached unit [$unit] to call [".  $oldline["call_number"]."] (incident $incident_id)");
 
           // If this is the first unit to be attached to this incident, set the dispatched timestamp
           if ($ts_dispatch == "" || $ts_dispatch == "0000-00-00 00:00:00") {
@@ -213,7 +214,7 @@
           
               $fromuser = 'CAD Auto Page';
               $ipaddr = $_SERVER['REMOTE_ADDR'];
-              $message = ">>> $unit Assigned to Incident #$incident_id";
+              $message = ">>> $unit Assigned to Call #" .  $oldline["call_number"];
               if (isset($_POST['location'])) {
                 $message .= ' - Location [' . MysqlClean($_POST, 'location', 80) . ']';
               }
@@ -253,7 +254,7 @@
                     syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.send_queue as [$DB_PAGING_HOST/$DB_PAGING_USER]");
                   }
                 }
-                syslog(LOG_INFO, $_SESSION['username'] . " auto-paged unit [$unit] to incident $incident_id with paging batch $batch_id");
+                syslog(LOG_INFO, $_SESSION['username'] . " auto-paged unit [$unit] to call [" .  $oldline["call_number"].  "] (incident $incident_id) with paging batch $batch_id");
               }
               mysql_close($paginglink);
             }
@@ -285,7 +286,7 @@
         MysqlQuery('LOCK TABLES incident_units WRITE');
         MysqlQuery("UPDATE incident_units SET arrival_time=NOW() where uid='$update_arrived_unit_uid'");
         MysqlQuery('UNLOCK TABLES');
-        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [" . $unit->unit . "] arrival at incident $incident_id");
+        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [" . $unit->unit . "] arrival at call [" .  $oldline["call_number"].  "] (incident $incident_id)");
       }
 
       // If we have a unit that has been released, save the information in the DB
@@ -303,14 +304,14 @@
         $unitprevstatus = FindPrevUnitStatus($unitrow["unit"]);
 
         MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
-                   "status_comment='Released from Incident #$incident_id at ".date('H:m:s')."', ".
+                   "status_comment='Released from Call #" .  $oldline["call_number"]. " at ".date('H:m:s')."', ".
                    "update_ts=NOW() where unit='$release_unit_name'");
 
         MysqlQuery("INSERT INTO messages (ts, unit, message) ".
                    "VALUES (NOW(), '$release_unit_name', 'Status Change: In Service (was: Attached to Incident)')");
 
         MysqlQuery("UNLOCK TABLES");
-        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [$release_unit_name] release from incident $incident_id");
+        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [$release_unit_name] release from call [" .  $oldline["call_number"]. "] (incident $incident_id)");
       }
 
 
@@ -327,7 +328,7 @@
 
         // Check to see if units need to be released from the completed incident
         if (!$previously_completed && isset($_POST["release_query"])) {
-          syslog(LOG_INFO, $_SESSION['username'] . " marked incident $incident_id as complete");
+          syslog(LOG_INFO, $_SESSION['username'] . " marked call [" .  $oldline["call_number"].  "] (incident $incident_id) as complete");
 
           $stackids = array();
           $stackunits = array();
@@ -348,11 +349,11 @@
             foreach ($stackunits as $stackunit) {
               $unitprevstatus = FindPrevUnitStatus($stackunit);
               MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
-                         "status_comment='Released from Incident #$incident_id at ".date('H:m:s')."', ".
+                         "status_comment='Released from Call #" .  $oldline["call_number"]. " at ".date('H:m:s')."', ".
                          "update_ts=NOW() WHERE unit='$stackunit'");
               MysqlQuery("INSERT INTO messages (ts, unit, message) ".
                          "VALUES (NOW(), '$stackunit', 'Status Change: $unitprevstatus (was: Attached to Incident)')");
-              syslog(LOG_INFO, $_SESSION['username'] . " released unit [$stackunit] from incident $incident_id upon completion");
+              syslog(LOG_INFO, $_SESSION['username'] . " released unit [$stackunit] from call [" .  $oldline["call_number"]. "] (incident $incident_id) upon completion");
             }
           }
         }
@@ -386,7 +387,7 @@
 
       // Enter the master incident query into the DB
       MysqlQuery($incidentquery);
-      syslog(LOG_INFO, $_SESSION['username'] . " updated incident $incident_id");
+      syslog(LOG_INFO, $_SESSION['username'] . " updated call [" .  $oldline["call_number"]. "] (incident $incident_id)");
 
 
       // If the save_incident_closewin button was explicitly activated, set
@@ -437,8 +438,9 @@
       $newIDrow = mysql_fetch_array($findlastIDresult, MYSQL_NUM);
       $incident_id = $newIDrow[0];
       mysql_free_result($findlastIDresult);
+      MysqlQuery("UPDATE incidents SET call_number='" .CallNumber($incident_id) . "' WHERE incident_id=$incident_id ");
       MysqlQuery("UNLOCK TABLES");
-      syslog(LOG_INFO, $_SESSION['username'] . " created incident $incident_id");
+      syslog(LOG_INFO, $_SESSION['username'] . " created call [" . CallNumber($incident_id). "] (incident $incident_id)");
       header("Location: edit-incident.php?incident_id=$incident_id");
       exit;
     }
@@ -493,7 +495,7 @@
     return $return;
   }
 
-  header_html("Dispatch :: Edit Incident $incident_id",
+  header_html("Dispatch :: Call #" .$row -> call_number,
               "  <script src=\"js/clock.js\" type=\"text/javascript\"></script>\n");
 ?>
 <script type="text/javascript">
@@ -551,22 +553,20 @@ function handleDisposition() {
         document.myform.ts_complete.value = stampFulltime();
         document.myform.dts_complete.value = stampTimestamp();
       }
-      // If the release_query checkbox is present, enable it and populate default values
+      // If the release_query checkbox is present, enable
       if (document.myform.release_query != null) {
-        document.myform.release_query.disabled = 0;
-        document.myform.release_query.checked = 1;
-        document.myform.release_query.value = 1;
+        document.myform.release_query.disabled = false;
+        document.getElementById('mustassign').textContent = ' ';
       }
     }
   }
   else {
     document.myform.ts_complete.value = "0000-00-00 00:00:00";
     document.myform.dts_complete.value = "";
-    // If the release_query checkbox is present, disable it and reset values
+    // If the release_query checkbox is present, disable it
     if (document.myform.release_query != null) {
-      document.myform.release_query.disabled = 1;
-      document.myform.release_query.checked = 0;
-      document.myform.release_query.value = 0;
+      document.myform.release_query.disabled = true;
+      document.getElementById('mustassign').textContent = '(Must Assign a Disposition first)';
     }
   }
 }
@@ -578,8 +578,13 @@ function handleDisposition() {
 <table cellspacing=3 cellpadding=0 width="970">
 <tr>
 <td colspan=2 bgcolor="darkblue" class="text">
-<table width="100%"><tr><td><font color="white" size="+1"><b>Incident #<?=$incident_id?></b> </font>
-<?php
+<table width="100%"><tr><td>
+<?php 
+  print "<font color=\"white\" size=\"+1\">\n";
+  print "Call #<b>" . $row->call_number . "</b></font>";
+  if ($_SESSION['access_level'] >= 10 || $row->call_number == '') {
+    print "<font size=\"-1\" color=\"lightgray\"> &nbsp; (Incident $incident_id)</font>";
+  }
   if ($row->visible == 0) {
     if ($row->completed) {
       print "&nbsp; &nbsp; <font color=\"#FF0000\"><b>&nbsp; &nbsp;[Completed Incident]</b></font>";
@@ -724,17 +729,21 @@ function handleDisposition() {
 
 <!-- ****************************************** -->
 <tr>
-   <td colspan="3" class="label" align=left></td>
+   <td colspan=2 class="label" align=left>&nbsp;
+   <noscript><b>Warning</b>: Javascript is disabled. Close this incident popup to cancel changes.</noscript>
+   </td>
    <?php
    if (!$row->completed) {
-     print "<td class=\"label\" colspan=3 valign=top>".
-           "<span name=\"release_label\" title=\"This option becomes available after a disposition is set.\">".
-           "Release Assigned Units On Incident Completion".
+     print "<td class=\"label\" rowspan=2 align=right valign=top style=\"padding-top: 5px;\">".
            "<input type=\"checkbox\" checked name=\"release_query\" tabindex=\"62\" disabled value=\"0\">".
-           "</span></td>\n";
+           "</td>\n";
+     print "<td class=\"label\" rowspan=2 colspan=3 valign=top style=\"padding-top: 5px;\">".
+           "Release Assigned Units on Incident Completion<br />".
+           "<span id=\"mustassign\">(Must Assign a Disposition first)</span>".
+           "</td>\n";
    }
    else {
-     print "<td>&nbsp;</td>\n";
+     print "<td rowspan=2>&nbsp;</td><td rowspan=2 colspan=3>&nbsp;</td>\n";
    }
    ?>
 </tr>
@@ -749,14 +758,11 @@ function handleDisposition() {
 <?php
   if (!$row->visible && !$row->completed) {
     echo "<button type=\"submit\" name=\"incident_abort\" tabindex=\"43\" accesskey=\"3\"><u>3</u>  Abort Incident</button>\n";
-    echo "</td>\n<td class=\"label\" colspan=\"4\" align=\"left\">&nbsp;</td>\n";
+    echo "</td>\n";
   }
   else {
     echo "<button type=\"button\" name=\"cancel_changes\" tabindex=\"43\" accesskey=\"3\" ";
-    echo "onClick='if (window.opener){window.opener.location.reload()} self.close()'>\n";
-    echo "<u>3</u>  Cancel</button> ";
-    echo "</td>\n<td class=\"label\" colspan=\"4\" align=\"left\">&nbsp;";
-    echo "<NOSCRIPT><B>Warning</B>: Javascript is disabled. Close this incident popup to cancel changes.</NOSCRIPT>";
+    echo "onClick='if (window.opener){window.opener.location.reload()} self.close()'><u>3</u>  Cancel</button>";
     echo "</td>\n";
   }
 ?>

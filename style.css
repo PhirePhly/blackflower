@@ -135,6 +135,11 @@ ul {
 	margin: 7px 0 6px 0;
 }
 
+.newbutton {
+	background-color: #339933;
+	color: #FFFFFF;
+}
+
 html.login,body.login, table#pagelayout {
   height: 100%;
   width: 100%;

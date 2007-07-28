@@ -1,4 +1,4 @@
-Black Flower CAD v1.5.0 - 2007/04/28
+Black Flower CAD v1.5.x - 2007/04/28
 
 OVERVIEW
 
@@ -19,7 +19,7 @@ OVERVIEW
 UPGRADE INSTRUCTIONS
 
 For new installations, see INSTALLATION below.  To upgrade from
-1.4.3 or previous to the 1.5.0 version, follow these instructions:
+1.4.3 or previous to the 1.5.x version, follow these instructions:
 
 * Compare cad.conf.example to your current cad.conf (or run initialize.sh
   if you do not yet have cad.conf) and adjust variable names as necessary.
@@ -29,7 +29,7 @@ INSTALLATION
   
   Server Requirements:
   --------------------
-  * MySQL database server v4.0+
+  * MySQL database server v4.1 or greater
   * PHP version 4, with MySQL integration.
   * Apache webserver running in Prefork mode, with PHP integration.
   

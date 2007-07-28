@@ -162,7 +162,7 @@ function NbLines($w,$txt)
 function DLSColumnHeader() {
   $this->SetY(30);
   $this->SetFont('Arial','B',10);
-  $this->Cell(15,5,'No.', 1,0);
+  $this->Cell(15,5,'Call No.', 1,0);
   $this->Cell(35,5,'Call Type',1,0);
   $this->Cell(65,5,'Details',1,0);
   $this->Cell(38,5,'Time Opened',1,0);
@@ -192,6 +192,7 @@ function StatsColumnHeader() {
 
   $pdf->AddPage('');
   $pdf->SetWidths(array(50,25));
+  syslog(LOG_INFO, $_SESSION['username'] . " generated incidents report");
 
   $query = "SELECT * FROM incident_types;";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
@@ -222,7 +223,11 @@ function StatsColumnHeader() {
       $pdf->DLSColumnHeader();
     if ($line->ts_opened == "0000-00-00 00:00:00") $line->ts_opened = "";
     if ($line->ts_complete == "0000-00-00 00:00:00") $line->ts_complete = "";
-    $pdf->Row(array($line->incident_id, $line->call_type, $line->call_details, $line->ts_opened, $line->ts_complete));
+    if ($line->call_number != '') {
+      $pdf->Row(array($line->call_number, $line->call_type, $line->call_details, $line->ts_opened, $line->ts_complete));
+    } else {
+      $pdf->Row(array("incident #" . $line->incident_id, $line->call_type, $line->call_details, $line->ts_opened, $line->ts_complete));
+    }
   }
   mysql_free_result($result);
 
@@ -246,7 +251,11 @@ function StatsColumnHeader() {
   
     $pdf->Ln(2);
     $pdf->SetFont('Arial','B',14);
-    $pdf->Cell(190, 8, "Incident #".$line->incident_id, 1, 1, "L", 1);
+    if ($line->call_number != '') {
+      $pdf->Cell(190, 8, 'Call Number: '. $line->call_number, 1, 1, 'L', 1);
+    } else {
+      $pdf->Cell(190, 8, 'Call (Error: Call Number Not Available - Incident ID# '. $line->incident_id . ')', 1, 1, 'L', 1);
+    }
     $pdf->Ln(2);
   
     $thisrow_top = $pdf->GetY();

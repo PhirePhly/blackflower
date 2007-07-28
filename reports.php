@@ -59,6 +59,51 @@
   ?>
 
   <p>
+  <form name="myform" method="GET" action="reports-summary.php">
+  <font class="h1"><u>Summary Report</u></font><br>
+
+  <ul>
+  <table>
+  <tr><td class="text" colspan=2>Enter the range of dates over which to show summary statistics.</td></tr>
+  <tr> <td class="text" align=left><b>Start Date</b> </td>
+       <td align=left><SELECT name="startdate">
+
+  <?php
+  sort($incidents_dates);
+  foreach($incidents_dates as $idate) {
+    print "<OPTION ";
+    #if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+
+  </select></td><td> </td></tr>
+  <tr> <td class="text" align=left><b>End Date</b> </td>
+       <td align=left><SELECT name="enddate">
+
+  <?php
+  rsort($incidents_dates);
+  foreach($incidents_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+
+  </select></td><td> </td></tr>
+
+  <tr> <td  class="text"><b>Show empty dates?</td>
+       <td> <input type="checkbox" name="show-alldates" checked /></tr>
+  
+  <tr><td></td></tr>
+  <tr> <td><input type="submit" name="summary_report" value="Get Summary Report" /></td></tr>
+  </table>
+  </ul>
+  </form>
+
+  <!-- ---------------------------------------------------------------------------------->
+
+  <p>
   <form name="myform" method="GET" action="reports-incidents.php">
   <font class="h1"><u>Incidents Report</u></font><br>
   <ul>

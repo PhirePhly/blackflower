@@ -23,6 +23,9 @@
       $unit = strtoupper(MysqlClean($_POST,'unit',20));
       $pattern = "/[\\/[\]'!@#$\^%&*()+=,;:{}|<>~`?\"]/";
       $replacement = "";
+      if ($unit == "") {
+        die('Cannot create unit with empty name.');
+      }
       if (preg_match($pattern, $unit)) {
         die('Bad characters in name: '.$unit. "\n  Only letters, numbers, space, dash or underscore are valid characters.\n  Use your browser Back feature to resolve the problem and try again.");
       }
@@ -32,6 +35,7 @@
       else
         MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit created.')");
 
+      syslog(LOG_INFO, $_SESSION['username'] . " created unit [$unit]");
       // update units
       // TODO: sanity check $unit input characters here?
       MysqlQuery("INSERT INTO units (unit, status, status_comment, type, role, personnel, update_ts, assignment, personnel_ts, location, location_ts, notes, notes_ts) VALUES ('$unit', '$status', '$status_comment', '$type', '$role', '$personnel', NOW(), '$assignment', '', '$location', '', '$notes', '')");
@@ -66,6 +70,7 @@
         MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Personnel change logged: $personnel')");
       }
 
+      syslog(LOG_INFO, $_SESSION['username'] . " edited unit [$unit]");
       // update units
       MysqlQuery("UPDATE units SET $fragment type='$type', role='$role', assignment='$assignment', location='$location', notes='$notes', personnel='$personnel' WHERE unit='$unit'");
     }
@@ -82,6 +87,7 @@
 
   elseif (isset($_POST["deleteunit"])) {
     if (isset($_POST['deleteforsure'])) {
+      syslog(LOG_INFO, $_SESSION['username'] . ' deleted unit [' . $_POST['unit'] . ']');
       MysqlQuery("DELETE FROM units WHERE unit='".MysqlClean($_POST,"unit",20)."'");
       MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit deleted.')");
       print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
@@ -117,12 +123,13 @@
   }
   elseif (isset($_POST['add_pageout'])) {
     $newval = MysqlClean($_POST, 'newpageout', 20);
+    syslog(LOG_INFO, $_SESSION['username'] . " added page-out of pager ID $newval to unit [$unit]");
     MysqlQuery("INSERT INTO unit_incident_paging (unit, to_pager_id) VALUES ('$unit', $newval)");
     header("Location: edit-unit.php?unit=".$_POST['unit']);
     exit;
   }
 
-  elseif (isset($_POST['pageunit']) && 
+  elseif (isset($_POST['pageunit']) &&              # manual unit paging
           isset($DB_PAGING_NAME) &&
           isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
 
@@ -184,7 +191,8 @@
   else {
     $action = 0;
     foreach (array_keys($_POST) as $postkey) {
-      if (preg_match("/delete_pageout_(\d+)/", $postkey, $matches)) {
+      if (preg_match("/delete_pageout_(\d+)_(\d+)/", $postkey, $matches)) {
+        syslog(LOG_INFO, $_SESSION['username'] . ' deleted page-out of pager ID ' . $matches[2] . ' from unit [' . $_POST['unit'].']');
         MysqlQuery("DELETE FROM unit_incident_paging WHERE row_id=" . $matches[1] );
         if (mysql_affected_rows() != 1) {
           syslog(LOG_WARNING, "Error while deleting row_id " . $matches[1] . " from unit_incident_paging");
@@ -443,6 +451,10 @@
 
   <?php 
   if (isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+    if ($newunit) {
+      print "<tr><td colspan=3>Save unit in order to edit auto-paging links.</td></tr>";
+    }
+    else {
   ?>
 <!-- Begin Outer Table Row 2 -->
 <tr>
@@ -538,7 +550,8 @@
         while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
           // TODO: set access level dynamically
           if ($_SESSION['access_level'] >= 5) {
-            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td><td align=right class=message><input type=submit name=\"delete_pageout_". $pageout_rcpt->row_id . "\" value=\"Delete\"></td></tr>";
+            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td><td align=right class=message><input type=submit " .
+                  " name=\"delete_pageout_". $pageout_rcpt->row_id . '_' . $pageout_rcpt->to_pager_id . "\" value=\"Delete\"></td></tr>";
             unset($Pagers[$pageout_rcpt->to_pager_id]);
           }
           else {
@@ -579,7 +592,7 @@
 </td>
 </tr>
 <!-- End Outer Table Row 2 -->
-<?php } ?>
+<?php } } ?>
 
 </table>
 <!-- End Outer Table -->

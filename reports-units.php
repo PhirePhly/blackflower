@@ -191,27 +191,33 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
   $pdf->AddPage('');
   $pdf->SetFillColor(230);
   
+  syslog(LOG_INFO, $_SESSION['username'] . " generated units report");
   $index = array();
   $associated_incidents = array();
   $associated_messages = array();
-
-  $query = "SELECT * FROM incident_units WHERE unit='$unit' AND DATE_FORMAT(dispatch_time, '%Y-%m-%d') LIKE '$date%'";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
-    if ($line->arrival_time == "0000-00-00 00:00:00") $line->arrival_time = "";
-    if ($line->cleared_time == "0000-00-00 00:00:00") $line->cleared_time = "";
-    $associated_incidents[$line->incident_id] =  $line;
-    array_push($index, array($line->dispatch_time, "Incident", $line->incident_id));
+  $associated_callnums = array();
+  
+  $incidents = MysqlQuery("SELECT incident_id,call_number FROM incidents");
+  while ($incident = mysql_fetch_object($incidents)) {
+    $associated_callnums[$incident->incident_id] = $incident->call_number;
   }
-  mysql_free_result($result);
+  mysql_free_result($incidents);
 
-  $query = "SELECT * FROM messages WHERE unit='$unit' AND DATE_FORMAT(ts, '%Y-%m-%d') LIKE '$date%'";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
-     $associated_messages[$line->oid] = $line;
-     array_push($index, array($line->ts, "Message", $line->oid));
+  $incident_units = MysqlQuery("SELECT * FROM incident_units WHERE unit='$unit' AND DATE_FORMAT(dispatch_time, '%Y-%m-%d') LIKE '$date%'");
+  while ($incident_unit = mysql_fetch_object($incident_units)) {
+    if ($incident_unit->arrival_time == "0000-00-00 00:00:00") $incident_unit->arrival_time = "";
+    if ($incident_unit->cleared_time == "0000-00-00 00:00:00") $incident_unit->cleared_time = "";
+    $associated_incidents[$incident_unit->incident_id] =  $incident_unit;
+    array_push($index, array($incident_unit->dispatch_time, "Incident", $incident_unit->incident_id));
   }
-  mysql_free_result($result);
+  mysql_free_result($incident_units);
+
+  $messages = MysqlQuery("SELECT * FROM messages WHERE unit='$unit' AND DATE_FORMAT(ts, '%Y-%m-%d') LIKE '$date%'");
+  while ($message = mysql_fetch_object($messages)) {
+     $associated_messages[$message->oid] = $message;
+     array_push($index, array($message->ts, "Message", $message->oid));
+  }
+  mysql_free_result($messages);
 
   usort($index, "index_sort");
   
@@ -220,7 +226,11 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
       $line = $associated_incidents[$index_item[2]];
       $pdf->Ln(2);
       $pdf->SetFont('Arial','B',12);
-      $pdf->Cell(70, 5, "Attached to Incident #".$line->incident_id, 0, 1, "L");
+      if ($associated_callnums[$line->incident_id] != '') {
+        $pdf->Cell(70, 5, 'Attached to Call #' . $associated_callnums[$line->incident_id], 0, 1, "L");
+      } else {
+        $pdf->Cell(70, 5, 'Attached to Call (Error: Call Number not available - Incident ID# ' .$line->incident_id.')', 0, 1, "L");
+      }
 
       $thisrow_top = $pdf->GetY();
       $pdf->SetFont('Arial','',10);
@@ -229,7 +239,12 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
       $pdf->Cell(5,5); $pdf->Cell(30, 5, "Released Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->cleared_time, 1, 1);
       $pdf->Ln(5);
       $pdf->SetFont('Arial','B',10);
-      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Notes Logged For $unit For Incident ".$line->incident_id, 0, 1);
+      if ($associated_callnums[$line->incident_id] != '') {
+        $pdf->Cell(5,5); $pdf->Cell(30, 5, "Notes Logged For $unit For Call ".$associated_callnums[$line->incident_id], 0, 1);
+      } else {
+        $pdf->Cell(5,5); $pdf->Cell(30, 5, "Notes Logged For $unit For Incident ".$line->incident_id, 0, 1);
+      }
+
       $pdf->SetFont('Arial','',10);
     
       $notequery = "SELECT * FROM incident_notes WHERE incident_id=".$line->incident_id." AND unit='$unit' ORDER BY note_id";

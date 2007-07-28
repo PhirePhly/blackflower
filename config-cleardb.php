@@ -18,67 +18,59 @@
   /* Define timestamp and get a lock on tables */
     $comment = MysqlClean($_POST, "comment", 80);
     $ts = date("Ymd_His");
-    $query = "LOCK TABLES archive_master WRITE, messages WRITE, units WRITE, incidents WRITE, incident_notes WRITE";
-    mysql_query($query) or die("locking Query failed : " . mysql_error());
+    syslog(LOG_WARNING, "Database was archive/cleared by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
+
+    MysqlQuery("LOCK TABLES archive_master WRITE");
 
   /* Note revision in master archive table */
-    $query = "INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment')";
-    mysql_query($query) or die("archive master  Query failed : " . mysql_error());
-    if (mysql_affected_rows() != 1) die("Error registering this checkpoint in archive_master table!!");
+    MysqlQuery("INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment')");
+    if (mysql_affected_rows() != 1) die("Error registering archive checkpoint [$ts] in archive_master table");
 
   /* Make backup copies of all relevant tables and data */
 
-  /* The *easy* syntax here is CREATE TABLE .. LIKE ..   but that's only in MySQL 4.1.  Currently using 4.0.x. */
+    MysqlQuery("CREATE TABLE cadarchives.messages_$ts LIKE messages ");
+    MysqlQuery("CREATE TABLE cadarchives.incidents_$ts LIKE incidents ");
+    MysqlQuery("CREATE TABLE cadarchives.incident_notes_$ts LIKE incident_notes ");
+    MysqlQuery("CREATE TABLE cadarchives.incident_units_$ts LIKE incident_units ");
+    MysqlQuery("CREATE TABLE cadarchives.bulletins_$ts LIKE bulletins ");
+    MysqlQuery("CREATE TABLE cadarchives.bulletin_views_$ts LIKE bulletin_views ");
+    MysqlQuery("CREATE TABLE cadarchives.bulletin_history_$ts LIKE bulletin_history ");
+    MysqlQuery("CREATE TABLE cadarchives.units_$ts LIKE units ");
+    MysqlQuery("CREATE TABLE cadarchives.unit_incident_paging_$ts LIKE unit_incident_paging ");
 
-    $query = "CREATE TABLE cadarchives.messages_$ts (oid int not null auto_increment primary key, ts datetime not null, unit varchar(20), message varchar(255) not null, deleted bool not null default 0, creator varchar(20), message_type varchar(20))";
-       mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
+    MysqlQuery("LOCK TABLES messages WRITE, incidents WRITE, incident_notes WRITE, 
+                  incident_units WRITE, bulletins WRITE, bulletin_views WRITE,
+                  bulletin_history WRITE, units WRITE, unit_incident_paging WRITE,
+                  cadarchives.messages_$ts WRITE, cadarchives.incidents_$ts WRITE, cadarchives.incident_notes_$ts WRITE, 
+                  cadarchives.incident_units_$ts WRITE, cadarchives.bulletins_$ts WRITE, cadarchives.bulletin_views_$ts WRITE,
+                  cadarchives.bulletin_history_$ts WRITE, cadarchives.units_$ts WRITE, cadarchives.unit_incident_paging_$ts WRITE,
+                  archive_master WRITE");
 
-    $query = "CREATE TABLE cadarchives.units_$ts (unit varchar(20) not null primary key, status varchar(30), status_comment varchar(255), update_ts datetime, 	role	set('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other'), type	set('Unit', 'Individual', 'Generic'), personnel varchar(100), assignment varchar(20))";
-       mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-
-    $query = "CREATE TABLE cadarchives.incidents_$ts (incident_id int not null auto_increment primary key, call_type varchar(40), call_details varchar(80), ts_opened datetime not null, ts_dispatch datetime, ts_arrival datetime, ts_complete datetime, location varchar(80), location_num varchar(15), reporting_pty varchar(80), contact_at varchar(80), disposition varchar(80), visible bool not null default 0, primary_unit varchar(20), completed bool not null default 0, updated datetime not null)";
-       mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-
-    $query = "CREATE TABLE cadarchives.incident_notes_$ts (note_id int not null auto_increment primary key, incident_id int not null, ts datetime not null, unit varchar(20), message varchar(255) not null, deleted bool not null default 0, creator varchar(20))";
-       mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-
-    $query = "CREATE TABLE cadarchives.incident_units_$ts (uid int not null auto_increment primary key, incident_id int not null, unit varchar(20) not null, dispatch_time datetime, arrival_time datetime, cleared_time datetime, is_primary bool, is_generic bool)";
-       mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-
-       /* ------------------ */
-
-    $query = "LOCK TABLES archive_master WRITE, messages WRITE, units WRITE, incidents WRITE, incident_notes WRITE, incident_units WRITE, cadarchives.units_$ts WRITE, cadarchives.messages_$ts WRITE, cadarchives.incidents_$ts WRITE, cadarchives.incident_notes_$ts WRITE, cadarchives.incident_units_$ts WRITE";
-    mysql_query($query) or die("locking Query failed : " . mysql_error());
-
-    $query = "INSERT INTO cadarchives.messages_$ts SELECT * from messages";
-    mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-    $query = "INSERT INTO cadarchives.units_$ts SELECT * from units";
-    mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-    $query = "INSERT INTO cadarchives.incidents_$ts SELECT * from incidents";
-    mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-    $query = "INSERT INTO cadarchives.incident_notes_$ts SELECT * from incident_notes";
-    mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-    $query = "INSERT INTO cadarchives.incident_units_$ts SELECT * from incident_units";
-    mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
+    MysqlQuery("INSERT INTO  cadarchives.messages_$ts SELECT * FROM messages");
+    MysqlQuery("INSERT INTO  cadarchives.incidents_$ts SELECT * FROM incidents");
+    MysqlQuery("INSERT INTO  cadarchives.incident_notes_$ts SELECT * FROM incident_notes");
+    MysqlQuery("INSERT INTO  cadarchives.incident_units_$ts SELECT * FROM incident_units");
+    MysqlQuery("INSERT INTO  cadarchives.bulletins_$ts SELECT * FROM bulletins");
+    MysqlQuery("INSERT INTO  cadarchives.bulletin_views_$ts SELECT * FROM bulletin_views");
+    MysqlQuery("INSERT INTO  cadarchives.bulletin_history_$ts SELECT * FROM bulletin_history");
+    MysqlQuery("INSERT INTO  cadarchives.units_$ts SELECT * FROM units");
+    MysqlQuery("INSERT INTO  cadarchives.unit_incident_paging_$ts SELECT * FROM unit_incident_paging");
 
   /* Clear relevant tables and data */
-    $query = "DELETE FROM messages";
-    mysql_query($query) or die("message clearing Query failed : " . mysql_error());
-    $query = "DELETE FROM incident_notes";
-    mysql_query($query) or die("incident_notes clearing Query failed : " . mysql_error());
-    $query = "DELETE FROM incident_units";
-    mysql_query($query) or die("incident_units clearing Query failed : " . mysql_error());
-    $query = "DROP TABLE incidents";
-    mysql_query($query) or die("incidents deleting Query failed : " . mysql_error());
-    $query = "CREATE TABLE incidents (incident_id int not null auto_increment primary key, call_type varchar(40), call_details varchar(80), ts_opened datetime not null, ts_dispatch datetime, ts_arrival datetime, ts_complete datetime, location varchar(80), location_num varchar(15), reporting_pty varchar(80), contact_at varchar(80), disposition varchar(80), visible bool not null default 0, primary_unit varchar(20), completed bool not null default 0, updated datetime not null)";
-    mysql_query($query) or die("Query failed ($query) -- error was: " . mysql_error());
-    $query = "UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL";
-    mysql_query($query) or die("status resetting Query failed : " . mysql_error());
+    MysqlQuery("DELETE FROM messages");
+    MysqlQuery("DELETE FROM incident_notes");
+    MysqlQuery("DELETE FROM incident_units");
+    MysqlQuery("DELETE FROM incidents");
+    MysqlQuery("DELETE FROM bulletins");
+    MysqlQuery("DELETE FROM bulletin_views");
+    MysqlQuery("DELETE FROM bulletin_history");
+    MysqlQuery("UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL, personnel_ts=NULL, location_ts=NULL, notes_ts=NULL");
 
   /* Finish */
-    $query = "UNLOCK TABLES";
-    mysql_query($query) or die("unlocking Query failed : " . mysql_error());
+    MysqlQuery("UNLOCK TABLES");
+    sleep(1);
     header("Location: config.php");
+    exit;
   }
 
   header_html("Dispatch :: Configuration");

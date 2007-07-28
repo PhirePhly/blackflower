@@ -1,8 +1,18 @@
 CHANGES
 -------
 
+Version 1.5.2 - 2006-07-28
+* Implemented bug 75 - Allow complex Call Number formattings.
+* Implemented bug 79 - Date summary report.
+* Added misc logging.
+* Fixed bug 1 - Updates to incident completion unit release checkbox.
+* Fixed bug 6 - Allow scrolling between Log Messages pages
+* Fixed bug 13 - Added filtering/searching to all-Incidents view.
+* Fixed bug 78 - Allow hiding of out-of-service Units in Incidents page.
+* Fixed bug 116 - Allow global disabling of Log Message Type field
+
 Version 1.5.1 - 2006-07-12
-* Fixed bug 31 - page units from Edit Unit dialog
+* Implemented bug 31 - page units from Edit Unit dialog
 * Worked on bug 74 - added diagnostic logging
 * Worked on bug 80 - added diagnostic logging
 
