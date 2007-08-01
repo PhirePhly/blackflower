@@ -16,14 +16,23 @@
   elseif (isset($_POST["cleardb"]) && $_POST["cleardb"] == 3) {
 
   /* Define timestamp and get a lock on tables */
+    MysqlQuery("LOCK TABLES deployment_history READ, archive_master WRITE");
     $comment = MysqlClean($_POST, "comment", 80);
     $ts = date("Ymd_His");
-    syslog(LOG_WARNING, "Database was archive/cleared by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
+    sleep(1);
+    syslog(LOG_WARNING, "Database was archive/cleared to archive tag [$ts] by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
 
-    MysqlQuery("LOCK TABLES archive_master WRITE");
+    $dbver = 'NULL';
+    $codever = 'NULL';
+    $dephist = MysqlQuery("SELECT * FROM deployment_history ORDER BY idx DESC LIMIT 1");
+    if (mysql_num_rows($dephist)) {
+      $schemaver = mysql_fetch_object($dephist);
+      $dbver = "'" . $schemaver->database_version . "'";
+      $codever = "'" . $schemaver->requires_code_ver . "'";
+    }
 
   /* Note revision in master archive table */
-    MysqlQuery("INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment')");
+    MysqlQuery("INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment', $dbver, $codever)");
     if (mysql_affected_rows() != 1) die("Error registering archive checkpoint [$ts] in archive_master table");
 
   /* Make backup copies of all relevant tables and data */
@@ -37,6 +46,7 @@
     MysqlQuery("CREATE TABLE cadarchives.bulletin_history_$ts LIKE bulletin_history ");
     MysqlQuery("CREATE TABLE cadarchives.units_$ts LIKE units ");
     MysqlQuery("CREATE TABLE cadarchives.unit_incident_paging_$ts LIKE unit_incident_paging ");
+    MysqlQuery("CREATE TABLE cadarchives.deployment_history_$ts LIKE deployment_history ");
 
     MysqlQuery("LOCK TABLES messages WRITE, incidents WRITE, incident_notes WRITE, 
                   incident_units WRITE, bulletins WRITE, bulletin_views WRITE,
@@ -44,6 +54,7 @@
                   cadarchives.messages_$ts WRITE, cadarchives.incidents_$ts WRITE, cadarchives.incident_notes_$ts WRITE, 
                   cadarchives.incident_units_$ts WRITE, cadarchives.bulletins_$ts WRITE, cadarchives.bulletin_views_$ts WRITE,
                   cadarchives.bulletin_history_$ts WRITE, cadarchives.units_$ts WRITE, cadarchives.unit_incident_paging_$ts WRITE,
+                  cadarchives.deployment_history_$ts WRITE, deployment_history WRITE,
                   archive_master WRITE");
 
     MysqlQuery("INSERT INTO  cadarchives.messages_$ts SELECT * FROM messages");
@@ -55,6 +66,7 @@
     MysqlQuery("INSERT INTO  cadarchives.bulletin_history_$ts SELECT * FROM bulletin_history");
     MysqlQuery("INSERT INTO  cadarchives.units_$ts SELECT * FROM units");
     MysqlQuery("INSERT INTO  cadarchives.unit_incident_paging_$ts SELECT * FROM unit_incident_paging");
+    MysqlQuery("INSERT INTO  cadarchives.deployment_history_$ts SELECT * FROM deployment_history");
 
   /* Clear relevant tables and data */
     MysqlQuery("DELETE FROM messages");
@@ -69,7 +81,7 @@
   /* Finish */
     MysqlQuery("UNLOCK TABLES");
     sleep(1);
-    header("Location: config.php");
+    header("Location: admin.php");
     exit;
   }
 
@@ -135,7 +147,7 @@ sure this is what you want to do!<p>
 </ul>
 <p>
 <hr>
-<a href="config.php">Abort and return to Configuration page</a><br>
+<a href="admin.php">Abort and return to Admin page</a><br>
 </body>
 </html>
 

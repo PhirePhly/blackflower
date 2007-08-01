@@ -1,3 +1,6 @@
+SET @provides_database_version = '1.5.3.0';
+SET @requires_code_version = '1.5.3';
+
 -- DROP DATABASE IF EXISTS cad;
 -- DROP DATABASE IF EXISTS cadarchives;
 -- CREATE DATABASE cad;
@@ -31,10 +34,14 @@ CREATE TABLE message_types (
 /* system control tables */
 
 CREATE TABLE archive_master (
-	tskey	varchar(30) not null primary key,
-	ts	datetime not null,
-	comment varchar(80)
-	);
+  tskey             VARCHAR(30) NOT NULL,
+  ts                DATETIME NOT NULL,
+  comment           VARCHAR(80),
+  database_version  VARCHAR(20),
+  requires_code_ver VARCHAR(20),
+
+  PRIMARY KEY (tskey)
+);
 
 CREATE TABLE users (
   id            INTEGER NOT NULL AUTO_INCREMENT,
@@ -189,6 +196,23 @@ CREATE TABLE incident_units (
   INDEX (dispatch_time)
 	);
 
+
+CREATE TABLE deployment_history (
+  idx               INT NOT NULL AUTO_INCREMENT,
+  schema_load_ts    DATETIME NOT NULL,
+  update_ts         TIMESTAMP,
+  database_version  VARCHAR(20) NOT NULL,
+  requires_code_ver VARCHAR(20) NOT NULL,
+  mysql_user        VARCHAR(255),
+  host              VARCHAR(255),  -- supplied from OS
+  uid               INT,           -- supplied from OS
+  user              VARCHAR(8),    -- MySQL CURRENT_USER() function
+  cwd               VARCHAR(255),  -- supplied from OS
+
+  PRIMARY KEY (idx)
+);
+
+
 /* Insert default long-lived values into reference tables *****************/
 
 INSERT INTO incident_disposition_types VALUES ('Completed');
@@ -243,3 +267,4 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('OC', 'On-Call', 'icongray', NULL),
 ('S', 'Supervisor', 'icongray', NULL);
 
+INSERT INTO deployment_history (schema_load_ts, database_version, requires_code_ver, mysql_user) VALUES (NOW(), @provides_database_version, @requires_code_version, CURRENT_USER());

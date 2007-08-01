@@ -1,14 +1,14 @@
 #!/bin/sh
 
-if [ ! -f schema.sql ]
+if [ ! -f data/schema.sql ]
 then
-  echo "CRITICAL: file schema.sql can't be found - execute initialize.sh"
+  echo "CRITICAL: file ./data/schema.sql can't be found - execute initialize.sh"
   echo "from the CAD distribution/installation directory."
   echo "Exiting."
   exit
-elif [ ! -r schema.sql ]
+elif [ ! -r data/schema.sql ]
 then
-  echo "CRITICAL: file schema.sql can't be read - check permissions."
+  echo "CRITICAL: file ./data/schema.sql can't be read - check permissions."
   echo "Exiting."
   exit
 fi
@@ -128,8 +128,8 @@ fi
 echo "done."
 
 # TODO: detect if schema already exists
-echo -n "Loading schema.sql... "
-mysql -u root --password=$mysqlrootpw -h $dbhost $dbname < schema.sql
+echo -n "Loading data/schema.sql... "
+mysql -u root --password=$mysqlrootpw -h $dbhost $dbname < data/schema.sql
 e1=$?
 if [ $e1 -ne 0 ]
 then

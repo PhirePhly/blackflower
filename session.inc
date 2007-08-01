@@ -102,6 +102,9 @@ function setFocus(str) {
 // --------------------------------------------------------------------------
 // Actual start of session.inc
 
+  $sname = 'PHPSESS_cad_' . implode ('_', array_slice( explode('/', str_replace('~', '_tilde_', $_SERVER['REQUEST_URI'])), 0, -1));
+  session_name($sname);
+
   if (isset($_POST['username']) && isset($_POST['password'])) {
     session_start();
 
