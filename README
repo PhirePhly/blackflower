@@ -1,4 +1,4 @@
-Black Flower CAD v1.5.x - 2007/04/28
+Black Flower CAD v1.6.0 - 2007/08/16
 
 OVERVIEW
 
@@ -18,11 +18,19 @@ OVERVIEW
 
 UPGRADE INSTRUCTIONS
 
-For new installations, see INSTALLATION below.  To upgrade from
-1.4.3 or previous to the 1.5.x version, follow these instructions:
+   (For new installations, see INSTALLATION below.)
 
-* Compare cad.conf.example to your current cad.conf (or run initialize.sh
-  if you do not yet have cad.conf) and adjust variable names as necessary.
+   Upgrading from 1.4.x or previous is not supported due to lack of need 
+   and therefore nonexistant database upgrade scripts.  Contact us if this
+   need exists in your environment.
+
+   To upgrade from 1.5.x to 1.6.x:
+
+   * Compare cad.conf.example to your current cad.conf (or run initialize.sh
+     if you do not yet have cad.conf.)  Create or adjust variable names as 
+     necessary.
+   * Run all database schema update scripts in data/updates subdirectory,
+     sequentially by version number.
 
 
 INSTALLATION
