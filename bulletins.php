@@ -192,8 +192,8 @@
 ?>
 
 <span class=text><b>Bulletins</b></span><p>
-<table cellspacing=1 cellpadding=0 style="padding-bottom: 0" style="background-color: #333333">
-<tr class=text><td>Subject</td><td class=text>Last Updated</td><td class=text>Status</td>
+<table cellspacing=1 cellpadding=0 style="padding-bottom: 0">
+<tr class=text style="text-align: center"><td>Subject</td><td class=text style="text-align: center">Last Updated</td><td class=text>Status</td>
 <?php
   $closed = 0;
   if (isset($_GET["closed"])) {
@@ -205,40 +205,49 @@
     $ViewedAt[$view->bulletin_id] = $view->last_read;
   }
   $bulletin_query = MysqlQuery("SELECT * FROM bulletins b LEFT OUTER JOIN users u ON b.updated_by=u.id WHERE " . ($closed ? "" : " b.closed=0 AND ") . " b.access_level <= ". $_SESSION["access_level"] . " ORDER BY b.updated DESC");
-  while ($bulletin = mysql_fetch_object($bulletin_query)) {
-    $bulledit = "";
-    $bulllink = "";
-    $bullstatus="";
-    $boldtitle=0;
-    
+  if (mysql_num_rows($bulletin_query) == 0) {
     print "<tr>\n";
-    #print "<td class=info>Bulletin " . $bulletin->bulletin_id . "</td>\n";
-    $closed = $bulletin->closed;
-    $bulllink = "<a ";
-    if ($closed) {
-      $bulllink  .= "style=\"color: gray\" ";
-      $bulledit = "<font color=gray>";
-    }
-    $bulllink .= "href=\"bulletins.php?bulletin_id=" . $bulletin->bulletin_id . "\">" . $bulletin->bulletin_subject ."</a>";
-    $bulledit .= "Edited " . (isset($bulletin->username) ? " by " . $bulletin->username . "," : "") . " " . dls_utime($bulletin->updated);
-    if (!isset($ViewedAt[$bulletin->bulletin_id])) {
-      $bullstatus = "<span style=\"font-size: 10px; background-color: black; color: yellow; font-weight: bold; border: 1px solid red\">NEW</span>";
-      $boldtitle=1;
-    }
-    elseif ($ViewedAt[$bulletin->bulletin_id] < $bulletin->updated) {
-      $bullstatus = "<span style=\"font-size: 10px; background-color: yellow; color: black; border: 1px solid black\">UPDATED</span>";
-      $boldtitle = 1;
-    }
-
-    if ($closed) {
-      $bullstatus .= " <font color=gray size=-1>CLOSED</font>" ;
-      $bulledit .= "</font>";
-    }
-
-    print "<td class=message>" . ($boldtitle? "<b>":"").$bulllink. ($boldtitle?"</b>":""). "\n";
-    print "<td class=message>$bulledit</td>\n";
-    print "<td class=\"bulletin-info\">$bullstatus</td>\n";
+    print "<td class=bulletin>No bulletins entered  </b>\n";
+    print "<td class=bulletin>-</td>\n";
+    print "<td class=\"bulletin-info\">-</td>\n";
     print "</tr>\n\n";
+  }
+  else {
+    while ($bulletin = mysql_fetch_object($bulletin_query)) {
+      $bulledit = "";
+      $bulllink = "";
+      $bullstatus="";
+      $boldtitle=0;
+      
+      print "<tr>\n";
+      #print "<td class=info>Bulletin " . $bulletin->bulletin_id . "</td>\n";
+      $closed = $bulletin->closed;
+      $bulllink = "<a ";
+      if ($closed) {
+        $bulllink  .= "style=\"color: gray\" ";
+        $bulledit = "<font color=gray>";
+      }
+      $bulllink .= "href=\"bulletins.php?bulletin_id=" . $bulletin->bulletin_id . "\">" . $bulletin->bulletin_subject ."</a>";
+      $bulledit .= "Edited " . (isset($bulletin->username) ? " by " . $bulletin->username . "," : "") . " " . dls_utime($bulletin->updated);
+      if (!isset($ViewedAt[$bulletin->bulletin_id])) {
+        $bullstatus = "<span style=\"font-size: 10px; background-color: black; color: yellow; font-weight: bold; border: 1px solid red\">NEW</span>";
+        $boldtitle=1;
+      }
+      elseif ($ViewedAt[$bulletin->bulletin_id] < $bulletin->updated) {
+        $bullstatus = "<span style=\"font-size: 10px; background-color: yellow; color: black; border: 1px solid black\">UPDATED</span>";
+        $boldtitle = 1;
+      }
+  
+      if ($closed) {
+        $bullstatus .= " <font color=gray size=-1>CLOSED</font>" ;
+        $bulledit .= "</font>";
+      }
+
+      print "<td class=bulletin>" . ($boldtitle? "<b>":"").$bulllink. ($boldtitle?"</b>":""). "\n";
+      print "<td class=bulletin>$bulledit</td>\n";
+      print "<td class=\"bulletin-info\">$bullstatus</td>\n";
+      print "</tr>\n\n";
+    }
   }
   
   print "</table>\n";

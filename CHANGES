@@ -1,11 +1,15 @@
 CHANGES
 -------
 
-Version 1.5.3 - 2006-08-01
+Version 1.6.0 - 2007-08-16
+* Cosmetic fixes to bulletins display.  Otherwise unchanged from 1.5.3.
+
+Version 1.5.3 - 2007-08-01
 * Implemented bug 115 - Add db deployment history table/functionality.
+  -> A database update to 1.5.3 schema is required.
 * Fixed bug 113 - PHP shared sessions with multiple instances on same host.
 
-Version 1.5.2 - 2006-07-28
+Version 1.5.2 - 2007-07-28
 * Implemented bug 75 - Allow complex Call Number formattings.
 * Implemented bug 79 - Date summary report.
 * Added misc logging.
@@ -15,12 +19,12 @@ Version 1.5.2 - 2006-07-28
 * Fixed bug 78 - Allow hiding of out-of-service Units in Incidents page.
 * Fixed bug 116 - Allow global disabling of Log Message Type field
 
-Version 1.5.1 - 2006-07-12
+Version 1.5.1 - 2007-07-12
 * Implemented bug 31 - page units from Edit Unit dialog
 * Worked on bug 74 - added diagnostic logging
 * Worked on bug 80 - added diagnostic logging
 
-Version 1.5.0 - 2006-05-01
+Version 1.5.0 - 2007-05-01
 * Internal fixes to use generic database name, and better use
   multiple database handles.
 * Improvements to initialize.sh
