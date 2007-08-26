@@ -10,6 +10,18 @@
     return $return;
   }
 
+
+  function MysqlGrabData ($sqlquery) {
+    $return = MysqlQuery($sqlquery);
+    $num_rows = mysql_num_rows($return);
+    if ($num_rows != 1) {
+      print "Internal error, expected 1 row (got $num_rows) in query [$sqlquery]";
+      syslog(LOG_CRIT, "MysqlGrabData: Internal error - saw $num_rows rows for [$sqlquery]");
+    }
+    $rval = mysql_fetch_array($return, MYSQL_NUM);
+    return $rval[0];
+  }
+
   function MysqlClean ($array, $index, $maxlength) {
     global $link;
     if (isset($array["{$index}"])) {

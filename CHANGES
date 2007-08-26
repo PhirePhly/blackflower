@@ -1,6 +1,10 @@
 CHANGES
 -------
 
+Version 1.6.1 - 2007-08-26
+* Fixed bug 121 - don't reset Generic units' status on manual release 
+  from incident.
+
 Version 1.6.0 - 2007-08-16
 * Cosmetic fixes to bulletins display.  Otherwise unchanged from 1.5.3.
 

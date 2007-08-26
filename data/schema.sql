@@ -264,6 +264,8 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('IC', 'Incident Commander', 'iconwhite', NULL),
 ('FDC', 'Fire Duty Chief', 'iconred', NULL),
 ('MDC', 'Medical Duty Chief', 'iconblue', NULL),
+('ADC', 'Assistant Medical Duty Chief', 'iconblue', NULL),
+('SDC', 'Support Duty Chief', 'icongray', NULL),
 ('OC', 'On-Call', 'icongray', NULL),
 ('S', 'Supervisor', 'icongray', NULL);
 
