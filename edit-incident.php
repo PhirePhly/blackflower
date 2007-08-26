@@ -294,21 +294,17 @@
         MysqlQuery('LOCK TABLES units WRITE, incident_units WRITE, messages WRITE');
         MysqlQuery("UPDATE incident_units SET cleared_time=NOW() where uid='$update_release_unit_uid'");
 
-        $unitresult = MysqlQuery("SELECT * FROM incident_units where uid='$update_release_unit_uid'");
-        if (mysql_num_rows($unitresult) <> 1)
-          die ("In query: $unitquery<br>\nExpected 1 result row, got: ".mysql_num_rows($unitresult));
-        $unitrow = mysql_fetch_array($unitresult, MYSQL_ASSOC);
-        $release_unit_name = $unitrow["unit"];
-        mysql_free_result($unitresult);
+        $release_unit_name  = MysqlGrabData("SELECT unit FROM incident_units where uid='$update_release_unit_uid'");
+        $unit_type = MysqlGrabData("SELECT type FROM units WHERE unit='$release_unit_name'");
 
-        $unitprevstatus = FindPrevUnitStatus($unitrow["unit"]);
-
-        MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
-                   "status_comment='Released from Call #" .  $oldline["call_number"]. " at ".date('H:m:s')."', ".
-                   "update_ts=NOW() where unit='$release_unit_name'");
-
-        MysqlQuery("INSERT INTO messages (ts, unit, message) ".
-                   "VALUES (NOW(), '$release_unit_name', 'Status Change: In Service (was: Attached to Incident)')");
+        if ($unit_type <> 'Generic') {
+          $unitprevstatus = FindPrevUnitStatus($release_unit_name);
+          MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
+                     "status_comment='Released from Call #" .  $oldline["call_number"]. " at ".date('H:m:s')."', ".
+                     "update_ts=NOW() where unit='$release_unit_name'");
+          MysqlQuery("INSERT INTO messages (ts, unit, message) ".
+                     "VALUES (NOW(), '$release_unit_name', 'Status Change: In Service (was: Attached to Incident)')");
+        }
 
         MysqlQuery("UNLOCK TABLES");
         syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [$release_unit_name] release from call [" .  $oldline["call_number"]. "] (incident $incident_id)");
@@ -347,13 +343,16 @@
             }
 
             foreach ($stackunits as $stackunit) {
-              $unitprevstatus = FindPrevUnitStatus($stackunit);
-              MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
-                         "status_comment='Released from Call #" .  $oldline["call_number"]. " at ".date('H:m:s')."', ".
-                         "update_ts=NOW() WHERE unit='$stackunit'");
-              MysqlQuery("INSERT INTO messages (ts, unit, message) ".
-                         "VALUES (NOW(), '$stackunit', 'Status Change: $unitprevstatus (was: Attached to Incident)')");
-              syslog(LOG_INFO, $_SESSION['username'] . " released unit [$stackunit] from call [" .  $oldline["call_number"]. "] (incident $incident_id) upon completion");
+              $unit_type = MysqlGrabData("SELECT type FROM units WHERE unit='$stackunit'");
+              if ($unit_type <> 'Generic') {
+                $unitprevstatus = FindPrevUnitStatus($stackunit);
+                MysqlQuery("UPDATE units SET status='$unitprevstatus', ".
+                           "status_comment='Released from Call #" .  $oldline["call_number"]. " at ".date('H:m:s')."', ".
+                           "update_ts=NOW() WHERE unit='$stackunit'");
+                MysqlQuery("INSERT INTO messages (ts, unit, message) ".
+                           "VALUES (NOW(), '$stackunit', 'Status Change: $unitprevstatus (was: Attached to Incident)')");
+                syslog(LOG_INFO, $_SESSION['username'] . " released unit [$stackunit] from call [" .  $oldline["call_number"]. "] (incident $incident_id) upon completion");
+              }
             }
           }
         }
