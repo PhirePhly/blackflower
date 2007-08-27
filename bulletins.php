@@ -180,7 +180,7 @@
     </select> </td></tr>
     <tr> <td> Close this bulletin? </td><td><input name=closed type=checkbox <?=$closed? " checked " : ""?>></td></tr>
     <input name=orig_closed type=hidden value="<?=$closed? "closed" : "open"?>">
-    <tr> <td> Bulletin: </td><td><textarea name=bulletin_text rows=10 cols=60 wrap="hard"><?=$bulletin_text?></textarea></td></tr>
+    <tr> <td> Bulletin: </td><td><textarea wrap=hard name=bulletin_text rows=10 cols=60 wrap="hard"><?=$bulletin_text?></textarea></td></tr>
     <tr> <td> <input type=submit name=save_bulletin value="Save Changes"> <input type=submit name=clear_bulletin value="Cancel"> </td></tr>
     </table>
     </form>
