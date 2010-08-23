@@ -1,8 +1,17 @@
 <?php
+  require ('cad.conf');
 
   // Check that this file is not loaded directly.
   if (basename( __FILE__ ) == basename($_SERVER["PHP_SELF"])) exit();
 
+  if (version_compare(PHP_VERSION, '5.1.0', '>=')) {
+    if (isset($DEFAULT_TIMEZONE)) {
+      date_default_timezone_set($DEFAULT_TIMEZONE);
+    } 
+    else {
+      date_default_timezone_set('America/Los_Angeles');
+    }
+  }
   define("THIS_HOUR", date("H"));
   define("THIS_DATE", date("Y-m-d"));
   define("NOW", date("Y-m-d H:i:s"));
@@ -13,6 +22,7 @@
   define("TS_HOUR",3600);
   define("TS_DAY",86400);
   define("TS_WEEK",604800);
+
 
   function dls_ustr ($str_in) {
     return str_replace(" ", "&nbsp;", $str_in);
@@ -66,9 +76,9 @@
   }
 
   // For timestamping in the edit_incident window ONLY -- we don't want huge amounts of detail there.
-  function dls_hmstime ($tm_var) {
+  function dls_hmtime ($tm_var) {
     if ($tm_var && $tm_var <> "0000-00-00 00:00:00")
-      return date("H:i:s", strtotime($tm_var));
+      return date("H:i", strtotime($tm_var));
     else return "";
   }
 

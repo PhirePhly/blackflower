@@ -17,11 +17,15 @@
 
 // Booleans:
   $BULLETIN_TITLE_SCAN = 1;
+  $AVOID_NEWINCIDENT_DIALOG = 0;
 
 // Logging:
   $USE_SYSLOG = 1;
   $SYSLOG_FACILITY = LOG_LOCAL4;
   $SYSLOG_LEVEL = LOG_INFO;
+  # Set default timezone:
+  $DEFAULT_TIMEZONE = 'America/Los_Angeles';
+
 
 // Message Type Facility:
   $USE_MESSAGE_TYPE = 1;

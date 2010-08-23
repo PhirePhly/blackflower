@@ -1,6 +1,18 @@
 CHANGES
 -------
 
+Version 1.7.0 - 2010-08-23
+* Added express New Incident dialog.  Call takers must now record critical
+  information immediately, incident is then saved and available to other
+  stations for dispatch.
+* Allow and document the reopening of a closed incident.
+* Removed default ability to edit incident notes.
+* Upgraded paging integration for playapage 3.0.0.
+* Pared edit-incident Hour:Min:Sec fields down to Hour:Minute.
+* Added Incident units time fields for transporting/done transporting.
+* Added explicit timezone configuration for compatibility with PHP 5.1.0+.
+* Added explicit datetime zero values for compatibility with MySQL 5.0.82.
+
 Version 1.6.2 - 2007-08-27
 * Fixed bug 121 - Bulletin editor should force word wrapping.
 
