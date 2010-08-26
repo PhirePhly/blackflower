@@ -7,6 +7,10 @@
   $saved=0;
   $deleted=0;
 
+  if (!isset($ALLOW_EDIT_INCIDENT_NOTES) || !$ALLOW_EDIT_INCIDENT_NOTES) {
+     print "Incident note editing is turned off.";
+     exit;
+  }
   if (isset($_POST["note_id"])) {
     $note_id = MysqlClean($_POST,"note_id",20);
     $incident_id = MysqlClean($_POST,"incident_id",20);

@@ -1,5 +1,5 @@
-SET @provides_database_version = '1.5.3.0';
-SET @requires_code_version = '1.5.3';
+SET @provides_database_version = '1.7.0.0';
+SET @requires_code_version = '1.7.0';
 
 -- DROP DATABASE IF EXISTS cad;
 -- DROP DATABASE IF EXISTS cadarchives;
@@ -10,7 +10,7 @@ SET @requires_code_version = '1.5.3';
 /* enum (reference) tables */
 
 CREATE TABLE unitcolors (
-	role	set('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other'),
+	role	set('Fire', 'LE', 'Medical', 'Comm', 'MHB', 'Admin', 'Other'),
 	color_name varchar(20),
 	color_html varchar(20)
 );
@@ -52,6 +52,7 @@ CREATE TABLE users (
   access_acl    VARCHAR(20),
   timeout       INTEGER NOT NULL DEFAULT 300,
   preferences   TEXT,
+  change_password  BOOL NOT NULL DEFAULT 0,
 
   PRIMARY KEY (id),
   INDEX (username)
@@ -130,7 +131,8 @@ CREATE TABLE units (
 CREATE TABLE unit_incident_paging (
   row_id        INT NOT NULL AUTO_INCREMENT,
   unit          VARCHAR(20) NOT NULL,
-  to_pager_id   INT NOT NULL,
+  to_pager_id   INT NOT NULL,  -- deprecated as of 1.7 integration with paging 3.0
+  to_person_id  INT NOT NULL,
 
   PRIMARY KEY (row_id),
   INDEX (unit)
@@ -188,6 +190,8 @@ CREATE TABLE incident_units (
 	unit		varchar(20) not null,
 	dispatch_time datetime,  /* TODO: not null */
 	arrival_time datetime,
+        transport_time datetime,
+        transportdone_time datetime,
 	cleared_time datetime,
 	is_primary bool,  /* may be unused */
   is_generic bool,
@@ -233,6 +237,7 @@ INSERT INTO incident_types VALUES ('MENTAL HEALTH');
 INSERT INTO incident_types VALUES ('PUBLIC ASSIST');
 INSERT INTO incident_types VALUES ('TRAFFIC CONTROL');
 INSERT INTO incident_types VALUES ('TRAINING');
+INSERT INTO incident_types VALUES ('RANGERS');
 INSERT INTO incident_types VALUES ('OTHER');
 
 INSERT INTO message_types VALUES ('Swim');
@@ -250,6 +255,7 @@ INSERT INTO status_options VALUES ('Off Comm');
 INSERT INTO status_options VALUES ('Off Duty');
 INSERT INTO status_options VALUES ('Off Playa');
 INSERT INTO status_options VALUES ('Out of Service');
+INSERT INTO status_options VALUES ('Off Duty; on Pager');
 
 INSERT INTO unitcolors VALUES ('Admin', 'Orange', 'darkorange');
 INSERT INTO unitcolors VALUES ('Comm', 'Purple', 'Purple');
@@ -267,6 +273,7 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('ADC', 'Assistant Medical Duty Chief', 'iconblue', NULL),
 ('SDC', 'Support Duty Chief', 'icongray', NULL),
 ('OC', 'On-Call', 'icongray', NULL),
-('S', 'Supervisor', 'icongray', NULL);
+('S', 'Supervisor', 'icongray', NULL),
+('FS', 'Field Supervisor', 'icongray', NULL);
 
 INSERT INTO deployment_history (schema_load_ts, database_version, requires_code_ver, mysql_user) VALUES (NOW(), @provides_database_version, @requires_code_version, CURRENT_USER());

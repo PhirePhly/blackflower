@@ -49,6 +49,23 @@
     die("(Error: JavaScript not enabled or not present) Close this window to Cancel any changes you made.");
   }
 
+  // Major POST Point: Reopen Closed Incident 
+  elseif (isset($_POST["reopen_incident"])) {
+    $incident_id = (int)MysqlClean($_POST, "incident_id", 20);
+    if (isset($_SESSION['username']) && $_SESSION['username'] != '')
+      $creator = $_SESSION['username'];
+    else
+      $creator = "";
+    $completedate = MysqlGrabData("SELECT ts_complete FROM incidents WHERE incident_id=$incident_id");
+    $disposition = MysqlGrabData("SELECT disposition FROM incidents WHERE incident_id=$incident_id");
+
+    MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) ".
+                   "VALUES ($incident_id, NOW(), '$unit', 'Incident was reopened (had been closed as $disposition at $completedate)', '$creator')");
+    MysqlQuery("UPDATE incidents SET completed=0,ts_complete='0000-00-00 00:00:00',disposition='' WHERE incident_id=$incident_id");
+    syslog(LOG_INFO, $_SESSION['username'] . " reopened incident $incident_id");
+    header("Location: edit-incident.php?incident_id=$incident_id");
+  }
+
   // Major POST Point: Save Changes
   elseif (isset($_POST["incident_id"])) {
     /* Here we have POSTed an incident_id, which for sure means we want to save the POST set... but multiple entry
@@ -59,6 +76,8 @@
      * unit_to_attach
      * attach_unit
      * arrived_unit_*
+     * transport_unit_*
+     * transportdone_unit_*
      * release_unit_*
      *
      * In addition, any <ENTER> keystroke in a text input in the form could bring us here.
@@ -150,7 +169,10 @@
 
 
       // Clean and store the dispatch timestamp
-      $ts_dispatch = MysqlClean($_POST, "ts_dispatch", 40);
+      $ts_dispatch = '0000-00-00 00:00:00';
+      if (isset($_POST['ts_dispatch']) && $_POST['ts_dispatch'] != '') {
+        $ts_dispatch = MysqlClean($_POST, "ts_dispatch", 40);
+      }
 
       // Try to attach a unit if we POSTed from the attach unit button
       if (isset($_POST["attach_unit"]) && (isset($_POST["unit_to_attach"]) && $_POST["unit_to_attach"] != "")) {
@@ -206,6 +228,7 @@
           // If there are Auto-Pageout pagers associated with this unit, page them out (insert into
           // paging tables..)  Do this AFTER unlocking the CAD tables, since there may be delays
           // getting the page batches and messages all built and entered.
+          // TODO 1.7: convert to paging API
           if (isset($DB_PAGING_NAME) && isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
             $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
             if (mysql_num_rows($pageout_query)) {
@@ -235,8 +258,8 @@
                 $batch_id = mysql_insert_id();
             
                 while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
-                  if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user_id, to_pager_id, message) VALUES ".
-                                   "(0, " . $pageout_rcpt->to_pager_id . ", '$message')", $paginglink) ||
+                  if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user_id, to_person_id, message) VALUES ".
+                                   "(0, " . $pageout_rcpt->to_person_id . ", '$message')", $paginglink) ||
                       mysql_affected_rows() != 1) {
                     syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
                   }
@@ -263,7 +286,14 @@
       }
 
       // Clean and store the arrival timestamp
-      $ts_arrival = MysqlClean($_POST, "ts_arrival", 40);
+      $ts_arrival = '0000-00-00 00:00:00';
+      if (isset($_POST['ts_arrival']) && $_POST['ts_arrival'] != '') {
+        $ts_arrival = MysqlClean($_POST, "ts_arrival", 40);
+      }
+      $ts_complete = '0000-00-00 00:00:00';
+      if (isset($_POST['ts_complete']) && $_POST['ts_complete'] != '') {
+        $ts_complete = MysqlClean($_POST, "ts_complete", 40);
+      }
 
       // Test the POST array for units arriving or being released (prior to incident completion)
       foreach (array_keys($_POST) as $unittestkey) {
@@ -272,6 +302,12 @@
           $update_arrived_unit_uid = substr($unittestkey, 13);
           if ($_POST["ts_arrival"] == "" || $_POST["ts_arrival"] == "0000-00-00 00:00:00")
             $ts_arrival = "NOW()";
+        }
+        if (substr($unittestkey,0,13) == "transpo_unit_") {
+           $update_transport_unit_uid = substr($unittestkey, 13);
+        }
+        if (substr($unittestkey,0,13) == "transdn_unit_") {
+           $update_transportdone_unit_uid = substr($unittestkey, 13);
         }
         // Store the unit ID if we POSTed a unit release button
         if (substr($unittestkey,0,13) == "release_unit_") {
@@ -287,6 +323,24 @@
         MysqlQuery("UPDATE incident_units SET arrival_time=NOW() where uid='$update_arrived_unit_uid'");
         MysqlQuery('UNLOCK TABLES');
         syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [" . $unit->unit . "] arrival at call [" .  $oldline["call_number"].  "] (incident $incident_id)");
+      }
+      // If we have a unit that has started transporting, save the information in the DB
+      if (isset($update_transport_unit_uid)) {
+        $unit = mysql_fetch_object( MysqlQuery("SELECT unit FROM incident_units WHERE uid='$update_transport_unit_uid'") );
+
+        MysqlQuery('LOCK TABLES incident_units WRITE');
+        MysqlQuery("UPDATE incident_units SET transport_time=NOW() where uid='$update_transport_unit_uid'");
+        MysqlQuery('UNLOCK TABLES');
+        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [" . $unit->unit . "] began transport at call [" .  $oldline["call_number"].  "] (incident $incident_id)");
+      }
+      // If we have a unit that has finished transporting, save the information in the DB
+      if (isset($update_transportdone_unit_uid)) {
+        $unit = mysql_fetch_object( MysqlQuery("SELECT unit FROM incident_units WHERE uid='$update_transportdone_unit_uid'") );
+
+        MysqlQuery('LOCK TABLES incident_units WRITE');
+        MysqlQuery("UPDATE incident_units SET transportdone_time=NOW() where uid='$update_transportdone_unit_uid'");
+        MysqlQuery('UNLOCK TABLES');
+        syslog(LOG_INFO, $_SESSION['username'] . " recorded unit [" . $unit->unit . "] finished transport at call [" .  $oldline["call_number"].  "] (incident $incident_id)");
       }
 
       // If we have a unit that has been released, save the information in the DB
@@ -366,7 +420,7 @@
                        "ts_opened='". MysqlClean($_POST,"ts_opened",40) . "',".
                        "ts_dispatch='$ts_dispatch',".
                        "ts_arrival='$ts_arrival',".
-                       "ts_complete='". MysqlClean($_POST,"ts_complete",40) . "',".
+                       "ts_complete='$ts_complete',".
                        "location='". MysqlClean($_POST,"location",80) . "',".
                        "reporting_pty='". MysqlClean($_POST,"reporting_pty",80) . "',".
                        "contact_at='". MysqlClean($_POST,"contact_at",80) . "',";
@@ -429,7 +483,7 @@
       MysqlQuery("LOCK TABLES incidents WRITE");
       // if this fails ... is another incident being created right now?
 
-      MysqlQuery("INSERT INTO incidents (ts_opened, visible) VALUES (NOW(), 0)");
+      MysqlQuery("INSERT INTO incidents (ts_opened, visible, updated) VALUES (NOW(), 0, NOW())");
       if (mysql_affected_rows() != 1)
         die("Critical error: ".mysql_affected_rows()." is a bad number of rows when inserting new incident.");
       $findlastIDquery = "SELECT LAST_INSERT_ID()";
@@ -644,7 +698,7 @@ function handleDisposition() {
     <td align=left class="text">
        <input type="hidden" name="ts_opened" value="<?php print $row->ts_opened ?>">
        <input type="text" name="dts_opened" tabindex="121" class="time" size=6 readonly disabled style="color: black" 
-              value="<?php print date("H:i:s", strtotime($row->ts_opened)) ?>">
+              value="<?php print dls_hmtime($row->ts_opened) ?>">
     </td>
 </tr>
 
@@ -662,7 +716,7 @@ function handleDisposition() {
     <td align=left class="text">
        <input type="hidden" name="ts_dispatch" value="<?php print $row->ts_dispatch  ?>">
        <input type="text" name="dts_dispatch" tabindex="122" class="time" size=6 readonly disabled style="color: black"
-              value="<?php if ($row->ts_dispatch) print dls_hmstime($row->ts_dispatch) ?>">
+              value="<?php if ($row->ts_dispatch) print dls_hmtime($row->ts_dispatch) ?>">
     </td>
 </tr>
 
@@ -682,7 +736,7 @@ function handleDisposition() {
     <td align=left class="text">
        <input type="hidden" name="ts_arrival" value="<?php print $row->ts_arrival  ?>">
        <input type="text" name="dts_arrival" tabindex="123" class="time" size=6 readonly disabled style="color: black"
-              value="<?php if ($row->ts_arrival) print dls_hmstime($row->ts_arrival) ?>">
+              value="<?php if ($row->ts_arrival) print dls_hmtime($row->ts_arrival) ?>">
     </td>
 </tr>
 
@@ -722,7 +776,7 @@ function handleDisposition() {
        <input type="hidden" name="ts_complete" value="<?php print $row->ts_complete  ?>">
        <input type="text" name="dts_complete" tabindex="124" class="time" size=6 readonly
               <?php if (!$row->disposition || !strcmp($row->disposition, "")) print "disabled"?>
-              value="<?php if ($row->ts_complete) print dls_hmstime($row->ts_complete) ?>">
+              value="<?php if ($row->ts_complete) print dls_hmtime($row->ts_complete) ?>">
     </td>
 </tr>
 
@@ -762,8 +816,12 @@ function handleDisposition() {
   else {
     echo "<button type=\"button\" name=\"cancel_changes\" tabindex=\"43\" accesskey=\"3\" ";
     echo "onClick='if (window.opener){window.opener.location.reload()} self.close()'><u>3</u>  Cancel</button>";
+    if  ($row->completed) {
+      echo "&nbsp; &nbsp; <button type=\"submit\" name=\"reopen_incident\" tabindex=\"44\" accesskey=\"4\"><u>4</u>  Reopen</button> ";
+    }
     echo "</td>\n";
   }
+
 ?>
 
 </tr>
@@ -777,7 +835,7 @@ function handleDisposition() {
 <!-- whitespace acting as horizontal rule -->
 
 <tr>
-<td valign=top width=700>
+<td valign=top width=450>
 <table cellspacing=0 cellpadding=0 border> <!-- outer color table for incident notes -->
   <tr><td colspan="2" bgcolor="#bbbbbb" class="text">
   <table cellspacing=1 cellpadding=0>  <!-- layout table for incident notes -->
@@ -826,14 +884,14 @@ function handleDisposition() {
     <tr>
        <td class="label">Note:</td>
          <td>
-         <input type="text" name="note_message" id="note_message" tabindex="82" size=80 maxlength=250> &crarr;
+         <input type="text" name="note_message" id="note_message" tabindex="82" size=50 maxlength=250> &crarr;
        </td>
     </tr>
 
     <tr><td colspan="2">
         <iframe border=0 frameborder=0 name="notes" tabindex="-1"
          src="incident-notes.php?incident_id=<?php print $incident_id?>"
-         width=600 height=274 marginheight=0 marginwidth=0 scrolling="auto"></iframe>
+         width=400 height=274 marginheight=0 marginwidth=0 scrolling="auto"></iframe>
     </td></tr>
   </table>
   </td>
@@ -884,8 +942,10 @@ function handleDisposition() {
       <tr bgcolor="darkgray">
         <td width=100% class="ihsmall">Unit&nbsp;Name</td>
         <td class="ihsmall"><u>Dispatched</u></td>
-        <td class="ihsmall">On&nbsp;Scene</td>
-        <td class="ihsmall">Released</td>
+        <td class="ihsmall"><u>On&nbsp;Scene</u></td>
+        <td class="ihsmall"><u>Transported</u></td>
+        <td class="ihsmall"><u>Trans.Done</u></td>
+        <td class="ihsmall"><u>Released</u></td>
       </tr>
       <tr><td>
 
@@ -895,22 +955,43 @@ function handleDisposition() {
        "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL ORDER BY dispatch_time DESC");
 
      if (!mysql_num_rows($attachedunitsresult)) {
-             print "<tr><td class=\"messageold\" colspan=\"4\">No units attached</td></tr>";
+             print "<tr><td class=\"messageold\" colspan=\"6\">No units attached</td></tr>";
      }
      while ($line = mysql_fetch_array($attachedunitsresult, MYSQL_ASSOC)) {
        $safe_unit = str_replace(" ", "_", $line["unit"]);
+       $html_unit = str_replace(" ", "&nbsp;", $line["unit"]);
 
        print "<tr>\n";
-       print "<td class=\"message\" align=\"left\">".$line["unit"]."</td>\n";
-       print "<td class=\"message\" align=\"right\">".dls_hmstime($line["dispatch_time"])."</td>";
+       print "<td class=\"message\" align=\"left\">$html_unit</td>\n";
+       print "<td class=\"message\" align=\"right\">".dls_hmtime($line["dispatch_time"])."</td>";
 
        if (isset($line["arrival_time"]) && $line["arrival_time"] != "") {
-         print "<td class=\"message\" align=\"right\">".dls_hmstime($line["arrival_time"])."</td>";
+         print "<td class=\"message\" align=\"right\">".dls_hmtime($line["arrival_time"])."</td>";
        }
        else {
          print "<td class=\"message\" align=\"right\">".
                "<input type=\"submit\" name=\"arrived_unit_".$line["uid"]."\" tabindex=\"-1\"".
                " style=\"font-size: 10\" value=\"On Scene\">".
+               "</td>";
+       }
+
+       if (isset($line["transport_time"]) && $line["transport_time"] != "") {
+         print "<td class=\"message\" align=\"right\">".dls_hmtime($line["transport_time"])."</td>";
+       }
+       else {
+         print "<td class=\"message\" align=\"right\">".
+               "<input type=\"submit\" name=\"transpo_unit_".$line["uid"]."\" tabindex=\"-1\"".
+               " style=\"font-size: 10\" value=\"Transport\">".
+               "</td>";
+       }
+
+       if (isset($line["transportdone_time"]) && $line["transportdone_time"] != "") {
+         print "<td class=\"message\" align=\"right\">".dls_hmtime($line["transportdone_time"])."</td>";
+       }
+       else {
+         print "<td class=\"message\" align=\"right\">".
+               "<input type=\"submit\" name=\"transdn_unit_".$line["uid"]."\" tabindex=\"-1\"".
+               " style=\"font-size: 10\" value=\"Trans. Done\">".
                "</td>";
        }
 
@@ -922,13 +1003,15 @@ function handleDisposition() {
   ?>
 
       <tr>
-        <td colspan=4 align=left valign=top class="label"><br><b>Units Previously Assigned</b></td>
+        <td colspan=7 align=left valign=top class="label"><br><b>Units Previously Assigned</b></td>
       </tr>
       <tr bgcolor="darkgray">
         <td width=100% class="ihsmall">Unit&nbsp;Name</td>
         <td class="ihsmall"><u>Dispatched</u></td>
-        <td class="ihsmall">On&nbsp;Scene</td>
-        <td class="ihsmall">Released</td>
+        <td class="ihsmall"><u>On&nbsp;Scene</u></td>
+        <td class="ihsmall"><u>Transported</u></td>
+        <td class="ihsmall"><u>Trans.Done</u></td>
+        <td class="ihsmall"><u>Released</u></td>
       </tr>
 
   <?php
@@ -937,15 +1020,18 @@ function handleDisposition() {
        "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NOT NULL ORDER BY dispatch_time DESC");
 
      if (!mysql_num_rows($prevunitsresult)) {
-             print "<tr><td class=\"messageold\" colspan=\"4\">No units attached previously</td></tr>";
+             print "<tr><td class=\"messageold\" colspan=\"6\">No units attached previously</td></tr>";
      }
      while ($line = mysql_fetch_array($prevunitsresult, MYSQL_ASSOC)) {
        $safe_unit = str_replace(" ", "_", $line["unit"]);
+       $html_unit = str_replace(" ", "&nbsp;", $line["unit"]);
        print "<tr>\n";
-       print "<td class=\"messageold\" align=\"left\">".$line["unit"]."</td>\n";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmstime($line["dispatch_time"])."</td>";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmstime($line["arrival_time"])."</td>";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmstime($line["cleared_time"])."</td>";
+       print "<td class=\"messageold\" align=\"left\">$html_unit</td>\n";
+       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["dispatch_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["arrival_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["transport_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["transportdone_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["cleared_time"])."</td>";
      }
   ?>
 

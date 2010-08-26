@@ -1,7 +1,10 @@
 <?php
   require_once('db-open.php');
 
-  define_syslog_variables();
+  if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+    define_syslog_variables();  
+  }
+
   if (strpos($_SERVER["SERVER_SOFTWARE"], "(Win32")) {
     openlog('cad', LOG_CONS|LOG_PID, LOG_USER);
   }
@@ -127,6 +130,7 @@ function setFocus(str) {
       $answer = mysql_fetch_object($users);
       if ($answer->password == $answer->testpw) {
         $_SESSION['id'] = MysqlUnClean($answer->id);
+        $_SESSION['password'] = MysqlUnClean($answer->password);
         $_SESSION['name'] = MysqlUnClean($answer->name);
         $_SESSION['username'] = MysqlUnClean($answer->username);
         $_SESSION['access_level'] = MysqlUnClean($answer->access_level);

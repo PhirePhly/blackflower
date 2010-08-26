@@ -29,9 +29,18 @@
   <td align="left" class="text"><b>Incidents</b></td>
   <td align="left" width="100%">
     <form name="createform" action="incidents.php" method="post" style="margin: 0px;">
-    <button type="submit" value="Create New Incident" title="Create New Incident - ALT-N" accesskey="n"
-     onClick="return popup('edit-incident.php?incident_id=new','incident-new',600,1000)" class="newbutton"
-     >Create <U>N</U>ew Incident</button>
+<?php 
+  if (isset($AVOID_NEWINCIDENT_DIALOG) && $AVOID_NEWINCIDENT_DIALOG == 1) {
+    $newurl = 'edit-incident.php?incident_id=new';
+    $size = '600,1000';
+  }
+  else {
+    $newurl = 'new-incident.php';
+    //$size = '480,720'; // TODO: get new-incident window to successfully popup edit-incident of different size
+    $size = '600,1000';
+  }
+  print "<button type=\"submit\" value=\"Create New Incident\" title=\"Create New Incident - ALT-N\" accesskey=\"n\" onClick=\"return popup('$newurl','incident-new',$size)\" class=\"newbutton\">Create <U>N</U>ew Incident</button>";
+?>
     </form>
   </td>
 <?php

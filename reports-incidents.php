@@ -302,6 +302,8 @@ function StatsColumnHeader() {
       $pdf->Cell(40,5,"Unit Name");
       $pdf->Cell(40,5,"Time Dispatched");
       $pdf->Cell(40,5,"Time Arrived");
+      $pdf->Cell(40,5,"Transported At");
+      $pdf->Cell(40,5,"Transport Done");
       $pdf->Cell(40,5,"Time Cleared");
       $pdf->Ln(5);
       while ($unit = mysql_fetch_object($unitresult)) {
@@ -309,6 +311,8 @@ function StatsColumnHeader() {
         $pdf->Cell(40,5,$unit->unit,1,0);
         $pdf->Cell(40,5,$unit->dispatch_time,1,0);
         $pdf->Cell(40,5,$unit->arrival_time,1,0);
+        $pdf->Cell(40,5,$unit->transport_time,1,0);
+        $pdf->Cell(40,5,$unit->transportdone_time,1,0);
         $pdf->Cell(40,5,$unit->cleared_time,1,0);
         $pdf->Ln(5);
       }

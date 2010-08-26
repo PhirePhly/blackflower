@@ -38,7 +38,7 @@
       syslog(LOG_INFO, $_SESSION['username'] . " created unit [$unit]");
       // update units
       // TODO: sanity check $unit input characters here?
-      MysqlQuery("INSERT INTO units (unit, status, status_comment, type, role, personnel, update_ts, assignment, personnel_ts, location, location_ts, notes, notes_ts) VALUES ('$unit', '$status', '$status_comment', '$type', '$role', '$personnel', NOW(), '$assignment', '', '$location', '', '$notes', '')");
+      MysqlQuery("INSERT INTO units (unit, status, status_comment, type, role, personnel, update_ts, assignment, personnel_ts, location, location_ts, notes, notes_ts) VALUES ('$unit', '$status', '$status_comment', '$type', '$role', '$personnel', NOW(), '$assignment', NOW(), '$location', NOW(), '$notes', NOW())");
     }
 
     else {
@@ -124,7 +124,7 @@
   elseif (isset($_POST['add_pageout'])) {
     $newval = MysqlClean($_POST, 'newpageout', 20);
     syslog(LOG_INFO, $_SESSION['username'] . " added page-out of pager ID $newval to unit [$unit]");
-    MysqlQuery("INSERT INTO unit_incident_paging (unit, to_pager_id) VALUES ('$unit', $newval)");
+    MysqlQuery("INSERT INTO unit_incident_paging (unit, to_person_id) VALUES ('$unit', $newval)");
     header("Location: edit-unit.php?unit=".$_POST['unit']);
     exit;
   }
@@ -137,9 +137,9 @@
       or die("Could not connect : " . mysql_error());
 
     $ipaddr = $_SERVER['REMOTE_ADDR'];
-    MysqlClean($_POST,'to_pager_id',30);
-    MysqlClean($_POST,'unit',40);
-    MysqlClean($_POST,'pagetext',80);
+    $to_person_id = MysqlClean($_POST,'to_person_id',30);
+    $unit = MysqlClean($_POST,'unit',40);
+    $pagetext = MysqlClean($_POST,'pagetext',80);
     $message = "[CAD] FR " . $_SESSION['username'] . " TO $unit: " . $_POST['pagetext'];
     $success = 1; // unless overridden below:
 
@@ -148,6 +148,9 @@
       $message = substr($message, 0, 127);
     }
 
+    # TODO 1.7: replace this with api call
+    #
+    
     if (!mysql_query("INSERT into $DB_PAGING_NAME.batches (from_user_id, from_ipaddr, orig_message, entered) ".
                      " VALUES (0, '$ipaddr', '$message', NOW() )", $paginglink) || 
         mysql_affected_rows() != 1) {
@@ -157,8 +160,8 @@
     else {
       $batch_id = mysql_insert_id();
    
-      if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user_id, to_pager_id, message) VALUES ".
-                       "(0, " . $_POST['to_pager_id'] . ", '$message')", $paginglink) ||
+      if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user_id, to_person_id, message) VALUES ".
+                       "(0, $to_person_id, '$message')", $paginglink) ||
             mysql_affected_rows() != 1) {
         syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
         $success = 0;
@@ -180,7 +183,7 @@
       }
     }
     if ($success) {
-      syslog(LOG_INFO, $_SESSION['username'] . " sent a page to unit [$unit], pager [".$_POST['to_pager_id']."]");
+      syslog(LOG_INFO, $_SESSION['username'] . " sent a manual page to unit [$unit], person_id [$to_person_id].");
     }
     mysql_close($paginglink);
 
@@ -470,13 +473,13 @@
     <?php
     $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
       or die("Could not connect : " . mysql_error());
-    $querytext = "SELECT pager_id,capcode,name FROM $DB_PAGING_NAME.pagers ".
+    $querytext = "SELECT person_id,name FROM $DB_PAGING_NAME.people ".
       " WHERE UPPER(REPLACE(name, ' ', '')) = '" . strtoupper(str_replace(' ', '', $unit)) . "'";
-    $pager_query = mysql_query($querytext, $paginglink) or die ("Problem with query $querytext on $DB_PAGING_NAME.pagers");
+    $pager_query = mysql_query($querytext, $paginglink) or die ("<b>Problem with query: </b><font color=red> $querytext </font>");
     if (mysql_num_rows($pager_query)) {
       $pager = mysql_fetch_object($pager_query);
       print "<tr><td class=label>Send page to <b>$unit</b>: \n";
-      print "<INPUT type=hidden name=\"to_pager_id\" value=\"" . $pager->pager_id."\">\n";
+      print "<INPUT type=hidden name=\"to_person_id\" value=\"" . $pager->person_id."\">\n";
       print "<INPUT type=text onfocus=\"focusPaging(true)\" name=\"pagetext\" size=\"40\" maxlength=\"80\">\n";
       print "<BUTTON type=submit name=\"pageunit\" tabindex=\"42\" accesskey=\"4\"><u>4</u>  Send Page</button>\n";
       print "<BUTTON type=button onfocus =\"focusPaging(false)\" name=\"cancelpageunit\" tabindex=\"43\" accesskey=\"5\"><u>5</u>  Cancel Page</button>\n";
@@ -523,10 +526,11 @@
 
 <?php 
 
-    $options_query = mysql_query("SELECT * FROM $DB_PAGING_NAME.pagers ORDER BY name", $paginglink) or die ("Problem with query on $DB_PAGING_NAME.pagers");
+    $pplquery = "SELECT * FROM $DB_PAGING_NAME.people ORDER BY name";
+    $options_query = mysql_query($pplquery, $paginglink) or die ("<b>Problem with query</b>: <font color=red> $pplquery</font>");
     $Pagers = array();
     while ($pager_option = mysql_fetch_object($options_query)) {
-      $Pagers[$pager_option->pager_id] = $pager_option->name;
+      $Pagers[$pager_option->person_id] = $pager_option->name;
     }
     $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
     // TODO: set access level dynamically
@@ -550,12 +554,19 @@
         while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
           // TODO: set access level dynamically
           if ($_SESSION['access_level'] >= 5) {
-            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td><td align=right class=message><input type=submit " .
-                  " name=\"delete_pageout_". $pageout_rcpt->row_id . '_' . $pageout_rcpt->to_pager_id . "\" value=\"Delete\"></td></tr>";
-            unset($Pagers[$pageout_rcpt->to_pager_id]);
+            print "<tr><td width=100% class=\"message\">";
+            if ($pageout_rcpt->to_person_id == 0) {
+              print "<font color=red>Bad data needs conversion</font></td>";
+            }
+            else {
+              print $Pagers[$pageout_rcpt->to_person_id] .  "</td>";
+            }
+            print "<td align=right class=message><input type=submit " .
+                  " name=\"delete_pageout_". $pageout_rcpt->row_id . '_' . $pageout_rcpt->to_person_id . "\" value=\"Delete\"></td></tr>";
+            unset($Pagers[$pageout_rcpt->to_person_id]);
           }
           else {
-            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_pager_id] . "</td></tr>";
+            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_person_id] . "</td></tr>";
           }
         }
       }

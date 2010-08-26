@@ -8,6 +8,10 @@
 
   // Scroll incidents per page
   $scrollipp = 15;
+  $filterscroll='';
+  $filterdate='';
+  $filtercalltype='';
+  $start='';
 
   // Begin filter GET/POST parsing
 
@@ -38,22 +42,24 @@
 
   // Process GETs
   else {
-    if ($_GET['date'] != "") {
+    if (isset($_GET['date']) && $_GET['date'] != "") {
       $filterdate = $_GET['date'];
     }
 
-    if ($_GET['calltype'] != "") {
+    if (isset($_GET['calltype']) && $_GET['calltype'] != "") {
       $filtercalltype = $_GET['calltype'];
     }
 
-    if ($_GET['scroll'] == "yes") {
-      $filterscroll = "yes";
-    }
-    elseif($_GET['scroll'] == "no") {
-      $filterscroll = "no";
+    if (isset($_GET['scroll'])) {
+      if ($_GET['scroll'] == "yes") {
+        $filterscroll = "yes";
+      }
+      elseif($_GET['scroll'] == "no") {
+        $filterscroll = "no";
+      }
     }
 
-    if ($_GET['start'] != "") {
+    if (isset($_GET['start']) && $_GET['start'] != "") {
       $start = $_GET['start'];
     }
   }
@@ -85,7 +91,7 @@
 <table width="100%">
 <tr><td bgcolor="#aaaaaa">
 <?php
-  if (isset($filterdate) || isset($filtercalltype)) {
+  if ($filterdate != '' || $filtercalltype != '') {
     print "<b class=\"text\" style=\"color: #dd0000;\">Filters Applied</b><br />\n";
   }
 ?>
@@ -302,7 +308,7 @@
      }
      mysql_free_result($result);
 
-     if ($_COOKIE["incidents_hide_units_oos"] == "yes") {
+     if (isset($_COOKIE['incidents_hide_units_oos']) && $_COOKIE["incidents_hide_units_oos"] == "yes") {
        $query = "SELECT * FROM units u LEFT OUTER JOIN unit_assignments a on u.assignment=a.assignment".
                 " WHERE status NOT IN ('Out Of Service', 'Off Comm', 'Off Duty', 'Off Playa')";
      }
@@ -337,7 +343,7 @@
 
      print "</td><td class=\"text\" align=\"right\">\n";
 
-     if ($_COOKIE["incidents_hide_units_oos"] == "yes") {
+     if (isset($_COOKIE['incidents_hide_units_oos']) && $_COOKIE["incidents_hide_units_oos"] == "yes") {
        print "<button type=\"submit\" name=\"incidents_hide_units_oos\" id=\"incidents_hide_units_oos\" ";
        print "value=\"Show All Units\" title=\"Show All Units\">Show All Units</button>\n";
      }
