@@ -31,5 +31,6 @@
         height="<?=trim($_COOKIE['height']) - 175;?>"
         marginheight="0" marginwidth="0" frameborder="0"></iframe>
 
+<button type="submit" value="Add New Unit" title="Add New User - ALT-N" accesskey="n"
 </body>
 </html>

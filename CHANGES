@@ -1,6 +1,12 @@
 CHANGES
 -------
 
+Version 1.7.1 - 2010-08-28
+* Fixed showing of closed incidents.
+* Clear additional info fields when archiving database.
+* Handle paging db connection failures gracefully during edit-incident.
+* Added matching top/bottom 'Add New' buttons to units and users dialogs.
+
 Version 1.7.0 - 2010-08-23
 * Added express New Incident dialog.  Call takers must now record critical
   information immediately, incident is then saved and available to other

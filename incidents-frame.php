@@ -125,13 +125,13 @@
   if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"]=="no") {
     $query = "SELECT * FROM incidents";
 
-    if (isset($filterdate) && isset($filtercalltype)) {
+    if (isset($filterdate) && $filterdate != '' && isset($filtercalltype) && $filtercalltype != '') {
       $query .= " WHERE DATE_FORMAT(ts_opened, '%Y-%m-%d') = '$filterdate' AND call_type = '$filtercalltype'";
     }
-    elseif (isset($filterdate)) {
+    elseif (isset($filterdate) && $filterdate != '') {
       $query .= " WHERE DATE_FORMAT(ts_opened, '%Y-%m-%d') = '$filterdate'";
     }
-    elseif (isset($filtercalltype)) {
+    elseif (isset($filtercalltype) && $filtercalltype != '') {
       $query .= " WHERE call_type = '$filtercalltype'";
     }
 
@@ -155,6 +155,7 @@
     $query = "SELECT * FROM incidents WHERE visible=1 ORDER BY incident_id DESC";
   }
 
+  syslog(LOG_DEBUG, "Main incidents query: $query");
   $result = mysql_query($query) or die("Query failed : " . mysql_error()."<p>query was:<br>".$query);
 
   $td = "    <td class=\"message\">";

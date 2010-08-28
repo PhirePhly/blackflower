@@ -73,11 +73,14 @@
     MysqlQuery("DELETE FROM incident_notes");
     MysqlQuery("DELETE FROM incident_units");
     MysqlQuery("DELETE FROM incidents");
+    MysqlQuery("TRUNCATE incidents");
     MysqlQuery("DELETE FROM bulletins");
     MysqlQuery("DELETE FROM bulletin_views");
     MysqlQuery("DELETE FROM bulletin_history");
-    MysqlQuery("UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL, personnel_ts=NULL, location_ts=NULL, notes_ts=NULL");
-
+    MysqlQuery("UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL, personnel_ts=NULL, location_ts=NULL, notes_ts=NULL, assignment='', location='', personnel='', notes=''");
+    MysqlQuery
+    # TODO - clear unit locations, personnel, notes
+    
   /* Finish */
     MysqlQuery("UNLOCK TABLES");
     sleep(1);
