@@ -230,11 +230,15 @@
           // getting the page batches and messages all built and entered.
           // TODO 1.7: convert to paging API
           if (isset($DB_PAGING_NAME) && isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
+            # It is CRITICAL that if this call fails, CAD only abort the 
+            # *pageout* attempt; it should save the rest of the update data rather than dieing.
+            $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS);
+            if (!$paginglink) {
+              syslog(LOG_WARNING, "Error connecting to paging db on $DB_PAGING_HOST");
+            }
+
             $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
-            if (mysql_num_rows($pageout_query)) {
-              $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
-                or die("Could not connect : " . mysql_error());
-          
+            if (mysql_num_rows($pageout_query) && $paginglink) {
               $fromuser = 'CAD Auto Page';
               $ipaddr = $_SERVER['REMOTE_ADDR'];
               $message = ">>> $unit Assigned to Call #" .  $oldline["call_number"];

@@ -44,7 +44,7 @@
     </form>
   </td>
 <?php
-  if ($_COOKIE["incidents_open_only"] == "no") {
+  if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"] == "no") {
     print "<td nowrap>\n";
 
     print "<form name=\"filter\" action=\"incidents-frame.php\" method=\"post\" style=\"border: 0px;\" target=\"incidents\">\n";
@@ -126,7 +126,7 @@
 </table>
 </form>
 
-<iframe name="incidents" src="incidents-frame.php<?php if ($_COOKIE["incidents_open_only"] == "no") echo "?scroll=yes"; ?>"
+<iframe name="incidents" src="incidents-frame.php<?php if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"] == "no") echo "?scroll=yes"; ?>"
         width="<?=trim($_COOKIE['width']) - 30; ?>"
         height="<?=trim($_COOKIE['height']) - 140; ?>"
         marginheight="0" marginwidth="0" frameborder="0"></iframe>

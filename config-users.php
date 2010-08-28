@@ -237,7 +237,9 @@
 ?>
 
 <p>
-<span style="h1"><b>User Administration</b></span>
+<span style="h1"><b>User Administration</b></span><p>
+<a href="config-users.php?adduser">Add New User</a><br>
+<a href="config.php">Back to Main Configuration Menu</a><p>
 <table style="border: blue ridge 3px; background-color: gray" >
 <tr>
   <td class="th">Login</td>
@@ -278,7 +280,7 @@
 ?>
 </table>
 <p>
-<a href="config-users.php?adduser">Add New User</a><p>
+<a href="config-users.php?adduser">Add New User</a><br>
 <a href="config.php">Back to Main Configuration Menu</a>
     <?php
   }
