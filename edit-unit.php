@@ -526,7 +526,7 @@
 
 <?php 
 
-    $pplquery = "SELECT * FROM $DB_PAGING_NAME.people ORDER BY name";
+    $pplquery = "SELECT * FROM $DB_PAGING_NAME.people WHERE is_active=1 ORDER BY name";
     $options_query = mysql_query($pplquery, $paginglink) or die ("<b>Problem with query</b>: <font color=red> $pplquery</font>");
     $Pagers = array();
     while ($pager_option = mysql_fetch_object($options_query)) {
