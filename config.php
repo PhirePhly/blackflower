@@ -98,7 +98,7 @@
   header_html("Dispatch :: Configuration")
 ?>
 <body vlink="blue" link="blue" alink="cyan" onLoad='unitCheckboxState();'>
-<? include('include-title.php'); ?>
+<?php include('include-title.php'); ?>
 
 <script language="JavaScript">
 

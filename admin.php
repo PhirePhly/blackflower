@@ -4,12 +4,15 @@
   require_once('session.inc');
   require_once('functions.php');
 
-  header_html("Dispatch :: System Admin")
-?>
-<body vlink="blue" link="blue" alink="cyan">
-<? include('include-title.php'); ?>
-<?php
-if ($_SESSION['access_level'] >= 10) {
+  header_html("Dispatch :: System Admin");
+
+  print "<body vlink=\"blue\" link=\"blue\" alink=\"cyan\">\n";
+  include('include-title.php'); 
+  if ($_SESSION['access_level'] < 10) {
+    print "Access level too low to access System Administration features.";
+  }
+  else {
+
  ?>
   <table>
   <tr><td></td></tr>
@@ -24,12 +27,7 @@ if ($_SESSION['access_level'] >= 10) {
 </table>
 </td>
 
-<?php
-}
-else {
-  print "Access level too low to access System Administration features.";
-}
-?>
+<?php } ?>
 
 </tr>
 </table>

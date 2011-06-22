@@ -28,7 +28,10 @@
 
   // 'owever... if the remove filters button was posted, reset all filters
   elseif (isset($_POST['remove_filters'])) {
-    unset ($filterdate, $filterhour, $filterunit, $filtermpp);
+    $filterdate = '';
+    $filterhour = '';
+    $filterunit = '';
+    $filtermpp = '';
   }
 
   // Otherwise, process GETs
@@ -101,7 +104,7 @@
   mysql_free_result($unitresult);
 
   // Prepare unit color query
-  $unitcolorquery = "SELECT role, color_html FROM unitcolors";
+  $unitcolorquery = "SELECT role, color_html FROM unit_roles";
   $unitcolorresult = MysqlQuery($unitcolorquery);
   while ($line = mysql_fetch_array($unitcolorresult, MYSQL_ASSOC)) {
     $unitrolecolor[$line["role"]] = $line["color_html"];

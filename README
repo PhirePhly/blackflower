@@ -1,4 +1,4 @@
-Black Flower CAD v1.6.0 - 2007/08/16
+Black Flower CAD v1.8.0 - 2011/06/19
 
 OVERVIEW
 
@@ -24,7 +24,7 @@ UPGRADE INSTRUCTIONS
    and therefore nonexistant database upgrade scripts.  Contact us if this
    need exists in your environment.
 
-   To upgrade from 1.5.x to 1.6.x:
+   To upgrade from versions 1.5 or greater:
 
    * Compare cad.conf.example to your current cad.conf (or run initialize.sh
      if you do not yet have cad.conf.)  Create or adjust variable names as 
@@ -33,30 +33,37 @@ UPGRADE INSTRUCTIONS
      sequentially by version number.
 
 
+
 INSTALLATION
   
   Server Requirements:
   --------------------
-  * MySQL database server v4.1 or greater
-  * PHP version 4, with MySQL integration.
-  * Apache webserver running in Prefork mode, with PHP integration.
+  * MySQL database server v5.0 or greater
+  * PHP version 5, with MySQL integration.
+  * Apache 2.0+ webserver running in Prefork mode, with PHP integration.
   
-  * The recommended (best tested) platform for the server is Debian Linux, 
-    however Fedora Core and Microsoft Windows server platforms have also been 
-    tested successfully.
+  * Linux (Debian/CentOS) recommended for mission critical installations.
+  * Microsoft Windows (XP/7) has also been used in development environments.
+    -> IMPORTANT:  Production use on Microsoft Windows is NOT recommended,
+       due to limitations of PHP running under Windows-based webservers and
+       using Windows' Event Log emulation for syslog.
   
   
   Client Requirements:
   --------------------
-  * Mozilla v1.5+ or Firefox v1.0+ web browser
-  * Client system time synchronized with CAD server system time
+  * 1024x768 (or greater) screen resolution required.
+    -> 1280x1024 (or greater) resolution is recommended for best results.
+  * Mozilla v1.5+ or Firefox v1.0+ web browser required.
+    -> Internet Explorer IS EXPRESSLY NOT SUPPORTED.
+    -> Safari and Chrome have been minimally tested, and cosmetic issues
+       were noted.  They may or may not be fully functionally compatibile.
+    -> Other browsers have not been tested and are not likely to work.
+
+  * Client system time must be synchronized with CAD server system time.
   
-  * The recommended (best tested) platform for the clients is Microsoft 
-    Windows XP, however Linux clients have also been tested successfully.
-  
-  The system _may_ function adequately with older revisions of Netscape based
-  browsers.  The current version _will_NOT_ operate correctly with Microsoft 
-  Internet Explorer.  Other browsers are untested.
+  * Microsoft Windows (XP/7) is recommended for client operating system.
+    -> Linux clients have also been tested successfully.
+    -> Apple OS X has been minimally tested.
   
   
   Installation Quick Guide
@@ -170,9 +177,10 @@ INSTALLATION
   2)  Syslog
   
   CAD will use the native system logging functionality on UNIX or 
-  Windows systems.  On UNIX systems, CAD uses the local4 logging level.  
-  On Windows, messages are logged to the Application section of the 
-  Event Viewer.  Edit session.inc to alter these defaults.
+  Windows systems.  On UNIX systems, CAD uses the local4 logging level,
+  and obeys the severity filter as set in cad.conf.  On Windows, 
+  *all* messages are logged to the Application section of the Event 
+  Viewer, disregarding the severity filter as set in cad.conf.  
   
   3)  Network security
   
@@ -187,9 +195,10 @@ INSTALLATION
   possible to install the server on a system which will also be one
   of the clients of the installation.  If that is the only system 
   expected to use CAD, a software firewall on that host is sufficient 
-  if configured correctly.  Software firewalls are generally 
+  if configured correctly.  Software firewalls are also generally 
   recommended for any Microsoft Windows client or server systems 
-  which will be exposed to insecure network traffic.  
+  as best practice.  CAD is a cleanly client-server system, it does 
+  not require network ingress access for connections _to_ clients.
   
   Ports required to be accessible on CAD server by the CAD clients
   for application communication:

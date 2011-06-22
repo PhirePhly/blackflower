@@ -151,13 +151,13 @@
       <Label for="call_type" accesskey="t">
       <select name="call_type" id="call_type" tabindex="5" size=12 onChange="handleIncidentType()" onKeyUp="handleIncidentType()">
 <?php
-	if (!$row->call_type || !strcmp("not selected", $row->call_type))
+	if (!isset($row->call_type) || !$row->call_type || !strcmp("not selected", $row->call_type))
 	  echo "<option selected value=\"not selected\">not selected</option>\n";
 
 	$type_result = MysqlQuery("SELECT * from incident_types");
 	while ($type_row = mysql_fetch_object($type_result)) {
           echo "<option ";
-	  if (!strcmp($type_row->call_type, $row->call_type)) echo "selected ";
+	  if (isset($row->call_type) && !strcmp($type_row->call_type, $row->call_type)) echo "selected ";
 	  echo "value=\"". $type_row->call_type ."\">".$type_row->call_type ."</option>\n";
 	}
 	mysql_free_result($type_result);

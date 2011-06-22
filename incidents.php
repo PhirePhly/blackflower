@@ -23,7 +23,7 @@
       onload="displayClockStart()"
       onunload="displayClockStop()"
       onresize="resizeMe()">
-<? include('include-title.php'); ?>
+<?php include('include-title.php'); ?>
 <table width="98%">
 <tr>
   <td align="left" class="text"><b>Incidents</b></td>
@@ -31,6 +31,7 @@
     <form name="createform" action="incidents.php" method="post" style="margin: 0px;">
 <?php 
   if (isset($AVOID_NEWINCIDENT_DIALOG) && $AVOID_NEWINCIDENT_DIALOG == 1) {
+    // TODO 1.8.0: This may or may not work.  Untested after forking edit-incident-post.php.
     $newurl = 'edit-incident.php?incident_id=new';
     $size = '600,1000';
   }
@@ -127,8 +128,8 @@
 </form>
 
 <iframe name="incidents" src="incidents-frame.php<?php if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"] == "no") echo "?scroll=yes"; ?>"
-        width="<?=trim($_COOKIE['width']) - 30; ?>"
-        height="<?=trim($_COOKIE['height']) - 140; ?>"
+        width="<?php print trim($_COOKIE['width']) - 30; ?>"
+        height="<?php print trim($_COOKIE['height']) - 140; ?>"
         marginheight="0" marginwidth="0" frameborder="0"></iframe>
 
 </body>

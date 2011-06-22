@@ -18,8 +18,8 @@ include('include-title.php');
 ?>
 
 <iframe name="menu" src="main-frame.php"
-        width="<?=trim($_COOKIE['width']) - 60 ?>"
-        height="<?=trim($_COOKIE['height']) - 125 ?>"
+        width="<?php print trim($_COOKIE['width']) - 60 ?>"
+        height="<?php print trim($_COOKIE['height']) - 125 ?>"
         marginheight="0" marginwidth="30" frameborder="0"> </iframe>
 </body>
 </html>

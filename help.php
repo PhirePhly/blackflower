@@ -6,7 +6,7 @@
   header_html("Dispatch :: Help");
 ?>
 <body vlink="blue" link="blue" alink="cyan">
-<? include('include-title.php'); ?>
+<?php include('include-title.php'); ?>
 
 <table width="750">
 <p>

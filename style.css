@@ -4,10 +4,12 @@ li { font-size: 10pt; text-align: justify }
 .textj 	{ font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm; text-align: justify }
 .time 	{ background-color: #cccccc; color: black; font-family: tahoma, sans; font-size: 10pt; padding-left: 0.1cm; padding-right: 0.1cm }
 
+.button { background-color: #eeeeee; border: 2px outset #cccccc; color: black; font-family: tahoma,sans; font-size: 10pt; text-decoration: none; margin: 3px }
 
 .iconred    { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid red; color: red }
 .iconyellow { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid yellow; background-color: gray; color: yellow }
 .iconblue   { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid blue; color: blue }
+.iconpurple { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid purple; color: purple }
 .iconwhite  { font-size:9px; padding-left: 2px; padding-right: 2px; background-color: white; border: 1px solid gray; color: black; font-weight: bold }
 .icongray   { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid gray; color: gray }
 
@@ -16,8 +18,32 @@ li { font-size: 10pt; text-align: justify }
     background-color: #cccccc;
     font-size: 10pt;
     text-align: justify;
-    padding-left: 0.2cm;
-    padding-right: 0.2cm;
+    padding-left: 0.1cm;
+    padding-right: 0.1cm;
+}
+.message-attached {
+    font-family: tahoma, sans;
+    background-color: #cccccc;
+    font-size: 8pt;
+    text-align: justify;
+    padding-left: 0.1cm;
+    padding-right: 0.1cm;
+}
+.message-iself {
+    font-family: tahoma, sans;
+    background-color: #dddddd;
+    font-size: 10pt;
+    text-align: justify;
+    padding-left: 0.1cm;
+    padding-right: 0.1cm;
+}
+.message-iother {
+    font-family: tahoma, sans;
+    background-color: #cccc99;
+    font-size: 10pt;
+    text-align: justify;
+    padding-left: 0.1cm;
+    padding-right: 0.1cm;
 }
 .messageold {
     font-family: tahoma, sans;
@@ -25,8 +51,8 @@ li { font-size: 10pt; text-align: justify }
     background-color: #cccccc;
     font-size: 10pt;
     text-align: justify;
-    padding-left: 0.2cm;
-    padding-right: 0.2cm;
+    padding-left: 0.1cm;
+    padding-right: 0.1cm;
 }
 .bulletin-info {
     font-family: tahoma, sans;

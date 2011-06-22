@@ -40,7 +40,7 @@
   header_html("Dispatch :: Log Viewer","  <script src=\"js/clock.js\" type=\"text/javascript\"></script>");
 ?>
 <body vlink="blue" link="blue" alink="cyan" onload="displayClockStart()" onunload="displayClockStop()" onresize="resizeMe()">
-<? include('include-title.php'); ?>
+<?php include('include-title.php'); ?>
 
 <!-- Begin Add Message Form -->
 <form name="myform" action="cad.php" method="post" style="margin: 0px;">
@@ -252,8 +252,8 @@
 <!-- End Filter Form -->
 
 <iframe name="log" src="cad-log-frame.php"
-        width=<?=trim($_COOKIE['width'])-30; ?>
-        height=<?=trim($_COOKIE['height'])-250; ?>
+        width=<?php print trim($_COOKIE['width'])-30; ?>
+        height=<?php print trim($_COOKIE['height'])-250; ?>
         marginheight="0" marginwidth="0" frameborder="0"> </iframe>
 <?php
    mysql_close($link);

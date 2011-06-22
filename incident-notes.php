@@ -46,7 +46,7 @@
      <td bgcolor="#aaaaaa">
      <table width="100%" cellpadding="0" cellspacing="1">
      <tr bgcolor="darkgray">
-<?
+<?php
   if (!isset($_COOKIE['incidents_show_creator']) || $_COOKIE['incidents_show_creator'] == 'yes') {
     print "      <td class=\"ihsmall\"><font size=\"-2\" color=\"gray\">Logged By</font></td>";
   } ?>

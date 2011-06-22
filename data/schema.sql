@@ -1,5 +1,5 @@
-SET @provides_database_version = '1.7.0.0';
-SET @requires_code_version = '1.7.0';
+SET @provides_database_version = '1.8.0.0';
+SET @requires_code_version = '1.8.0';
 
 -- DROP DATABASE IF EXISTS cad;
 -- DROP DATABASE IF EXISTS cadarchives;
@@ -9,11 +9,11 @@ SET @requires_code_version = '1.7.0';
 
 /* enum (reference) tables */
 
-CREATE TABLE unitcolors (
-	role	set('Fire', 'LE', 'Medical', 'Comm', 'MHB', 'Admin', 'Other'),
-	color_name varchar(20),
-	color_html varchar(20)
-);
+CREATE TABLE unit_roles (
+        role       VARCHAR(20) not null primary key,
+        color_name VARCHAR(20),
+        color_html VARCHAR(20)
+        );
 
 CREATE TABLE status_options (
  	status  varchar(30) not null primary key
@@ -26,6 +26,22 @@ CREATE TABLE incident_disposition_types (
 CREATE TABLE incident_types (
 	call_type	varchar(40) not null primary key
 	);
+
+        
+CREATE TABLE incident_locks (
+  lock_id            INTEGER NOT NULL AUTO_INCREMENT, 
+  incident_id        INTEGER NOT NULL,
+  user_id            INTEGER NOT NULL,
+  timestamp          DATETIME NOT NULL,
+  ipaddr             VARCHAR(80) NOT NULL,
+  takeover_by_userid INTEGER,
+  takeover_timestamp DATETIME,
+  takeover_ipaddr    VARCHAR(80),
+  session_id         VARCHAR(128),
+
+  PRIMARY KEY        (lock_id),
+  INDEX              (incident_id)
+);
 
 CREATE TABLE message_types (
   message_type varchar(20) not null primary key
@@ -114,7 +130,8 @@ CREATE TABLE units (
 	status	        VARCHAR(30),
 	status_comment  VARCHAR(255),
 	update_ts       DATETIME,
-	role	        SET('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Law Enforcement', 'Other'),
+	-- role	        SET('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Law Enforcement', 'Other'),
+	role            VARCHAR(20),
 	type	        SET('Unit', 'Individual', 'Generic'),
 	personnel       VARCHAR(100),
 	assignment      VARCHAR(20),
@@ -193,8 +210,8 @@ CREATE TABLE incident_units (
         transport_time datetime,
         transportdone_time datetime,
 	cleared_time datetime,
-	is_primary bool,  /* may be unused */
-  is_generic bool,
+	is_primary bool,  /* deprecated 1.8.0: unused */
+  is_generic bool, /* deprecated 1.8.0: unused */
 
   INDEX (incident_id, cleared_time),
   INDEX (dispatch_time)
@@ -247,23 +264,23 @@ INSERT INTO message_types VALUES ('DNF');
 INSERT INTO message_types VALUES ('DQ');
 INSERT INTO message_types VALUES ('Other');
 
-INSERT INTO status_options VALUES ('Attached to Incident');
-INSERT INTO status_options VALUES ('Available on Pager');
+INSERT INTO status_options VALUES ('Attached To Incident');
+INSERT INTO status_options VALUES ('Available On Pager');
 INSERT INTO status_options VALUES ('Busy');
 INSERT INTO status_options VALUES ('In Service');
 INSERT INTO status_options VALUES ('Off Comm');
 INSERT INTO status_options VALUES ('Off Duty');
-INSERT INTO status_options VALUES ('Off Playa');
-INSERT INTO status_options VALUES ('Out of Service');
-INSERT INTO status_options VALUES ('Off Duty; on Pager');
+INSERT INTO status_options VALUES ('Out Of Service');
+INSERT INTO status_options VALUES ('Off Duty; On Pager');
 
-INSERT INTO unitcolors VALUES ('Admin', 'Orange', 'darkorange');
-INSERT INTO unitcolors VALUES ('Comm', 'Purple', 'Purple');
-INSERT INTO unitcolors VALUES ('Fire', 'Red', 'Red');
-INSERT INTO unitcolors VALUES ('LE', 'Gold', 'Gold');
-INSERT INTO unitcolors VALUES ('Medical', 'Blue', 'Blue');
-INSERT INTO unitcolors VALUES ('MHB', 'Green', 'Green');
-INSERT INTO unitcolors VALUES ('Other', 'Black', 'Black');
+INSERT INTO unit_roles (role, color_name, color_html) VALUES 
+('Medical', 'Blue', 'Blue'),
+('Fire', 'Red', 'Red'),
+('MHB', 'Green', 'Green'),
+('Comm', 'Purple', 'Purple'),
+('Admin', 'Orange', 'darkorange'),
+('Law Enforcement', 'Brown', 'brown'),
+('Other', 'Black', 'Black');
 
 INSERT INTO unit_assignments (assignment, description, display_class, display_style) VALUES
 ('BC', 'Battalion Chief', 'iconyellow', NULL),
@@ -272,6 +289,7 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('MDC', 'Medical Duty Chief', 'iconblue', NULL),
 ('ADC', 'Assistant Medical Duty Chief', 'iconblue', NULL),
 ('SDC', 'Support Duty Chief', 'icongray', NULL),
+('CDC', 'Comm Duty Chief', 'iconpurple', NULL),
 ('OC', 'On-Call', 'icongray', NULL),
 ('S', 'Supervisor', 'icongray', NULL),
 ('FS', 'Field Supervisor', 'icongray', NULL);

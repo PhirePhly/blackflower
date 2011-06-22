@@ -1,5 +1,8 @@
 <?php
-  require ('cad.conf');
+  if (!@include('cad.conf')) {
+    print "Critical error: CAD configuration file is missing or unreadable.  Contact your CAD system administrator.";
+    exit;
+  }
 
   // Check that this file is not loaded directly.
   if (basename( __FILE__ ) == basename($_SERVER["PHP_SELF"])) exit();
@@ -79,6 +82,20 @@
   function dls_hmtime ($tm_var) {
     if ($tm_var && $tm_var <> "0000-00-00 00:00:00")
       return date("H:i", strtotime($tm_var));
+    else return "";
+  }
+
+  function dls_dhmtime ($tm_var) {
+    $dayname = '';
+    if ($tm_var && $tm_var <> "0000-00-00 00:00:00" &&
+       (date("D", strtotime($tm_var)) != date("D", time())))
+      $dayname =  date("D", strtotime($tm_var)) . ' ';
+    return $dayname . dls_hmtime ($tm_var);
+  }
+
+  function dls_mdhmtime ($tm_var) {
+    if ($tm_var && $tm_var <> "0000-00-00 00:00:00")
+      return date("m/d H:i", strtotime($tm_var));
     else return "";
   }
 

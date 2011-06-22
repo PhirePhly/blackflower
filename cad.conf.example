@@ -16,19 +16,23 @@
   $HEADER_TITLE = "Black&nbsp;Flower<br>Computer&nbsp;Aided&nbsp;Dispatch";
 
 // Booleans:
-  $BULLETIN_TITLE_SCAN = 1;
-  $AVOID_NEWINCIDENT_DIALOG = 0;
+  $BULLETIN_TITLE_SCAN = 1;      //
+  $AVOID_NEWINCIDENT_DIALOG = 0; // 1.7.0: use compact new incident entry?
+  $USE_INCIDENT_LOCKING = 1;     // 1.8.0: lock incidents (others read-only?)
+  $LOCKING_SHOW_USERNAME = 1;    //     \- if locked, show username in list?
 
 // Logging:
   $USE_SYSLOG = 1;
+// Use LOG_USER facility for >=WinXP, your choice of LOG_LOCAL<n> for *NIX.
   $SYSLOG_FACILITY = LOG_LOCAL4;
+  #$SYSLOG_FACILITY = LOG_USER;
   $SYSLOG_LEVEL = LOG_INFO;
   # Set default timezone:
   $DEFAULT_TIMEZONE = 'America/Los_Angeles';
 
 
-// Message Type Facility:
-  $USE_MESSAGE_TYPE = 1;
+// Message Type Facility: Used by Wildflower, not by Black Rock.
+  $USE_MESSAGE_TYPE = 0;
 
 // Config values:
   $DEFAULT_ADMIN = "Administrator";

@@ -31,8 +31,9 @@
 ?>
 
 <iframe name="menu" src="index.php?frame=1"
-        width="<?=trim($_COOKIE['width']) - 30 ?>"
-        height="<?=trim($_COOKIE['height']) - 125 ?>"
+        width="<?php print trim($_COOKIE['width']) - 30 ?>"
+        height="<?php print trim($_COOKIE['height']) - 125 ?>"
         marginheight="0" marginwidth="0" frameborder="0"> </iframe>
 </body>
 */
+?>

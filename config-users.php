@@ -133,7 +133,7 @@
     header_html("Dispatch :: Configuration :: Users");
 ?>
 <body vlink="blue" link="blue" alink="cyan">
-<? include('include-title.php'); ?>
+<?php include('include-title.php'); ?>
 <span style='h1'><b>Editing User Values</b></span>
       <form method="post" action="<?php print $_SERVER["PHP_SELF"]?>">
       <table style="border: black groove 1px"><tr><td>
@@ -148,14 +148,14 @@
       <?php  } else { ?>
           <td class="th">Editing User</td>
           <td class="th">
-          <input type="hidden" name="id" value="<?=$user->id;?>" />
-          <input type="hidden" name="edituser" value="<?=$user->username;?>" />
+          <input type="hidden" name="id" value="<?php print $user->id; ?>" />
+          <input type="hidden" name="edituser" value="<?php print $user->username;?>" />
           <?php print $user->username ?> </td>
       <?php  } ?>
 
       <tr><td class="message">Full Name
           <td><input type="text" size="40" name="name"
-               value="<?=MysqlUnClean($user->name);?>"
+               value="<?php print MysqlUnClean($user->name);?>"
                onChange="this.style.backgroundColor='yellow'" />
                </td>
       <?php if (!isset($_GET["adduser"])) {
@@ -163,32 +163,32 @@
           }?>
       <tr><td class="message">Password
           <td><input type="password" size="40" name="password"
-              value="<?=MysqlUnClean($user->password);?>"
+              value="<?php print MysqlUnClean($user->password);?>"
                onChange="this.style.backgroundColor='yellow'" />
                <?php if ($check_password) echo "<font color=\"red\">*"; ?>
                </td>
       <tr><td class="message">Password (verify)
           <td><input type="password" size="40" name="password2"
-               value="<?=MysqlUnClean($user->password);?>"
+               value="<?php print MysqlUnClean($user->password);?>"
                onChange="this.style.backgroundColor='yellow'" />
                <?php if ($check_password) echo "<font color=\"red\">*"; ?>
                </td>
       <tr><td class="message">Access Level
           <td><input type="text" size="10" name="access_level"
-               value="<?=MysqlUnClean($user->access_level);?>"
+               value="<?php print MysqlUnClean($user->access_level);?>"
                onChange="this.style.backgroundColor='yellow'" />
                <?php if ($check_accesslevel) echo "<font color=\"red\">*"; ?>
                <span class=text> (1 = normal user; 5 = supervisor; 9 = asst/dep/chief; 10 = system admin)</span>
                </td>
       <tr><td class="message">Access ACL
           <td><input type="text" size="10" name="access_acl"
-               value="<?=MysqlUnClean($user->access_acl);?>"
+               value="<?php print MysqlUnClean($user->access_acl);?>"
                onChange="this.style.backgroundColor='yellow'" />
                <?php if ($check_accessacl) echo "<font color=\"red\">*"; ?>
                </td>
       <tr><td class="message">Timeout
           <td><input type="text" size="10" name="timeout"
-               value="<?=MysqlUnClean($user->timeout);?>"
+               value="<?php print MysqlUnClean($user->timeout);?>"
                onChange="this.style.backgroundColor='yellow'" />
                <?php if ($check_timeout) echo "<font color=\"red\">*"; ?>
                </td>
@@ -197,7 +197,7 @@
       <?php if ($check_errormsg) {
         ?>
         <tr><td colspan="2" style="font-weight: bold">Error:  settings flagged above are invalid, reverting:</td> </tr>
-        <tr><td colspan="2" style="color: red"><?=$check_errormsg;?></td></tr>
+        <tr><td colspan="2" style="color: red"><?php print $check_errormsg;?></td></tr>
         <?php }
         ?>
 
@@ -232,7 +232,7 @@
     header_html('Dispatch :: Configuration :: Users')
 ?>
 <body vlink="blue" link="blue" alink="cyan">
-<?
+<?php
   include('include-title.php');
 ?>
 
@@ -247,7 +247,7 @@
   <td class="th">Access Level</td>
   <td class="th">Access ACL</td>
   <td class="th">Timeout</td>
-<? if ($moduser) {
+<?php if ($moduser) {
     echo "<td class=\"th\">Status</td>\n";
   }
 ?>
