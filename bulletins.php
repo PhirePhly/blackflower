@@ -6,6 +6,9 @@
   require_once('functions.php');
   require_once('local-dls.php');
 
+// Non-UI Methods
+  
+
   if (isset($_POST["clear_bulletin"])) {
     header('Location: bulletins.php');
     exit;
@@ -61,43 +64,44 @@
         # TODO: Error report
       }
     }
-    header('Location: bulletins.php');
+    header("Location: bulletins.php?bulletin_id=$bulletin_id");
   }
 
+// Below here is user interface
 
+  if (isset($_GET["meta"])) {
+    if ($_GET["meta"] == "1") 
+      $_SESSION["bulletins_show_metadata"] = 1;
+    else
+      $_SESSION["bulletins_show_metadata"] = 0;
+    
+    header('Location: bulletins.php');
+    exit;
+  }
+  if (isset($_GET["closed"])) {
+    if ($_GET["closed"] == "1")
+      $_SESSION["bulletins_show_closed"] = 1;
+    else
+      $_SESSION["bulletins_show_closed"] = 0;
+    header('Location: bulletins.php');
+    exit;
+  }
 
   header_html("Dispatch :: Bulletins");
 ?>
 <body vlink="blue" link="blue" alink="cyan" onresize="resizeMe()">
-<? include('include-title.php'); ?><p />
-<?php 
-  if (isset($_GET["bulletin_id"])) {
-    $bulletin_id = MysqlClean($_GET,"bulletin_id",20);
-    print "<div class=\"text\"> Bulletin " . $bulletin_id . "</div> ";
-    $bulletin_query = MysqlQuery("SELECT b.*, u.username from bulletins b, users u where b.bulletin_id=$bulletin_id and b.updated_by=u.id");
-    # show it
-    if (mysql_affected_rows() != 1) {
-      print "Error - expected 1 row, but got " . mysql_affected_rows() . " rows for bulletin $bulletin_id ";
-      syslog(LOG_WARNING, "Error - expected 1 row, but got " . mysql_affected_rows() . " rows for bulletin $bulletin_id ");
-      exit;
-    }
-    $bulletin = mysql_fetch_object($bulletin_query);
-    print "<table class=\"bulletin-info\" style=\"border: 1px solid gray\"><tr><td>\n";
-    print "<span class=\"text\">Subject: <b>" . $bulletin->bulletin_subject . "</b></span><br>\n";
-    if ($_SESSION["access_level"] > 1) {
-      print "<span class=\"text\">Required Access Level To View: <b>" . $bulletin->access_level . "</b></span><br>\n";
-    }
-    if ($bulletin->closed) {
-      print "<span class=\"bulletin-info\"><b>This Bulletin is Closed.</b></span><br>\n";
-    }
-    print "<span class=\"text\">Updated: " . dls_utime($bulletin->updated) . " by " . $bulletin->username . " (". $bulletin->updated.")</span><br>\n";
-    print "</td></tr></table>\n";
-    print "<table><tr><td>\n";
-    print "</td></tr></table>\n";
-    print "<table class=text style=\"background-color: #ffffcc; border: 1px solid black\"><tr><td>\n";
-    print "<div class=\"text\"><pre>" . $bulletin->bulletin_text . "</pre></div>\n";
-    print "</td></tr></table>\n";
+<?php include('include-title.php'); ?><p />
 
+
+
+<table cellspacing=0 cellpadding=0>
+<tr valign=top>
+<td style="width:500px">
+<span class=text><b>Available Bulletins</b></span><p>
+<!-- ; border-right: 1px dotted grey"> -->
+<?php
+  if (isset($_GET["bulletin_id"])) {
+    $bulletin_id = (int) $_GET["bulletin_id"];
     MysqlQuery("UPDATE bulletin_views SET last_read=NOW() WHERE bulletin_id=$bulletin_id AND user_id=".$_SESSION["id"]);
     if (mysql_affected_rows() == 0) {
       MysqlQuery("INSERT INTO bulletin_views (bulletin_id, user_id, last_read) VALUES ($bulletin_id, ". $_SESSION["id"] . ", NOW())");
@@ -108,17 +112,92 @@
     elseif (mysql_affected_rows() > 1) {
       syslog(LOG_WARNING, "Updated too many (" . mysql_affected_rows() . ") bulletin_views for id [$bulletin_id], user [". $_SESSION["id"]."]");
     }
-
-    print "<p>\n";
-    if ($_SESSION["access_level"] >= 5) {
-      print "<a href=\"bulletins.php?edit_bulletin=$bulletin_id\">Edit Bulletin</a><p>\n";
-    }
-
-    print "<span class=button><a href=bulletins.php>Return to List</a></span>\n";
-    print "</body></html>\n ";
-    exit;
   }
 
+  $closed = 0;
+  if (isset($_SESSION["bulletins_show_closed"]) && $_SESSION["bulletins_show_closed"] == 1) {
+    $closed = 1;
+  }
+  $ViewedAt = array ();
+  $viewquery = MysqlQuery("SELECT * FROM bulletin_views WHERE user_id=".$_SESSION['id']);
+  while ($view = mysql_fetch_object($viewquery)) {
+    $ViewedAt[$view->bulletin_id] = $view->last_read;
+  }
+  $bulletin_query = MysqlQuery("SELECT b.*, u.username, u.id FROM bulletins b LEFT OUTER JOIN users u ON b.updated_by=u.id WHERE " . ($closed ? "" : " b.closed=0 AND ") . " b.access_level <= ". $_SESSION["access_level"] . " ORDER BY b.closed ASC, b.updated DESC ");
+  if (mysql_num_rows($bulletin_query) == 0) {
+    print "<li><b>No bulletins entered</b>\n";
+  }
+  else {
+    while ($bulletin = mysql_fetch_object($bulletin_query)) {
+      $bullstatus="";
+      $style = "font-family: tahoma, sans; font-size: 10pt; font-weight: bold; ";
+      $divstyle = "";
+
+      if ($bulletin->closed) {
+        $bullstatus = " <font color=gray size=-1>CLOSED</font>" ;
+        $style .= "color: gray; ";
+      }
+      elseif (!isset($ViewedAt[$bulletin->bulletin_id])) {
+        $bullstatus = "<span class=\"text\" style=\"font-size: 10px; color: red; font-weight: bold;\">NEW " . dls_utime($bulletin->updated) . "</span>";
+        $style .= "font-weight:bold; ";
+      }
+      elseif ($ViewedAt[$bulletin->bulletin_id] < $bulletin->updated) {
+        $bullstatus = "<span class=\"text\" style=\"font-size: 10px; color: red; \">UPDATED ". dls_utime($bulletin->updated, FALSE, FALSE) . "</span>";
+        $style .= "font-weight:bold; ";
+      }
+
+      if (isset($_GET["bulletin_id"]) && ($_GET["bulletin_id"] ==  $bulletin->bulletin_id)) {
+        $divstyle .= "border-left: 3px solid blue; border-top: 1px dotted blue; border-bottom: 1px dotted blue; padding: 2px; ";
+        if (!$bulletin->closed)
+          $style .= "color: blue; ";
+      }
+      else {
+        //$divstyle .= " margin-right: 5px;";
+        if (!$bulletin->closed)
+          $style .= "color: darkblue; ";
+      }
+      print " <div style=\"margin-right: 5px; $divstyle; $style\">
+        <a style=\"$style\" href=\"bulletins.php?bulletin_id=" . $bulletin->bulletin_id . "\">" . $bulletin->bulletin_subject ."</a> 
+        </span> $bullstatus ";
+        if (isset($_GET["bulletin_id"]) && ($_GET["bulletin_id"] ==  $bulletin->bulletin_id)) {
+          //print "<span style=\"float: right; width: 30px; \"><a href=\"bulletins.php\" title=\"Exit View\"> <img src=\"Images/paper-control-24-ns.png\"></a> </span>\n";
+        }
+
+      if ((isset($_GET["bulletin_id"]) && $_GET["bulletin_id"] == $bulletin->bulletin_id ) ||
+          (isset($_SESSION["bulletins_show_metadata"]) &&  $_SESSION["bulletins_show_metadata"] == 1)) {
+        print "<br><span style=\"color: gray; font:11px tahoma,sans; background-color: white; \">&nbsp; &nbsp; Updated: " . dls_utime($bulletin->updated) . " by " . $bulletin->username . "</span>\n";
+
+        if ($_SESSION["access_level"] > 1 && $bulletin->access_level > 1) {
+          print "<br><span style=\"color: gray; font: 11px tahoma,sans; background-color: white; \">&nbsp; &nbsp; Access Level <b>".$bulletin->access_level."</b> Required To View</span>\n";
+        }
+      }
+      print "</div>";
+    }
+  }
+
+  // right hand pane:
+  //
+  print "<td style=\"padding: 5px; \">&nbsp;</td>\n";
+  print "<td style=\"width: 500px; \">\n";
+ 
+  /////////////////////////////////////////////////////////////////////////////////
+  
+  if (isset($_GET["bulletin_id"])) {
+    $bulletin_id = MysqlClean($_GET,"bulletin_id",20);
+    $bulletin_query = MysqlQuery("SELECT b.*, u.username from bulletins b LEFT OUTER JOIN users u ON b.updated_by=u.id where b.bulletin_id=$bulletin_id ");
+    if (mysql_affected_rows() != 1) {
+      print "Error - expected 1 row, but got " . mysql_affected_rows() . " rows for bulletin $bulletin_id ";
+      syslog(LOG_WARNING, "Error - expected 1 row, but got " . mysql_affected_rows() . " rows for bulletin $bulletin_id ");
+      exit;
+    }
+    $bulletin = mysql_fetch_object($bulletin_query);
+
+    print "<div style=\"font: bold 10pt monospace;\"><u>" . $bulletin->bulletin_subject . "</u></div>";
+    print "<div style=\"font: 10pt monospace; border: 1px dotted gray; margin: 5px; padding-left: 10px; padding-right: 10px; background-color: #ffffcc\"><pre>". 
+          $bulletin->bulletin_text . "</pre></div>\n";
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////
   elseif (isset($_GET["edit_bulletin"])) {
     if ($_SESSION["access_level"] < 5) {
       print "Access level (". $_SESSION["access_level"] . ") too low to edit/create bulletin.\n";
@@ -146,123 +225,75 @@
       }
     }
 ?>
-    Editing Bulletin <?=$bid_request?><p>
+    Editing Bulletin <?php print $bid_request ?><p>
     <form action=bulletins.php method=post>
-    <input name=bulletin_id type=hidden value="<?=$bid_request?>">
+    <input name=bulletin_id type=hidden value="<?php print $bid_request ?>">
 
-    <table>
-    <tr> <td> Subject: </td><td><input name=bulletin_subject type=text size=80 maxlength=155 value="<?=$bulletin_subject?>"></td></tr>
-    <tr> <td> Access Level required to view: </td><td>
+    
+    Subject: <input name=bulletin_subject type=text size=80 maxlength=155 value="<?php print $bulletin_subject ?>"><br/>
+    Access Level required to view: 
     <select name=access_level>
     <?php 
+    // Horrible.  magic numbers.
       for ($i = 1; $i <= $_SESSION["access_level"]; $i++) {
         print "<option value=$i";
-        if ($i == $access_level) {
-          print " selected";
-        }
+        if ($i == $access_level) { print " selected"; }
         print ">$i";
-        if ($i == 1) {
-          print " (Normal Users)";
-        }
-        elseif ($i == 5) {
-          print " (Supervisors Only)";
-        }
-        elseif ($i == 9) {
-          print " (Asst./Dep./Chiefs Only)";
-        }
-        elseif ($i == 10) {
-          print " (System Admins Only)";
-        }
+        if ($i == 1)     { print " (Normal Users)"; }
+        elseif ($i == 5) { print " (Supervisors Only)"; }
+        elseif ($i == 9) { print " (Asst./Dep./Chiefs Only)"; }
+        elseif ($i == 10) { print " (System Admins Only)"; }
         print "</option>\n";
       }
-      ?>
+    ?>
 
-    </select> </td></tr>
-    <tr> <td> Close this bulletin? </td><td><input name=closed type=checkbox <?=$closed? " checked " : ""?>></td></tr>
-    <input name=orig_closed type=hidden value="<?=$closed? "closed" : "open"?>">
-    <tr> <td> Bulletin: </td><td><textarea wrap=hard name=bulletin_text rows=10 cols=60 wrap="hard"><?=$bulletin_text?></textarea></td></tr>
-    <tr> <td> <input type=submit name=save_bulletin value="Save Changes"> <input type=submit name=clear_bulletin value="Cancel"> </td></tr>
-    </table>
+    </select> <br/>
+    Close this bulletin? <input name=closed type=checkbox <?php print $closed ? " checked " : "" ?>><br/>
+    <input name=orig_closed type=hidden value="<?php print $closed ? "closed" : "open"?>">
+    Bulletin text: <br/>
+    <textarea wrap=hard name=bulletin_text rows=10 cols=60 wrap="hard"><?php print $bulletin_text ?></textarea><br/>
+    <input type=submit name=save_bulletin value="Save Changes"> <input type=submit name=clear_bulletin value="Cancel">
+
     </form>
+
 <?php
 
-    exit;
   }
+  print "<br></td> \n";  //end GUI block: right hand view/edit pane
+  //print "<tr><td colspan=3 style=\"border-bottom: 1px dotted grey; font-size: 3px; margin-bottom: 15px;\">&nbsp; </td></tr>\n";
+  //print "<tr><td colspan=3 style=\"font-size: 3px;\">&nbsp; </td></tr>\n";
+  
+  print "<tr><Td colspan=3><br>\n";
 
-?>
-
-<span class=text><b>Bulletins</b></span><p>
-<table cellspacing=1 cellpadding=0 style="padding-bottom: 0">
-<tr class=text style="text-align: center"><td>Subject</td><td class=text style="text-align: center">Last Updated</td><td class=text>Status</td>
-<?php
-  $closed = 0;
-  if (isset($_GET["closed"])) {
-    $closed = 1;
-  }
-  $ViewedAt = array ();
-  $viewquery = MysqlQuery("SELECT * FROM bulletin_views WHERE user_id=".$_SESSION['id']);
-  while ($view = mysql_fetch_object($viewquery)) {
-    $ViewedAt[$view->bulletin_id] = $view->last_read;
-  }
-  $bulletin_query = MysqlQuery("SELECT * FROM bulletins b LEFT OUTER JOIN users u ON b.updated_by=u.id WHERE " . ($closed ? "" : " b.closed=0 AND ") . " b.access_level <= ". $_SESSION["access_level"] . " ORDER BY b.updated DESC");
-  if (mysql_num_rows($bulletin_query) == 0) {
-    print "<tr>\n";
-    print "<td class=bulletin>No bulletins entered  </b>\n";
-    print "<td class=bulletin>-</td>\n";
-    print "<td class=\"bulletin-info\">-</td>\n";
-    print "</tr>\n\n";
+  if (isset($_SESSION["bulletins_show_closed"]) && $_SESSION["bulletins_show_closed"]==1) {
+    print "<a class=\"button\" href=\"bulletins.php?closed=0\">Hide Closed Bulletins</a>\n";
   }
   else {
-    while ($bulletin = mysql_fetch_object($bulletin_query)) {
-      $bulledit = "";
-      $bulllink = "";
-      $bullstatus="";
-      $boldtitle=0;
-      
-      print "<tr>\n";
-      #print "<td class=info>Bulletin " . $bulletin->bulletin_id . "</td>\n";
-      $closed = $bulletin->closed;
-      $bulllink = "<a ";
-      if ($closed) {
-        $bulllink  .= "style=\"color: gray\" ";
-        $bulledit = "<font color=gray>";
-      }
-      $bulllink .= "href=\"bulletins.php?bulletin_id=" . $bulletin->bulletin_id . "\">" . $bulletin->bulletin_subject ."</a>";
-      $bulledit .= "Edited " . (isset($bulletin->username) ? " by " . $bulletin->username . "," : "") . " " . dls_utime($bulletin->updated);
-      if (!isset($ViewedAt[$bulletin->bulletin_id])) {
-        $bullstatus = "<span style=\"font-size: 10px; background-color: black; color: yellow; font-weight: bold; border: 1px solid red\">NEW</span>";
-        $boldtitle=1;
-      }
-      elseif ($ViewedAt[$bulletin->bulletin_id] < $bulletin->updated) {
-        $bullstatus = "<span style=\"font-size: 10px; background-color: yellow; color: black; border: 1px solid black\">UPDATED</span>";
-        $boldtitle = 1;
-      }
-  
-      if ($closed) {
-        $bullstatus .= " <font color=gray size=-1>CLOSED</font>" ;
-        $bulledit .= "</font>";
-      }
-
-      print "<td class=bulletin>" . ($boldtitle? "<b>":"").$bulllink. ($boldtitle?"</b>":""). "\n";
-      print "<td class=bulletin>$bulledit</td>\n";
-      print "<td class=\"bulletin-info\">$bullstatus</td>\n";
-      print "</tr>\n\n";
-    }
+    print "<a class=\"button\" href=\"bulletins.php?closed=1\">Show Closed Bulletins</a>\n";
   }
-  
-  print "</table>\n";
-  print "<p>\n";
 
-  if (isset($_GET["closed"])) {
-    print "<a class=text href=\"bulletins.php\">View Only Open Bulletins (Default)</a><br>\n";
+  if (isset($_SESSION["bulletins_show_metadata"]) && $_SESSION["bulletins_show_metadata"]==1) {
+    print "<a class=\"button\" href=\"bulletins.php?meta=0\">Hide Timestamps</a>\n";
   }
   else {
-    print "<a class=text href=\"bulletins.php?closed\">View All Bulletins (Including Closed)</a><br>\n";
+    print "<a class=\"button\" href=\"bulletins.php?meta=1\">Show Timestamps</a>\n";
   }
-
   if ($_SESSION["access_level"] >= 5) {
-    print "<a class=text href=\"bulletins.php?edit_bulletin=new\">Add New Bulletin</a><br>\n";
+    print "<a class=\"button\" href=\"bulletins.php?edit_bulletin=new\">Add New Bulletin</a>\n";
   }
+
+  if (isset($_GET["bulletin_id"]) && $_SESSION["access_level"] >= 5) {
+    print "<a class=\"button\" href=\"bulletins.php?edit_bulletin=$bulletin_id\">Edit This Bulletin</a>\n";
+  }
+
+  if ($_SESSION["access_level"] >= 10) {
+    print "<a class=\"button\" href=\"bulletins_import.php\">Database Import</a>\n";
+  }
+
+  print "</td></tr></table>\n";
+
+  /////////////////////////////////////////////////////////////////////////////////
+
   mysql_close($link);
 ?>
 </body>

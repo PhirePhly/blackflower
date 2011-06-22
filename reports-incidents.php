@@ -192,6 +192,7 @@ function StatsColumnHeader() {
 
   $pdf->AddPage('');
   $pdf->SetWidths(array(50,25));
+  $pdf->SetDrawColor(64);
   syslog(LOG_INFO, $_SESSION['username'] . " generated incidents report");
 
   $query = "SELECT * FROM incident_types;";
@@ -235,6 +236,7 @@ function StatsColumnHeader() {
     $pdf->AddPage('');
 
   $pdf->SetFillColor(230);
+  $pdf->SetDrawColor(64);
   
   // TODO: don't repeat this query needlessly
   $query = "SELECT * FROM incidents WHERE ts_opened LIKE '".MysqlClean($_GET,"selected-date", 20)."%' AND (visible = 1 OR completed = 1)";
@@ -291,7 +293,7 @@ function StatsColumnHeader() {
     $pdf->SetY($thisrow_endhdr+5);
   
     $pdf->SetFont('Arial','B',10);
-    $pdf->Cell(30, 5, "Units Assigned to Incident", 0, 1);
+    $pdf->Cell(30, 5, "Units/Times Assigned to Incident", 0, 1);
     $pdf->SetFont('Arial','',10);
   
     $unitquery = "SELECT * FROM incident_units WHERE incident_id=".$line->incident_id." ORDER BY dispatch_time";
@@ -300,20 +302,20 @@ function StatsColumnHeader() {
     if (mysql_num_rows($unitresult)>0) {
       $pdf->Cell(5,5);
       $pdf->Cell(40,5,"Unit Name");
-      $pdf->Cell(40,5,"Time Dispatched");
-      $pdf->Cell(40,5,"Time Arrived");
-      $pdf->Cell(40,5,"Transported At");
-      $pdf->Cell(40,5,"Transport Done");
-      $pdf->Cell(40,5,"Time Cleared");
+      $pdf->Cell(25,5,"Dispatched");
+      $pdf->Cell(25,5,"Arrived");
+      $pdf->Cell(25,5,"Transported");
+      $pdf->Cell(25,5,"Transp. Done");
+      $pdf->Cell(25,5,"Cleared");
       $pdf->Ln(5);
       while ($unit = mysql_fetch_object($unitresult)) {
         $pdf->Cell(5,5);
         $pdf->Cell(40,5,$unit->unit,1,0);
-        $pdf->Cell(40,5,$unit->dispatch_time,1,0);
-        $pdf->Cell(40,5,$unit->arrival_time,1,0);
-        $pdf->Cell(40,5,$unit->transport_time,1,0);
-        $pdf->Cell(40,5,$unit->transportdone_time,1,0);
-        $pdf->Cell(40,5,$unit->cleared_time,1,0);
+        $pdf->Cell(25,5,dls_mdhmtime($unit->dispatch_time),1,0);
+        $pdf->Cell(25,5,dls_mdhmtime($unit->arrival_time),1,0);
+        $pdf->Cell(25,5,dls_mdhmtime($unit->transport_time),1,0);
+        $pdf->Cell(25,5,dls_mdhmtime($unit->transportdone_time),1,0);
+        $pdf->Cell(25,5,dls_mdhmtime($unit->cleared_time),1,0);
         $pdf->Ln(5);
       }
     }

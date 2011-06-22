@@ -1,13 +1,134 @@
 CHANGES
 -------
 
+--------------------------
+Version 1.8.0 - 2011-06-22
+--------------------------
+[major]  Improved multi-station incident editing.  Instead of multiple 
+         simultaneous users being able to edit an incident, but only the 
+         first user being allowed to save their changes, subsequent users 
+         now have a read-only view.  They are able to enter Incident Notes
+         and manage Incident Unit attachments, but only the first user
+         (with a read-write view) able to make changes to the text fields 
+         in the upper portion of the window.
+
+         Users are able to force a takeover of read-write privileges, in 
+         case of client system crashes, dispatcher switches, etc. 
+
+         The login name of the user who has an incident open is also shown 
+         in the main Incidents list next to the call/incident number.  
+         Users can hover the mouse over that login to see that CAD user's
+         full name.
+
+         Incident lines in the main Incident screen list are now shaded in 
+         tan when they are open by another user, and shaded in a lighter 
+         grey when they are open by the current user.  
+
+[major]  Revised unit auto-page dialog for increased clarity, and fixed
+         mistaken additions: now force the user to select from dropdown 
+         rather than defaulting to the first person in the list.
+
+[major]  Cleaned up bulletins user interface.  Implemented database import 
+         of bulletins from old/backup database.
+
+[major]  Added "time since last update" column to incidents screen, 
+         displaying the time since last update to an incident if it is 
+         more than 15 minutes stale.  After 60 minutes the time turns red, 
+         and after 120 minutes it blinks red, until it is updated.
+
+[minor]  Added additional timestamp fields from v1.7 to incident Reports.
+
+[minor]  Removed "Off Playa" from status options, "Out of Service" is 
+         sufficient.
+
+[minor]  Log viewer "message type" field is no longer displayed by default; 
+         must now be actively enabled in cad.conf before that Preference 
+         is available.  (Feature used for Wildflower, not for Black Rock.)
+
+[minor]  In main Incidents list, if the list of an incident's assigned units 
+         is truncated due to being too long to be displayed on screen, the
+         user may now hover over that abbreviated list to see a tooltip of
+         the full list of all assigned units.
+
+[minor]  In Incidents list, added similar abbreviations for, and hover-over
+         tooltips for, lengthy Details and Location fields.
+
+[minor]  In Incidents screen, added tooltips to Unit Availability,
+         showing the location, personnel, and notes of each unit.
+
+[minor]  Added 'Comm Duty Chief' to default list of assignments.
+
+[minor]  Streamlined unit deletion workflow: grayed out editing options 
+         while in the middle of deletion; added "Abort Deletion" button.
+         
+[minor]  Extracted unit roles into a table rather than enums.
+
+[minor]  In Incidents screen, added links from Units assigned to calls 
+         directly to the appropriate incident.  (In the future, status 
+         adjustments may be implemented via controls appearing on the 
+         units' name text itself, but this is a valuable interim step.)
+
+[minor]  Disabled editing fields when editing (viewing) a completed incident.
+
+[minor]  Changed incident completion timestamp from client-generated to 
+         server-generated, to match the other timestamps.  
+         
+[minor]  The four main (upper) timestamps in the edit-incident window 
+         now also display the short day name (Sun..Sat) for any timestamps
+         that occurred on a previous calendar day.
+
+[minor]  The edit-incident window now shows an attached unit's name and 
+         dispatched time in bold if dispatch was within the last 5 minutes.
+
+[bugfix] The Incidents screen once again shows new incidents in bold
+         if that incident was created within the last 5 minutes.
+
+[bugfix] Removed meta refresh tag typo.  No longer wrongly display the text
+         of a page's title inline in any iframes below the header bar.
+
+[bugfix] "Busy" units can no longer be attached to incidents.
+
+[bugfix] Converted all remaining PHP short open tags to long form.
+
+[bugfix] Complain if config file is missing, instead of failing silently.
+
+[bugfix] Cleaned up incidents database query and filtering logic.
+
+[bugfix] When creating a Unit, only allow user to type as many characters 
+         in the unit name field as the database actually accepts (20).
+
+[bugfix] When reopening an incident, set it visible in list, and show the
+         "Cancel" button, not "Abort" button which can cause accidental 
+         deletion of the incident from database.
+
+[bugfix] Prevented Generic units from being simultaneously attached
+         multiple times to any one given incident.  They still may be
+         attached to multiple incidents simultaneously, and a given
+         Generic unit may still be sequentially attached multiple
+         times to any one given incident (attach, then release, then
+         attach again.)
+
+[bugfix] Don't show System Admin tab in menu if access level is 
+         actually too low to use System Admin features (edge case: 
+         affected 2 user accounts who were set to level 9.)
+
+
+--------------------------
+Version 1.7.2 - 2010-08-31
+--------------------------
+* Fixed pagers query to only show active units.
+
+--------------------------
 Version 1.7.1 - 2010-08-28
+--------------------------
 * Fixed showing of closed incidents.
 * Clear additional info fields when archiving database.
 * Handle paging db connection failures gracefully during edit-incident.
 * Added matching top/bottom 'Add New' buttons to units and users dialogs.
 
+--------------------------
 Version 1.7.0 - 2010-08-23
+--------------------------
 * Added express New Incident dialog.  Call takers must now record critical
   information immediately, incident is then saved and available to other
   stations for dispatch.
@@ -19,22 +140,32 @@ Version 1.7.0 - 2010-08-23
 * Added explicit timezone configuration for compatibility with PHP 5.1.0+.
 * Added explicit datetime zero values for compatibility with MySQL 5.0.82.
 
+--------------------------
 Version 1.6.2 - 2007-08-27
+--------------------------
 * Fixed bug 121 - Bulletin editor should force word wrapping.
 
+--------------------------
 Version 1.6.1 - 2007-08-26
+--------------------------
 * Fixed bug 121 - don't reset Generic units' status on manual release 
   from incident.
 
+--------------------------
 Version 1.6.0 - 2007-08-16
+--------------------------
 * Cosmetic fixes to bulletins display.  Otherwise unchanged from 1.5.3.
 
+--------------------------
 Version 1.5.3 - 2007-08-01
+--------------------------
 * Implemented bug 115 - Add db deployment history table/functionality.
   -> A database update to 1.5.3 schema is required.
 * Fixed bug 113 - PHP shared sessions with multiple instances on same host.
 
+--------------------------
 Version 1.5.2 - 2007-07-28
+--------------------------
 * Implemented bug 75 - Allow complex Call Number formattings.
 * Implemented bug 79 - Date summary report.
 * Added misc logging.
@@ -44,22 +175,30 @@ Version 1.5.2 - 2007-07-28
 * Fixed bug 78 - Allow hiding of out-of-service Units in Incidents page.
 * Fixed bug 116 - Allow global disabling of Log Message Type field
 
+--------------------------
 Version 1.5.1 - 2007-07-12
+--------------------------
 * Implemented bug 31 - page units from Edit Unit dialog
 * Worked on bug 74 - added diagnostic logging
 * Worked on bug 80 - added diagnostic logging
 
+--------------------------
 Version 1.5.0 - 2007-05-01
+--------------------------
 * Internal fixes to use generic database name, and better use
   multiple database handles.
 * Improvements to initialize.sh
 
 
+--------------------------
 Version 1.4.3 - 2006-08-30
+--------------------------
 * Cosmetic fix for edit-unit auto-page fields
 * Removed JS alert() debugging statement from edit-incident
 
+--------------------------
 Version 1.4.2 - 2006-08-30
+--------------------------
 * Auto page on unit dispatch
   - Updated: edit-incident.php, schema.sql, cad.conf.example, cad.conf,
     edit-unit.php
@@ -71,24 +210,32 @@ Version 1.4.2 - 2006-08-30
     - Grant 'insert' permissions on paging.* to the PAGINGUSER user
     - Grant 'select' permissions on paging.pagers to the PAGINGUSER user 
 
+--------------------------
 Version 1.4.1 - 2006-08-28
+--------------------------
 * bug 70 - Users should only see new-bulletin notifications
   if they have appropriate access level.
 * Added access keys to edit-incident screen
 * Fixed section (tab bar) header associations for admin sub-pages.
 
+--------------------------
 Version 1.4.0 - 2006-08-25
+--------------------------
 * Fixed punctuation typo in schema.sql.
 * Changed main-frame.php to match current header options.
 
+--------------------------
 Version 1.3.5 - 2006-08-24  [ 1.4rc1 ]
+--------------------------
 * bug 53 - Improved display of units in Incident screen.
 * bug 14 - Visually indicated duty/battalion chiefs.
   (Schema update required to existing installations)
 * bug 52 - Changed all unit listings to use natsort.
 * bug 7 - Implemented (verified) user security restrictions.
 
+--------------------------
 Version 1.3.4 - 2006-08-23
+--------------------------
 * bug 51 - Implemented Bulletins feature
   (Schema update required to existing installations)
 * bug 48 - Rewrote Header GUI style to be more efficient, easily 
@@ -98,7 +245,9 @@ Version 1.3.4 - 2006-08-23
 * Various other bug fixes and progress on other bugzilla bugs.  See
   SVN logs for more details; the changes were not captured here.
 
+--------------------------
 Version 1.3.3 - 2006-07-03 through 2006-08-21 (various betas)
+--------------------------
 * Conversion of much of the HTML from 3.2 compliant towards 4.01
 * Built a standard header file for all pages for common page info
 * Moved much of the Javascript to "loadable" .js files
@@ -108,7 +257,9 @@ Version 1.3.3 - 2006-07-03 through 2006-08-21 (various betas)
 * Added JS code for tooltip capabilities.  More logic needed to
     turn this feature on and off.
 
+--------------------------
 Version 1.3.2 - 2006-07-01
+--------------------------
 * bug 35 - Edit Incident popup Save/Close logic cleaned up.
 * bug 39 - Edit Incident disposition assignment and Javascript cleaned up.
 * bug 52 (edit-incident portion) - use natural sort for unit dropdowns.
@@ -117,56 +268,80 @@ Version 1.3.2 - 2006-07-01
 * bug 48 (partial) - relocated the footer (still todo: incorporate its
   functionality directly into a unified header file)
 
+--------------------------
 Version 1.3.1 - 2006-06-05
+--------------------------
 * Rebranded header for initial dev release
 * Reformatted README, TODO, CHANGES
 
+--------------------------
 Version 1.3.0 - 2006-04-17
+--------------------------
 * Added user editing menu.
 * Fixed login screen CSS.
 * Removed contexts.
 
+--------------------------
 Version 1.2.2 - 2005-08-26
+--------------------------
 * Fixed password changing code
 * Additional call and unit types added by default in schema.sql
 
+--------------------------
 Version 1.2.1 - 2005-08-26
+--------------------------
 * Scrollbars added to edit incident frame units list 
 * Submitting "attach unit" when unit is not selected should not cause a failure
 
+--------------------------
 Version 1.2.0 - 2005-08-01
+--------------------------
 * Completed user accounts (sessions) functionality
 * Rewrote HTML interaction to avoid SQL injection and XSS attacks
 * Reverted to ESD context header.
 * Made an intro/status screen
 
+--------------------------
 Version 1.1.0 - 2005-04-26
+--------------------------
 * Lots of Wildflower work, not well documented.
 * Added bare bones user accounts functionality (without good authentication).
 
+--------------------------
 Version 1.0.3 - 2004-08-28
+--------------------------
 * Correctly detect units availability on first page visit after browser load 
 * Log a message when deleting a unit
 * Created unit reports feature
 
+--------------------------
 Version 1.0.2 - 2004-08-27
+--------------------------
 * Deleted old reference to unit configuration page
 * Adding a unit no longer displays mysql warning on nonexistant status
 * Added sans font on all screens for *NIX systems
 * Make reports date selector more intuitive
 
+--------------------------
 Version 1.0.1 - 2004-08-13
+--------------------------
 * Minor 1.0 release bugfix.
 
+--------------------------
 Version 1.0.0 - 2004-08-13
+--------------------------
 *  Warn about any overwrite conflict in incident updates.   **SCHEMA CHANGE** 
 
+--------------------------
 Version 0.0.9 - 2004-08-10
+--------------------------
 * Unit personnel changes now log messages.
 * Automated unit assignment/release from incidents now logs messages as well.
 * Better Edit Incident Save logic.  Close window when appropriate.
 
+--------------------------
 Version 0.0.8 - 2004-08-08
+--------------------------
 * Screen header rewritten with graphics to be truly tabs
 * Aborted incidents won't show up in reports any more.
 * Unit listings now sorted by "natural" algorithm rather than string compare.
@@ -179,7 +354,9 @@ Version 0.0.8 - 2004-08-08
 * Help screen updated as appropriate for v0.4->v0.8 changes
 * Delete unit feature added to edit-unit screen
 
+--------------------------
 Version 0.0.7 - 2004-08-01
+--------------------------
 * Individual user account for CAD - still need to work on GRANTing
 * Config* pages updated to deal with recent schema changes
 * Inserted edit-incidents implode() and SQL INSERT empty condition checking
@@ -188,11 +365,15 @@ Version 0.0.7 - 2004-08-01
 * Edit-messages is now a popup.  freeform unit names for messages are no 
   longer allowed.
 
+--------------------------
 Version 0.0.6 - 2004-07-27
+--------------------------
 * Dynamic sizing for iframes 
 * Reports
 
+--------------------------
 Version 0.0.5 - 2004-07-21
+--------------------------
 * CSS rules extracted into style.css, working to extend CSS throughout app.
 * DB connection logic extracted into an included file
 * Generic/individual/unit classification for units.

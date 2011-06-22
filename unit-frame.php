@@ -18,7 +18,7 @@
     header('Location: units.php');
   }
 
-  $query = "SELECT role, color_html FROM unitcolors";
+  $query = "SELECT role, color_html FROM unit_roles";
   $result = mysql_query($query) or die ("In query: $query\nError: ".mysql_error());
   while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
     $rolecolor[$line["role"]] = $line["color_html"];

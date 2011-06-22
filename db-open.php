@@ -1,5 +1,8 @@
 <?php
-  require('cad.conf');
+  if (!@include('cad.conf')) {
+    print "Critical error: CAD configuration file is missing or unreadable.  Contact your CAD system administrator.";
+    exit;
+  }
 
   $link = mysql_connect($DB_HOST, $DB_USER, $DB_PASS) or die("Could not connect : " . mysql_error());
   mysql_select_db($DB_NAME) or die("Could not select database");
@@ -19,6 +22,7 @@
       syslog(LOG_CRIT, "MysqlGrabData: Internal error - saw $num_rows rows for [$sqlquery]");
     }
     $rval = mysql_fetch_array($return, MYSQL_NUM);
+    mysql_free_result($return);
     return $rval[0];
   }
 

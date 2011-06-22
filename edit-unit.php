@@ -8,7 +8,8 @@
 
   if (isset($_POST['unit'])) {
       $unit = strtoupper(MysqlClean($_POST,'unit',20));
-      if (isset($_POST['status'])) $status = MysqlClean($_POST,'status',30); else $status="";
+      // TODO: validate data.
+      if (isset($_POST['status'])) $status = MysqlClean($_POST,'status',30); else $status="In Service";
       // if (isset($_POST['status_comment'])) $status_comment = MysqlClean($_POST,'status_comment',255); else $status_comment="";
       if (isset($_POST['type'])) $type = MysqlClean($_POST,'type',20); else $type="Unit";
       if (isset($_POST['assignment'])) $assignment = MysqlClean($_POST,'assignment',20); else $assignment="";
@@ -85,6 +86,9 @@
     }
   }
 
+  elseif (isset($_POST["abortdelete"])) {
+     // Noop, just reload
+  }
   elseif (isset($_POST["deleteunit"])) {
     if (isset($_POST['deleteforsure'])) {
       syslog(LOG_INFO, $_SESSION['username'] . ' deleted unit [' . $_POST['unit'] . ']');
@@ -106,7 +110,7 @@
     $unitline["unit"] = "";
     $unit = "";
     $newunit = 1;
-    $unitline["status"] = "(new unit)";
+    $unitline["status"] = "In Service";
     $unitline["role"] = "Other";
     $unitline["type"] = "Unit";
     $unitline["assignment"] = "";
@@ -123,12 +127,13 @@
   }
   elseif (isset($_POST['add_pageout'])) {
     $newval = MysqlClean($_POST, 'newpageout', 20);
-    syslog(LOG_INFO, $_SESSION['username'] . " added page-out of pager ID $newval to unit [$unit]");
-    MysqlQuery("INSERT INTO unit_incident_paging (unit, to_person_id) VALUES ('$unit', $newval)");
+    if ($newval != '0') {
+      syslog(LOG_INFO, $_SESSION['username'] . " added page-out of pager ID $newval to unit [$unit]");
+      MysqlQuery("INSERT INTO unit_incident_paging (unit, to_person_id) VALUES ('$unit', $newval)");
+    }
     header("Location: edit-unit.php?unit=".$_POST['unit']);
     exit;
   }
-
   elseif (isset($_POST['pageunit']) &&              # manual unit paging
           isset($DB_PAGING_NAME) &&
           isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
@@ -191,6 +196,7 @@
     exit;
   }
 
+  // TODO: In future, replace this handler when you replace the method
   else {
     $action = 0;
     foreach (array_keys($_POST) as $postkey) {
@@ -211,8 +217,15 @@
     }
   }
 
+
   header_html('Dispatch :: Unit Details');
-/*-------------------------------------------------------------------------*/?>
+
+  if (isset($_POST["deleteunit"]) || isset($_POST['deleteforsure']))
+    $disabledp = ' disabled ';
+  else 
+    $disabledp = '';
+/*-------------------------------------------------------------------------*/
+?>
 <body vlink="blue" link="blue" alink="cyan">
 <form name="myform" action="edit-unit.php" method="post">
 
@@ -226,7 +239,7 @@
   <!-- Title Bar Table -->
   <table width=100%>
   <tr>
-  <td><font color="white" size="+1"><b><? if (!$newunit) print "Unit: $unit"; else print "Creating a New Unit"; ?></b></font></td>
+  <td><font color="white" size="+1"><b><?php if (!$newunit) print "Unit: $unit"; else print "Creating a New Unit"; ?></b></font></td>
   </tr>
   </table>
 
@@ -249,7 +262,7 @@
       if ($newunit) {
         print "<tr>";
         print "<td class=\"label\" align=\"right\"><b>Unit name</b></td>\n";
-        print "<td colspan=\"5\" class=\"text\"><input type=\"text\" name=\"unit\"><input type=\"hidden\" name=\"new-unit-entered\"></td>\n";
+        print "<td colspan=\"5\" class=\"text\"><input type=\"text\" style=\"text-transform: uppercase\" maxlength=\"20\" name=\"unit\"><input type=\"hidden\" name=\"new-unit-entered\"></td>\n";
         print "</tr>\n";
       }
       else {
@@ -262,16 +275,17 @@
     <td class="label" align="right">B<u>r</u>anch</td>
     <td class="text" width="100%">
     <label for="role" accesskey="role">
-    <select name="role" id="role">
+    <select name="role" <?php print $disabledp ?> id="role">
     <?php
-      $avail_roles = array('Fire', 'Medical', 'Comm', 'MHB', 'Admin', 'Other');
-      if (array_search($unitline["role"], $avail_roles) === FALSE)
-        print "<option selected value=\"\">(not set)</option>\n";
-      foreach ($avail_roles as $role) {
-        print "<option ";
-        if ($unitline["role"] == $role)
-          print "selected ";
-        print "value=\"$role\">$role</option>\n";
+      $roles = MysqlQuery("SELECT role FROM unit_roles");
+      print "<option value=\"\"></option>\n";
+      while ($role_row = mysql_fetch_object($roles)) {
+        $role = $role_row->role;
+        if ($unitline["role"] == $role) 
+          print "<option selected value=\"$role\">$role</option>\n";
+        else 
+          print "<option value=\"$role\">$role</option>\n";
+
       }
     ?>
     </select>
@@ -281,7 +295,7 @@
     <td class="label" align="right">T<u>y</u>pe</td>
     <td class="text" width="100%">
     <label for="type" accesskey="y">
-    <select name="type" id="type">
+    <select name="type" <?php print $disabledp ?> id="type">
     <?php
       $avail_types = array('Unit', 'Individual', 'Generic');
       if (array_search($unitline["type"], $avail_types) === FALSE)
@@ -301,7 +315,7 @@
     <td class="label" align="right"><u>A</u>ssignment</td>
     <td class="text" width="100%">
     <label for="assignment" accesskey="a">
-    <select name="assignment" id="assignment">
+    <select name="assignment" <?php print $disabledp ?> id="assignment">
     <?php
       $avail_asses = MysqlQuery('SELECT * FROM unit_assignments');
 
@@ -328,7 +342,7 @@
     <td class="label" align="right"><u>S</u>tatus</td>
     <td class="text" width="100%">
     <label for="status" accesskey="s">
-    <select name="status" id="status">
+    <select name="status" <?php print $disabledp ?> id="status">
     <?php
       $statusset=0;
       $statusresult = MysqlQuery("SELECT * from status_options");
@@ -347,13 +361,13 @@
     ?>
     </select>
     </label>
-    <input type="hidden" name="previous_status" value="<?=MysqlUnClean($unitline["status"]);?>" />
+    <input type="hidden" name="previous_status" value="<?php print MysqlUnClean($unitline["status"]);?>" />
     </td>
 
     <td colspan="2">&nbsp;</td>
 
     <td class="label" align="right">Updated</td>
-    <td class="text"><?=dls_utime($unitline["update_ts"]);?></td>
+    <td class="text"><?php print dls_utime($unitline["update_ts"]);?></td>
     </tr>
 
     <!-- Begin Unit Form Row: Status Redux -->
@@ -372,22 +386,10 @@
     <td class="label" align="right" nowrap>Last <u>L</u>ocation</td>
     <td class="text" colspan="5">
     <label for="location" accesskey="l">
-    <input name="location" id="location" type="text" maxlength="250" size="80"
+    <input name="location" id="location" <?php print $disabledp ?> type="text" maxlength="250" size="80"
      value="<?php print MysqlUnClean($unitline["location"])?>" />
     </label>
-    <input type="hidden" name="previous_location" value="<?=$unitline["location"];?>" />
-    </td>
-    </tr>
-
-    <!-- Begin Unit Form Row: Notes -->
-    <tr>
-    <td class="label" align="right">N<u>o</u>tes</td>
-    <td class="text" colspan="5">
-    <label for="notes" accesskey="o">
-    <input name="notes" id="notes" type="text" maxlength="250" size="80"
-     value="<?php print MysqlUnClean($unitline["notes"])?>" />
-    </label>
-    <input type="hidden" name="previous_notes" value="<?=$unitline["notes"];?>" />
+    <input type="hidden" name="previous_location" value="<?php print $unitline["location"];?>" />
     </td>
     </tr>
 
@@ -396,10 +398,22 @@
     <td class="label" align="right"><u>P</u>ersonnel</td>
     <td class="text" colspan="5">
     <label for="personnel" accesskey="p">
-    <input name="personnel" id="personnel" type="text" maxlength="250" size="80"
-     value="<?=MysqlUnClean($unitline["personnel"]);?>" />
+    <input name="personnel" id="personnel" <?php print $disabledp ?> type="text" maxlength="250" size="80"
+     value="<?php print MysqlUnClean($unitline["personnel"]);?>" />
     </label>
-    <input type="hidden" name="previous_personnel" value="<?=$unitline["personnel"];?>" />
+    <input type="hidden" name="previous_personnel" value="<?php print $unitline["personnel"];?>" />
+    </td>
+    </tr>
+
+    <!-- Begin Unit Form Row: Notes -->
+    <tr>
+    <td class="label" align="right">N<u>o</u>tes</td>
+    <td class="text" colspan="5">
+    <label for="notes" accesskey="o">
+    <input name="notes" id="notes" <?php print $disabledp ?> type="text" maxlength="250" size="80"
+     value="<?php print MysqlUnClean($unitline["notes"])?>" />
+    </label>
+    <input type="hidden" name="previous_notes" value="<?php print $unitline["notes"];?>" />
     </td>
     </tr>
 
@@ -408,16 +422,23 @@
   // Begin Unit Form Row: Generic Notice
   if ($unitline["type"] == "Generic")
     print "<tr>\n<td class=\"label\" colspan=\"6\"><b>Note: As a generic unit, multiple instances of this unit may be simultaneously assigned to separate incidents.</b></td></tr>"
+
 ?>
 
     <!-- Begin Unit Form Row: Buttons -->
     <tr>
     <td>&nbsp;</td>
     <td class="label" colspan="5">
-    <button type="submit" id="saveunit" name="saveunit" tabindex="41" accesskey="1"><u>1</u>  Save</button>
-    <button type="submit" id="saveunit_closewin" name="saveunit_closewin" tabindex="42" value="Save & Return" accesskey="2"><u>2</u>   Save & Return</button>
-    <button type="button" id="cancel" name="cancel" tabindex="43" accesskey="3"
+    <button type="submit" id="saveunit" name="saveunit" <?php print $disabledp ?> tabindex="41" accesskey="1"><u>1</u>  Save</button>
+    <button type="submit" id="saveunit_closewin" name="saveunit_closewin" <?php print $disabledp ?> tabindex="42" value="Save & Return" accesskey="2"><u>2</u>   Save & Return</button>
+    <button type="button" id="cancel" name="cancel" <?php print $disabledp ?> tabindex="43" accesskey="3"
      onClick='if (window.opener){window.opener.location.reload()} self.close()'><u>3</u>  Cancel</button>
+<?php if (isset($_POST["deleteunit"]) || isset($_POST['deleteforsure'])) {
+?>
+    <button type="submit" id="abortdelete" name="abortdelete" tabindex="44" accesskey="4"><u>4</u>  Abort Deletion</button>
+<?php
+       }
+?>
     <noscript><b>Warning</b>: Javascript disabled. Close popup to cancel changes.</noscript>
     </td>
     </tr>
@@ -480,11 +501,11 @@
       $pager = mysql_fetch_object($pager_query);
       print "<tr><td class=label>Send page to <b>$unit</b>: \n";
       print "<INPUT type=hidden name=\"to_person_id\" value=\"" . $pager->person_id."\">\n";
-      print "<INPUT type=text onfocus=\"focusPaging(true)\" name=\"pagetext\" size=\"40\" maxlength=\"80\">\n";
+      print "<INPUT type=text onfocus=\"focusPaging(true)\" name=\"pagetext\" size=\"30\" maxlength=\"80\">\n";
       print "<BUTTON type=submit name=\"pageunit\" tabindex=\"42\" accesskey=\"4\"><u>4</u>  Send Page</button>\n";
       print "<BUTTON type=button onfocus =\"focusPaging(false)\" name=\"cancelpageunit\" tabindex=\"43\" accesskey=\"5\"><u>5</u>  Cancel Page</button>\n";
       print "</td></tr>\n";
-      print "<tr><td><span class=\"label\" style=\"color:blue\" id=\"pagehelp\">&nbsp;";
+      //print "<tr><td><span class=\"label\" style=\"color:blue\" id=\"pagehelp\">&nbsp;";
     }
     else {
       print "<tr><td class=label style=\"color:blue\">Cannot page this unit directly from CAD: No pager defined for &quot;<b>$unit</b>&quot;.<br>";
@@ -522,7 +543,7 @@
   <td>
 
     <!-- Begin AutoPage Form Inner Table -->
-    <table cellpadding="2" cellspacing="0" width="100%">
+    <table cellpadding="0" cellspacing="0" >
 
 <?php 
 
@@ -532,62 +553,77 @@
     while ($pager_option = mysql_fetch_object($options_query)) {
       $Pagers[$pager_option->person_id] = $pager_option->name;
     }
+    $pageout_qty = MysqlGrabData("SELECT COUNT(*) FROM unit_incident_paging WHERE unit='$unit'");
     $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
     // TODO: set access level dynamically
     if (mysql_num_rows($pageout_query) || $_SESSION['access_level'] >= 5) {
 ?>
 
   <!-- Begin Unit AutoPage Row: Labels -->
-  <tr>
-  <td class="label" width="100%" nowrap>CAD will auto-page the pagers listed below when this<br> unit [<b><?php print $unit?></b>] is assigned to an incident:</td>
-  <td></td>
-  <td class="label" nowrap>Add this pager to <?php print $unit?>'s auto-page list:</td>
-  </tr>
+<tr>
+<td colspan=4 class="label">
+<b>Automatic Paging Notification</b><br>
+When <?php print $unit?> is assigned to an incident, CAD will page a notification to each of the pagers listed below.<br>
+<div style="text-align:right; color:blue"><b>CLARIFICATION:</b> This <u>does not</u> page <?php print $unit?> when <u>the units listed below</u> are assigned to an incident.<br>  This list contains pagers, not units; and this Unit Details window is about a unit, not <?php print $unit?>'s pager.</div>
+<font size=-3> &nbsp;<center><img src="Images/bluespacer.gif" width=600 height=1></center>&nbsp; </font>
+</td>
+</tr>
 
   <!-- Begin Unit AutoPage Row: Current List / Add -->
   <tr>
-  <td valign="top">
+  <td valign="top" class="label" nowrap>
+  Pagers being notified about <?php print $unit?> dispatches:
 
-    <table cellpadding="2" cellspacing="1" width="100%">
+    <table >
 <?php
       if (mysql_num_rows($pageout_query)) {
         while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
           // TODO: set access level dynamically
-          if ($_SESSION['access_level'] >= 5) {
-            print "<tr><td width=100% class=\"message\">";
-            if ($pageout_rcpt->to_person_id == 0) {
-              print "<font color=red>Bad data needs conversion</font></td>";
+          if ($pageout_rcpt->to_person_id == 0) {
+            print "<font color=red>Bad data needs conversion</font></td>";
+          }
+
+          else {
+            print "<tr><td class=\"label\">&nbsp;&nbsp;<b>". $Pagers[$pageout_rcpt->to_person_id] .  "</b>&nbsp;&nbsp;";
+            if ($_SESSION['access_level'] >= 5) {
+                print "<input type=image title=\"Remove this pager from the notification list\" src=\"Images/cross-16.png\" name=\"delete_pageout_". 
+                  $pageout_rcpt->row_id . '_' . $pageout_rcpt->to_person_id . "\" alt=\"Delete\"></td></tr>";
             }
-            else {
-              print $Pagers[$pageout_rcpt->to_person_id] .  "</td>";
-            }
-            print "<td align=right class=message><input type=submit " .
-                  " name=\"delete_pageout_". $pageout_rcpt->row_id . '_' . $pageout_rcpt->to_person_id . "\" value=\"Delete\"></td></tr>";
+           // TODO: In future, replace this submit button with a red "X", and replace the handler appropriately.
             unset($Pagers[$pageout_rcpt->to_person_id]);
           }
-          else {
-            print "<tr><td width=100% class=\"message\">" . $Pagers[$pageout_rcpt->to_person_id] . "</td></tr>";
-          }
+
         }
       }
       else {
-        print "<tr><td class=label style=\"color:blue\">No auto-page pagers are defined for this unit.</td></tr>";
+        print "<tr><td class=label style=\"color:blue\">No pagers are being notified.</td></tr>";
       }
       print "</table></td>\n";
     }
 
+    print "</td>\n";
+
     if ($_SESSION['access_level'] >= 5) {
-      print "</td><td></td><td>\n";
+
+
+      print "<td valign=middle>\n";
+      print "<img src=\"Images/bluespacer.gif\" width=1 height=".(int)(20*($pageout_qty+2)).">\n";
+      print "</td>\n";
+      print "<td valign=top class=\"label\" nowrap>\n";
+      print "Add notify about $unit to pager:\n";
+
       print "<table cellpadding=\"2\" cellspacing=\"1\" width=\"100%\">\n";
-      print "<tr><td class=message><SELECT name=newpageout>\n";
+      print "<tr><td class=\"label\"><SELECT name=newpageout>\n";
+      print "<option value=\"0\"> -select a pager below- </option>\n";
       foreach (array_keys($Pagers) as $pager) {
         print "<option value=$pager>" . $Pagers[$pager] . "</option>\n";
       }
-      print "</SELECT></td><td class=message><input type=submit value=\"Add\" name=\"add_pageout\"></td></tr>\n";
+      print "</SELECT></td><td class=\"label\"><input type=submit value=\"Add\" name=\"add_pageout\"></td>\n";
     }
     mysql_close($paginglink);
 
 ?>
+</tr>
       </table>
 
     </td>
@@ -597,6 +633,7 @@
 
   </td>
   </tr>
+
   </table>
   <!-- End Unit AutoPage Outer Table -->
 

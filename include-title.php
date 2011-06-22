@@ -1,22 +1,15 @@
 <!-- START include-title.php -->
-
- <script type="text/javascript">
-  <!--
-<?php
-  if (!isset($_COOKIE['width']) OR !isset($_COOKIE['height'])) { ?>
-    resizeMe();
-<?} else { ?>
-  if (window.innerWidth != <?=trim($_COOKIE['width'])?> || window.innerHeight != <?=trim($_COOKIE['height'])?>) {
-    resizeMe();
-  }
-<?} ?>
-  -->
-  </script>
-
-
 <?php
   include('VERSION');
   require_once('session.inc');
+  print " <script type=\"text/javascript\">\n <!--\n";
+  if (!isset($_COOKIE['width']) OR !isset($_COOKIE['height'])) { 
+    print "  resizeMe(); \n";
+  } else { 
+    print "if (window.innerWidth != " . trim($_COOKIE['width']) . " || window.innerHeight != " . trim($_COOKIE['height']) . ") { resizeMe(); }\n";
+  }
+  print " -->\n </script> \n";
+
 
   $new_bull = 0;
   $upd_bull = 0;
@@ -43,13 +36,16 @@
 <!-- Display Header - custom to client -->
 <table cellspacing="0" cellpadding="0" width="100%" >
 <tr>
-<td rowspan=5 valign="top" style="padding-right: 0.02cm"><img src="<?=$HEADER_LOGO?>" height="72" width="72" alt="" /></td>
-<td class=headertext><?=$HEADER_TITLE?></td>
+<td rowspan=5 valign="top" style="padding-right: 0.02cm; white-space: nowrap">
+<img src="<?php print $HEADER_LOGO?>" height="72" width="72" alt="" />
+</td>
+<td class=headertext><?php print $HEADER_TITLE?></td>
 
-<td align=right class=headerinfo title="Release Date <?=$OC_RELEASE_DATE?>">
-  Black Flower CAD v<?=$OC_VERSION?> <?=$OC_LEVEL?> 
+<td align=right class=headerinfo title="Release Date <?php print $OC_RELEASE_DATE?>">
+  Black Flower CAD v<?php print $OC_VERSION?> <?php print $OC_LEVEL?> 
 <br>
-<?if ($_SESSION['username'] != "") {
+<?php
+  if ($_SESSION['username'] != "") {
     print "&nbsp;Logged in as <b>".$_SESSION['username']."</b>";
     if ($_SESSION['name'] != "") {
       print " (".$_SESSION['name'].")";
@@ -74,10 +70,12 @@
 </tr>
 
 <tr> <td colspan="3" bgcolor="menubg"></td> </tr>
+<!--
 <tr> <td colspan=3 class="menubg" width=100%> </td> </tr>
+-->
 
-<tr>
-  <td colspan=3 class=menubg> 
+<tr style="padding: 0px; border: 0px; margin: 0px" height="20px">
+  <td colspan=3 class=menubg style="padding: 0px; margin: 0px"> 
 <?php
   $CSS = array ( 
     "main" => "headermenu",
@@ -92,6 +90,7 @@
     "logout" => "headermenuright");
   $CSS[$subsys] .= "sel";
 
+  print "<span class=\"headermenu\" style=\"padding: 0px\"><img src=\"Images/nbcurve.png\" height=20 alt=\"\" /></span>\n";
   print "<span class=\"". $CSS["incidents"] . "\"><a class=menua href=\"incidents.php\">Incidents</a></span>\n";
   print "<span class=\"". $CSS["units"]     . "\"><a class=menua href=\"units.php\">Units</a></span>\n";
   print "<span class=\"". $CSS["cad"]       . "\"><a class=menua href=\"cad.php\">Log Viewer</a></span>\n";
@@ -99,7 +98,7 @@
 
   print "<span class=\"". $CSS["logout"]      . "\"><a class=menua href=\"main.php?logout\">Log Out</a></span>\n";
   print "<span class=\"". $CSS["help"]      . "\"><a class=menua href=\"help.php\">Help</a></span>\n";
-  if ($_SESSION["access_level"] >= 9) {
+  if ($_SESSION["access_level"] >= 10) {
     print "<span class=\"". $CSS["admin"]   . "\"><a class=menua href=\"admin.php\">System Admin</a></span>\n";
   }
   print "<span class=\"". $CSS["config"]    . "\"><a class=menua href=\"config.php\">Preferences</a></span>\n";

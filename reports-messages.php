@@ -60,7 +60,7 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
     <td class="th">From</td>
     <td class="th">Message</td>
     <td class="th"><font size="-2">Logged By</font></td></tr>
-<?
+<?php
   while ($line = mysql_fetch_object($result)) {
     print "<tr bgcolor=\"white\"><td class=\"text\">".$line->message_type."</td>\n";
     print "<td class=\"text\">" .date('Y-m-d',strtotime($line->ts))."&nbsp;".date('H:i:s',strtotime($line->ts))."</td\n";
@@ -75,7 +75,7 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
 ?>
 </table>
 </td></tr></table>
-<?
+<?php
 } else {
   mysql_close($link);
   die("Unit selection not set.");

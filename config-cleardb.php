@@ -78,7 +78,7 @@
     MysqlQuery("DELETE FROM bulletin_views");
     MysqlQuery("DELETE FROM bulletin_history");
     MysqlQuery("UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL, personnel_ts=NULL, location_ts=NULL, notes_ts=NULL, assignment='', location='', personnel='', notes=''");
-    MysqlQuery
+    //MysqlQuery
     # TODO - clear unit locations, personnel, notes
     
   /* Finish */
@@ -91,7 +91,7 @@
   header_html("Dispatch :: Configuration");
 ?>
 <body vlink="blue" link="blue" alink="cyan">
-<? include('include-title.php'); ?>
+<?php include('include-title.php'); ?>
 <center><b>CLEARING THE DATABASE</b></center>
 
 <p>
