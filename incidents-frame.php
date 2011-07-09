@@ -108,11 +108,17 @@
   mysql_free_result($result);
 
 
+  // Load incident lock info
+  $locks = array();
+  $query_locks = 'SELECT il.incident_id, il.user_id, il.takeover_timestamp, u.username, u.name FROM incident_locks il LEFT OUTER JOIN users u on il.user_id=u.id WHERE takeover_timestamp IS NULL';
+  $locks_result = MysqlQuery($query_locks);
+  while ($lock_row = mysql_fetch_object($locks_result)) {
+    $locks[(int)$lock_row->incident_id] = $lock_row;
+    syslog(LOG_DEBUG, "Set lock flag for incident " . $lock_row->incident_id);
+  }
+
   // PREPARE MAIN QUERY
-  $query_select = 'SELECT incidents.*, TIME_TO_SEC(TIMEDIFF(NOW(),updated)) as stale_secs, TIME_TO_SEC(TIMEDIFF(NOW(),ts_opened)) as age_secs, incident_locks.user_id, incident_locks.takeover_timestamp, users.username, users.name FROM incidents LEFT OUTER JOIN incident_locks on incidents.incident_id=incident_locks.incident_id LEFT OUTER JOIN users ON incident_locks.user_id = users.id ';
-  // TODO: querying incident_locks here is noble, but this introduces too much fragility with having to 
-  // filter "and takeover_timestamp is null" below.  Try to clean this up, or break out lock checking to 
-  // a separate dynamic programming query.
+  $query_select = 'SELECT incidents.*, TIME_TO_SEC(TIMEDIFF(NOW(),updated)) as stale_secs, TIME_TO_SEC(TIMEDIFF(NOW(),ts_opened)) as age_secs FROM incidents';
   $query_where = ''; 
   $query_order = " ORDER BY incidents.incident_id DESC ";
   $query_limit = '';
@@ -141,7 +147,6 @@
   }
 
   $howmany = MysqlGrabData('SELECT COUNT(*) AS howmany FROM incidents ' . $query_where);
-  $query_where .= " AND takeover_timestamp IS NULL" ;
   $query = "$query_select $query_where $query_order $query_limit";
   syslog(LOG_DEBUG, "Main incidents query: $query");
   $result = MysqlQuery($query);
@@ -151,7 +156,6 @@
   if ($filterdate != '' || $filtercalltype != '') {
     print "<b class=\"text\" style=\"color: #dd0000;\">Filters Applied</b><br />\n";
   }
-
 
 
 ?>
@@ -187,16 +191,20 @@
     // Loop through all the incidents that match the query
     while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
       echo "  <tr>\n";
+      $incident_id = $line["incident_id"];
+
       if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING)  {
-        if ($line["user_id"] > 0) {
-          if ($line["user_id"] == $_SESSION["id"]) $td = "    <td class=\"message-iself\" nowrap>";
-          else $td = "    <td class=\"message-iother\" nowrap>";
+        if (isset($locks[$incident_id]) && $locks[$incident_id]->user_id > 0) {
+          if ($locks[$incident_id]->user_id == $_SESSION["id"]) 
+            $td = "    <td class=\"message-iself\" nowrap>";
+          else 
+            $td = "    <td class=\"message-iother\" nowrap>";
         }
-        else $td = "    <td class=\"message\" nowrap>";
+        else 
+          $td = "    <td class=\"message\" nowrap>";
       }
 
 
-      $incident_id = $line["incident_id"];
       if ($line["completed"])
         $quality = "<span style='color: #666666;'>";
       elseif (isset($line["ts_opened"]) && $line["ts_opened"] <> "" && $line["age_secs"] < 300)
@@ -226,9 +234,10 @@
       
       if ($line["call_number"] != '') {
         echo $td, $quality, $href, str_replace("-", "&#8209;", $line["call_number"]), "</span></a>";
-        if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING && $line["user_id"] > 0 &&
+        if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING && 
+            isset($locks[$incident_id]) && $locks[$incident_id]->user_id > 0 &&
             isset($LOCKING_SHOW_USERNAME) && $LOCKING_SHOW_USERNAME) {
-          print '&nbsp;&nbsp;<span style="color: #666666; font-style: italic; font-size: smaller; text-decoration: underline " title="Call '.$line["call_number"]. " is open by ".$line["name"].'">'.$line["username"].'</span>';
+          print '&nbsp;&nbsp;<span style="color: #666666; font-style: italic; font-size: smaller; text-decoration: underline " title="Call '.$line["call_number"]. " is open by ".$locks[$incident_id]->name.'">'.$locks[$incident_id]->username.'</span>';
         }
       }
       else {

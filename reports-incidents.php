@@ -303,9 +303,9 @@ function StatsColumnHeader() {
       $pdf->Cell(5,5);
       $pdf->Cell(40,5,"Unit Name");
       $pdf->Cell(25,5,"Dispatched");
-      $pdf->Cell(25,5,"Arrived");
-      $pdf->Cell(25,5,"Transported");
-      $pdf->Cell(25,5,"Transp. Done");
+      $pdf->Cell(25,5,"On Scene");
+      $pdf->Cell(25,5,"Transporting");
+      $pdf->Cell(25,5,"At Destination");
       $pdf->Cell(25,5,"Cleared");
       $pdf->Ln(5);
       while ($unit = mysql_fetch_object($unitresult)) {

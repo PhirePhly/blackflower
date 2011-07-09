@@ -1,6 +1,6 @@
 <?php
 /***** Version definitions primarily for code use, do not modify: ******/
-$OC_VERSION = "1.8.0";
+$OC_VERSION = "1.8.1";
 $OC_LEVEL = "";
-$OC_RELEASE_DATE = "20110622";
+$OC_RELEASE_DATE = "20110709";
 ?>
