@@ -2,6 +2,16 @@ CHANGES
 -------
 
 --------------------------
+Version 1.8.1 - 2011-07-09
+--------------------------
+[minor]  Clarified incident unit timestamp terminology.
+
+[minor]  Added v1.7 timestamps to Units report.
+
+[bugfix] Fixed incident database queries around stale incident locks.
+
+
+--------------------------
 Version 1.8.0 - 2011-06-22
 --------------------------
 [major]  Improved multi-station incident editing.  Instead of multiple 

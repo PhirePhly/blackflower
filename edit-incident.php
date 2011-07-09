@@ -55,6 +55,7 @@
   $lock_obtained=0;
   if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING) {
     MysqlQuery("LOCK TABLES incident_locks LOW_PRIORITY WRITE, users READ");
+    MysqlQuery("DELETE FROM incident_locks WHERE user_id=".(int)$_SESSION['id']." AND session_id='".session_id()."' AND takeover_timestamp IS NOT NULL"); // This may be overly aggressive, but is needed to clean up the POST/alert logic in the short term.
     $incident_lock = MysqlQuery ("SELECT incident_locks.*, users.username FROM incident_locks LEFT OUTER JOIN users on incident_locks.user_id = users.id WHERE incident_id=$incident_id AND takeover_timestamp IS NULL");
     $incident_previously_locked = mysql_num_rows($incident_lock);
     $lock_info = mysql_fetch_object($incident_lock);
@@ -496,9 +497,9 @@
         <td width=100% class="ihsmall">Unit&nbsp;Name</td>
         <td class="ihsmall"><u>Dispatched</u></td>
         <td class="ihsmall"><u>On&nbsp;Scene</u></td>
-        <td class="ihsmall"><u>Transported</u></td>
-        <td class="ihsmall"><u>Trans.Done</u></td>
-        <td class="ihsmall"><u>Released</u></td>
+        <td class="ihsmall"><u>Transporting</u></td>
+        <td class="ihsmall"><u>At&nbsp;Destination</u></td>
+        <td class="ihsmall"><u>Cleared</u></td>
       </tr>
       <tr><td>
 
@@ -549,14 +550,14 @@
          print "<td class=\"message\" align=\"right\">".
                "<input type=\"submit\" name=\"transdn_unit_".$line["uid"]."\" tabindex=\"-1\"".
                DisabledP($is_complete, 'field', 'font-size: 10') .
-               " style=\"font-size: 10\" value=\"Trans. Done\">".
+               " style=\"font-size: 10\" value=\"At Destination\">".
                "</td>";
        }
 
        print "<td class=\"message\" align=right>".
              "<input type=\"submit\" name=\"release_unit_". $line["uid"]."\" tabindex=\"-1\"".
                DisabledP($is_complete, 'field', 'font-size: 10') .
-             " style=\"font-size: 10\" value=\"Release\">".
+             " style=\"font-size: 10\" value=\"Clear\">".
              "</td>";
      }
   ?>
@@ -568,9 +569,9 @@
         <td width=100% class="ihsmall">Unit&nbsp;Name</td>
         <td class="ihsmall"><u>Dispatched</u></td>
         <td class="ihsmall"><u>On&nbsp;Scene</u></td>
-        <td class="ihsmall"><u>Transported</u></td>
-        <td class="ihsmall"><u>Trans.Done</u></td>
-        <td class="ihsmall"><u>Released</u></td>
+        <td class="ihsmall"><u>Transporting</u></td>
+        <td class="ihsmall"><u>At&nbsp;Destination</u></td>
+        <td class="ihsmall"><u>Cleared</u></td>
       </tr>
 
   <?php

@@ -443,11 +443,12 @@
         AND user_id=$userid
         AND session_id='" . session_id() . "'
       ";
+        //AND takeover_timestamp IS NULL    -- added this because we were getting num_rows=2 when trying to post on a stale lock with re-editing.  clear on load instead.
     syslog(LOG_DEBUG, "Selecting lock to confirm read-write incident: $incident_lock_query");
     $incident_lock_results = MysqlQuery($incident_lock_query);
 
     if (mysql_num_rows($incident_lock_results) != 1) {
-      print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> alert(\"Your read-write lock disappeared while editing incident $incident_id.  Contact the system administrator with this message.  (Num: " . mysql_num_rows($incident_lock_results) . ")\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
+      print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> alert(\"Read-write privileges disappeared while editing incident $incident_id (". mysql_num_rows($incident_lock_results) . " locks).  Contact the system administrator with this message.\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
       exit;
     }
 

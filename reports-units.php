@@ -236,7 +236,9 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
       $pdf->SetFont('Arial','',10);
       $pdf->Cell(5,5); $pdf->Cell(30, 5, "Dispatch Time:", 0, 0, "R");  $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->dispatch_time, 1, 1);
       $pdf->Cell(5,5); $pdf->Cell(30, 5, "Arrival Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->arrival_time, 1, 1);
-      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Released Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->cleared_time, 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Transporting Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->transport_time, 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "At Destination:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->transportdone_time, 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Cleared Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->cleared_time, 1, 1);
       $pdf->Ln(5);
       $pdf->SetFont('Arial','B',10);
       if ($associated_callnums[$line->incident_id] != '') {
