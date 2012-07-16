@@ -6,6 +6,12 @@ li { font-size: 10pt; text-align: justify }
 
 .button { background-color: #eeeeee; border: 2px outset #cccccc; color: black; font-family: tahoma,sans; font-size: 10pt; text-decoration: none; margin: 3px }
 
+.channel { font-family: tahoma,sans; border: 1px solid #888888; display: inline; font-size: 11; white-space: nowrap; background-color: #99ffcc; color: black; }
+.chasg { background-color: yellow; border: 2px solid #999900;}
+.chasgix { background-color: #6666cc; border: 2px solid #999900;}
+.chunav { background-color: #eeeeee; color: #cccccc;  border: 1px solid #aaaaaa }
+.chother { background-color: #666666; color: black;  }
+
 .iconred    { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid red; color: red }
 .iconyellow { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid yellow; background-color: gray; color: yellow }
 .iconblue   { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid blue; color: blue }
@@ -13,6 +19,32 @@ li { font-size: 10pt; text-align: justify }
 .iconwhite  { font-size:9px; padding-left: 2px; padding-right: 2px; background-color: white; border: 1px solid gray; color: black; font-weight: bold }
 .icongray   { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid gray; color: gray }
 
+.cell {
+    font-family: tahoma, sans;
+    font-size: 10pt;
+    text-align: justify;
+    padding-left: 0.1cm;
+    padding-right: 0.1cm;
+}
+.bgeee {
+  background-color: #eeeeee;
+}
+.bgred {
+  background-color: red;
+  color: white;
+}
+.red {
+  color: red;
+}
+.green {
+  color: green;
+}
+.fgray {
+  color: gray;
+}
+.b {
+  font-weight: bold;
+}
 .message {
     font-family: tahoma, sans;
     background-color: #cccccc;
@@ -71,11 +103,11 @@ li { font-size: 10pt; text-align: justify }
     padding-right: 0.5cm;
     border: 1px solid #999999
 }
-a.menua { color: white; text-decoration: none }
-a.menua:hover { color: #ccccff; }
+a.menua { color: #eeeeee; text-decoration: none; padding-left: 5px; padding-right: 5px; margin: 0px; }
+a.menua:hover { color: white; background-color: #7777AA; padding-left: 5px; padding-right: 5px; margin: 0px;}
 .menubg { font-family: tahoma, ariel, sans; background-color: #333366; padding: 0.01cm; }
-.headermenu { float: left; font-family: tahoma, ariel, sans; background-color: #333366; color: white; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify ; border-right: 1px dotted #ccccff }
-.headermenuright { float:right; font-family: tahoma, ariel, sans; background-color: #333366; color: white; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify ; border-right: 1px dotted #ccccff }
+.headermenu { float: left; font-family: tahoma, ariel, sans; background-color: #333366; color: white; font-size: 12pt; padding-left: 0.0cm; padding-right: 0.0cm; text-align: justify ; border-right: 1px solid #666699 }
+.headermenuright { float:right; font-family: tahoma, ariel, sans; background-color: #333366; color: white; font-size: 12pt; padding-left: 0.0cm; padding-right: 0.0cm; text-align: justify ; border-right: 1px solid #666699 }
 .headertext { font-family: tahoma, ariel, sans; font-size: 14pt; padding-left: 0.2cm; padding-right: 0.2cm; padding-bottom: 0.05cm;}
 
 .headerinfo {
@@ -88,8 +120,8 @@ a.menua:hover { color: #ccccff; }
            padding:        3px 0px 3px 0px;
    }
 
-.headermenusel { float: left; font-family: tahoma, ariel, sans; background-color: #666699; color: white; font-weight: bold; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify }
-.headermenurightsel { float: right; font-family: tahoma, ariel, sans; background-color: #666699; color: white; font-weight: bold; font-size: 12pt; padding-left: 0.2cm; padding-right: 0.2cm; text-align: justify }
+.headermenusel { float: left; font-family: tahoma, ariel, sans; background-color: #666699; color: white; font-size: 12pt; padding-left: 0.0cm; padding-right: 0.0cm; text-align: justify }
+.headermenurightsel { float: right; font-family: tahoma, ariel, sans; background-color: #666699; color: white; font-size: 12pt; padding-left: 0.0cm; padding-right: 0.0cm; text-align: justify }
 
 .notice 	{ font-family: tahoma, sans; background-color: blue; color: white; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
 .gray 	{ font-family: tahoma, sans; color: gray; background-color: #cccccc; font-size: 10pt; text-align: justify ; padding-left: 0.2cm; padding-right: 0.2cm }
@@ -164,6 +196,12 @@ ul {
 .newbutton {
 	background-color: #339933;
 	color: #FFFFFF;
+}
+
+body
+{
+	margin: 1;
+	padding: 1;
 }
 
 html.login,body.login, table#pagelayout {

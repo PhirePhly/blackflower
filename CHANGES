@@ -2,6 +2,46 @@ CHANGES
 -------
 
 --------------------------
+Version 1.9.0 - 2012-07-08
+--------------------------
+[major]  THE PASSWORD HASH FORMAT HAS CHANGED AS OF 1.9.0.  All passwords 
+         generated on previous versions must be reset per this example
+         (starting with the Administrator account for convenience):
+
+  1. Set $DEBUG=1 in cad.conf, 
+  2. Attempt to log in as Administrator (which will fail), 
+  3. Observe the hash displayed on the login failure screen,
+  4. Update the MySQL users table with the displayed hash: 
+     mysql>  update cad.users set password='<hash>' where id=1;
+  5. Log in as Administrator with your new password.
+  6. Go to the System Admin tab and change all other users' passwords.
+  7. Set $DEBUG=0 in cad.conf.
+
+[major]  Implemented channel assignments to incidents.  Channels may
+         be configured by the sysadmin to be available or unavailable
+         (for reference only), repeater or simplex (for display purposes),
+         then assigned by a dispatcher in the edit_incident window.
+
+[major]  Implemented optional read-only mode and associated config settings.
+         If read-only settings are not defined, the app will remain wide open
+         (in read-write mode) for all connections.
+         
+[minor]  Users are now locked out after repeated incorrect login attempts
+         (default limit = 5 attempts, configurable in cad.conf.)
+
+[minor]  Implemented forced password expiry.
+
+[bugfix] Fixed bugs in error checking for System Admin > Edit Users.
+
+
+--------------------------
+Version 1.8.2 - 2011-09-03
+--------------------------
+[bugfix] Set 'Attached to Incident' in schema to match case sensitive magic
+         code comparison.
+
+
+--------------------------
 Version 1.8.1 - 2011-07-09
 --------------------------
 [minor]  Clarified incident unit timestamp terminology.

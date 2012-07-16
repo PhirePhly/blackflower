@@ -32,7 +32,8 @@ function SetReportsCriteria($value) {
 
 function Header()
 {
-    $this->Image('Logos/logo-esd.jpg',175,8,20);
+    global $HEADER_LOGO;
+    $this->Image("$HEADER_LOGO",175,8,20);
     $this->SetFillColor(230);
 
     // top row

@@ -235,5 +235,9 @@ fi
 
 echo
 echo "CAD initialization completed."
+echo
+echo "IMPORTANT: as of v1.9.0pre2, the Administrator password setting will not"
+echo "  work correctly.  Set \$DEBUG=1 in cad.conf and update the database "
+echo "  users table with the hash displayed on an unsuccessful login attempt."
 
 

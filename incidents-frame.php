@@ -157,6 +157,16 @@
     print "<b class=\"text\" style=\"color: #dd0000;\">Filters Applied</b><br />\n";
   }
 
+  $Channels = array();
+  $channels = MysqlQuery("SELECT * FROM channels");
+  if (mysql_num_rows($channels)) {
+    while ($channel = mysql_fetch_object($channels)) {
+      $Channels[$channel->channel_id] = array(
+        'incident_id'       => $channel->incident_id, 
+        'channel_name'      => $channel->channel_name, 
+        'repeater'          => $channel->repeater);
+    }
+  }
 
 ?>
 
@@ -169,6 +179,7 @@
       print '<i>/open by</i>';
 ?> </td>
     <td class="th">Incident Details</td>
+    <td class="th">Location</td>
     <td class="th">Call Type</td>
     <td class="th" style="font-size: 9">Last<br>Updated?</td>
     <td class="th" >Call&nbsp;Time</td>
@@ -179,7 +190,6 @@
     print "<td class=\"th\" width=\"50\">Complete</td>\n";
   }
 ?>
-    <td class="th">Location</td>
     <td class="th">Unit(s) Assigned</td>
   </tr>
 <?php
@@ -187,7 +197,6 @@
   // Incident Display Table
 
   if (mysql_num_rows($result)) {
-
     // Loop through all the incidents that match the query
     while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
       echo "  <tr>\n";
@@ -251,11 +260,29 @@
 
       $display_details = MysqlUnClean($line["call_details"]);
       $details_title="";
+      $details_channel="";
       if (strlen($display_details) > 40) {
         $details_title=" title=\"$display_details\"";
         $display_details = str_replace(" ", "&nbsp;",  substr($display_details,0,40)) . "...<sup style=\"color:blue\">&laquo;</sup>";
       }
       echo $td, $quality, "&nbsp;", $href, "<span $details_title>$display_details</span></a></td>\n";
+
+      $display_location = MysqlUnClean($line["location"]);
+      $location_title="";
+      if (strlen($display_location) > 30) {
+        $location_title=" title=\"$display_location\"";
+        $display_location = str_replace(" ", "&nbsp;",  substr($display_location,0,30)) . "...<sup style=\"color:blue\">&laquo;</sup>";
+      }
+
+      echo $td, $quality; 
+      $chclass = 'channel chasg';
+      foreach ($Channels as $channel) {
+        if ($channel['incident_id'] == $incident_id) {
+          if ($channel['repeater']) $chclass .= ' b';
+          echo "<span class=\"$chclass\" style=\"float: left;\">".$channel['channel_name']."&nbsp;</span>";
+        }
+      }
+      echo "<span style=\"display: inline; float: left\" $location_title>&nbsp;$display_location</span></td>\n";
 
       
       echo $td, $quality, str_replace(" ", "&nbsp;", $line["call_type"]), "</span></td>\n";
@@ -272,15 +299,6 @@
       if ($show_closed) {
         echo $td, $quality, dls_utime($line["ts_complete"]), "</span></td>\n";
       }
-
-      $display_location = MysqlUnClean($line["location"]);
-      $location_title="";
-      if (strlen($display_location) > 30) {
-        $location_title=" title=\"$display_location\"";
-        $display_location = str_replace(" ", "&nbsp;",  substr($display_location,0,30)) . "...<sup style=\"color:blue\">&laquo;</sup>";
-      }
-
-      echo $td, $quality, "<span $location_title>$display_location</span></td>\n";
 
       if (isset($unitcount[$incident_id])) {
          $count = $unitcount[$incident_id];
@@ -372,6 +390,33 @@
 
    mysql_free_result($result);
    echo "<!-- END Display Incidents -->\n\n";
+   print "<div style=\"width: auto; margin: 0px; margin-top: 8px; margin-bottom: 8px;\">\n";
+   print "<span class=\"text\" style=\"display:inline;\"> <b>Channel Availability</b> (repeaters&nbsp;in&nbsp;<b>Bold</b>)   </span>";
+
+   $channels = MysqlQuery("SELECT * FROM channels c ORDER BY precedence,channel_name");
+   if (mysql_num_rows($channels)) {
+     while ($channel = mysql_fetch_object($channels)) {
+       $chclass='channel';
+       $chtitle='This channel is available for assignment to incidents.';
+       if ($channel->repeater) { $chclass .= ' b'; $chtitle.='  This is a repeated channel. '; }
+       if ($channel->incident_id) { $chclass .= ' chasgix'; $chtitle = "This channel is assigned to incident ". CallNumber($channel->incident_id) .".";}
+       if (!$channel->available) { $chclass .= ' chunav'; $chtitle = 'This channel is marked unavailable for assignment to incidents, contact your system administrator to change.'; }
+       print "<span class=\"$chclass\" style=\"display:inline\" title=\"$chtitle\">$channel->channel_name</span>\n";
+     }
+     mysql_free_result($channels);
+   }
+   else {
+     print "<span class=\"text\" style=\"display:inline;\"><i> No channels configured. </i></span>";
+   }
+   print "<span class=\"text\" style=\"display: inline; float: right\">\n";
+   if ((isset($ACCESS_LEVEL_EDITCHANNELS) && $_SESSION['access_level'] >= $ACCESS_LEVEL_EDITCHANNELS ||
+       !isset($ACCESS_LEVEL_EDITCHANNELS) && $_SESSION['access_level'] >= 10) && 
+        (!isset($_SESSION['readonly']) ||!$_SESSION['readonly'])) {
+         print "<BUTTON TYPE=\"blank\" onClick=\"return popup('edit-channels.php','edit-channels',600,1000)\" 
+              TARGET=\"_blank\" NAME=\"edit_channels\" ID=\"edit_channels\">Edit Channels</button>";
+   }
+   print "</div>\n";
+
 
    // -----------------------------------------------------------------------
    // Unit display section:
@@ -515,7 +560,7 @@
        }
 
        print '<tr><td class="message" style="vertical-align: top;">' .
-         '<a style="font-size: 8pt;" href="edit-unit.php?unit='.$u_name.'" ' .
+         "<a style=\"font-size: 8pt;\" href=\"edit-unit.php?unit=$u_name\" " .
          'title="LOC: [' . $unitrow["location"] . ']' .
          ' &#10;PERS: [' . $unitrow["personnel"] . ']';
        if ($unitrow["notes"] != '') print ' &#10;NOTES: [' . $unitrow["notes"] . ']';

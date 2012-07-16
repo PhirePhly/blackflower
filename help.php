@@ -64,7 +64,7 @@ send email to <a href="mailto:cad-info@forlorn.net">&lt;cad-info@forlorn.net&gt;
     will need to manually refresh the Edit Incidents page, or Save Incident and come back
     to it later, in order to see another operator's general updates to that Incident.
 <p class="textj">
-    <b>WARNING: In the situation where:
+    <b>WARNING: Unless you use the Incident Locking feature (v1.8.0+), in the situation where:
     <ul>
     <li> Operator #1 is viewing an incident in the Edit Incident screen
     <li> Operator #2 opens the same incident, makes and saves changes (other than adding Notes or
@@ -76,7 +76,7 @@ send email to <a href="mailto:cad-info@forlorn.net">&lt;cad-info@forlorn.net&gt;
     Operator #1 to save their changes.
     </b>
 <p class="textj">
-    For that reason it is recommended that multiple operators do not simultaneously Edit data in the
+    For that reason it is recommended that you either use Incident Locking, or that multiple operators do not simultaneously Edit data in the
     same Incident.  If this is unavoidable (for example, so one operator can read information to dispatch
     a unit, while another operator is getting additional information from the reporting party) you must
     be careful to Cancel Changes on the first operator's unmodified screen, rather than Save Incident.

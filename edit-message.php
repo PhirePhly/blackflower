@@ -5,6 +5,7 @@
   require_once('session.inc');
 
   $subsys='cad';
+  SessionErrorIfReadonly();
   $deleted=0;
 
   if (isset($_POST["oid"])) {

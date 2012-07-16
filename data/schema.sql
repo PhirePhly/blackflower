@@ -1,5 +1,5 @@
-SET @provides_database_version = '1.8.0.0';
-SET @requires_code_version = '1.8.0';
+SET @provides_database_version = '1.9.0.0';
+SET @requires_code_version = '1.9.0';
 
 -- DROP DATABASE IF EXISTS cad;
 -- DROP DATABASE IF EXISTS cadarchives;
@@ -43,6 +43,32 @@ CREATE TABLE incident_locks (
   INDEX              (incident_id)
 );
 
+
+CREATE TABLE channels (
+        channel_id      INTEGER NOT NULL AUTO_INCREMENT,
+        channel_name    VARCHAR(40) NOT NULL,
+        repeater        BOOL NOT NULL DEFAULT 0,
+        available       BOOL NOT NULL DEFAULT 1,
+        precedence      INTEGER NOT NULL DEFAULT 50,
+        incident_id     INTEGER,
+        notes           VARCHAR(160),
+
+        PRIMARY KEY     (channel_id),
+        INDEX           (precedence,channel_name),
+        INDEX           (incident_id)
+        );
+
+INSERT INTO channels (channel_name, repeater, available, precedence) VALUES 
+('Tac 11', 0, 1, 10),
+('Tac 12', 1, 1, 10),
+('Tac 13', 0, 1, 10),
+('Fire Ground 1', 0, 1, 20),
+('Fire Ground 2', 0, 1, 20),
+('911', 1, 0, 97),
+('Operations', 1, 0, 98),
+('Admin', 1, 0, 99);
+
+
 CREATE TABLE message_types (
   message_type varchar(20) not null primary key
   );
@@ -69,6 +95,9 @@ CREATE TABLE users (
   timeout       INTEGER NOT NULL DEFAULT 300,
   preferences   TEXT,
   change_password  BOOL NOT NULL DEFAULT 0,
+  locked_out            BOOL NOT NULL DEFAULT 0,
+  failed_login_count    INT NOT NULL DEFAULT 0,
+  last_login_time       DATETIME,
 
   PRIMARY KEY (id),
   INDEX (username)
@@ -264,7 +293,7 @@ INSERT INTO message_types VALUES ('DNF');
 INSERT INTO message_types VALUES ('DQ');
 INSERT INTO message_types VALUES ('Other');
 
-INSERT INTO status_options VALUES ('Attached To Incident');
+INSERT INTO status_options VALUES ('Attached to Incident');
 INSERT INTO status_options VALUES ('Available On Pager');
 INSERT INTO status_options VALUES ('Busy');
 INSERT INTO status_options VALUES ('In Service');
@@ -293,5 +322,15 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('OC', 'On-Call', 'icongray', NULL),
 ('S', 'Supervisor', 'icongray', NULL),
 ('FS', 'Field Supervisor', 'icongray', NULL);
+
+INSERT INTO channels (channel_name, repeater, available, precedence) VALUES 
+('Tac 11', 0, 1, 10),
+('Tac 12', 1, 1, 10),
+('Tac 13', 0, 1, 10),
+('Fire Ground 1', 0, 1, 20),
+('Fire Ground 2', 0, 1, 20),
+('911', 1, 0, 97),
+('Operations', 1, 0, 98),
+('Admin', 1, 0, 99);
 
 INSERT INTO deployment_history (schema_load_ts, database_version, requires_code_ver, mysql_user) VALUES (NOW(), @provides_database_version, @requires_code_version, CURRENT_USER());

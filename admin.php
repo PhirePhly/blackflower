@@ -3,6 +3,7 @@
 
   require_once('session.inc');
   require_once('functions.php');
+  SessionErrorIfReadonly();
 
   header_html("Dispatch :: System Admin");
 

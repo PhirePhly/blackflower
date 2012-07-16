@@ -3,6 +3,7 @@
 
   require_once('session.inc');
   require_once('functions.php');
+  SessionErrorIfReadonly();
 
   if (isset($_POST["saving"])) {
     if (isset($_POST["incidents_open_only"]))
@@ -48,52 +49,58 @@
     if ((isset($_POST["oldpw"]) && $_POST["oldpw"]) ||
         (isset($_POST["newpw"]) && $_POST["newpw"]) ||
         (isset($_POST["confirmpw"]) && $_POST["confirmpw"])) {
-      $oldpw = MysqlClean($_POST, 'oldpw', 64);
-      $newpw = MysqlClean($_POST, 'newpw', 64);
-      $confirmpw = MysqlClean($_POST, 'confirmpw', 64);
-      if ($oldpw == "") {
-        //setcookie("pwoldmissing", "yes");
-        //header('Location: config.php');
+      $tainted_oldpw = $_POST['oldpw'];
+      $tainted_newpw1 = $_POST['newpw'];
+      $tainted_newpw2 = $_POST['confirmpw'];
+      if ($tainted_oldpw == "") {
           print "Old password is missing.";
           exit;
       }
 
-      $pwcheck = MysqlQuery("SELECT PASSWORD('$oldpw') AS enteredpw, password FROM $DB_NAME.users WHERE username='".$_SESSION['username']."'");
+      $pwcheck = MysqlQuery("SELECT password FROM $DB_NAME.users WHERE username='".$_SESSION['username']."'");
       $rows = mysql_num_rows($pwcheck);
       if ($rows != 1) {
         syslog(LOG_CRITICAL, "Checking [".$_SESSION['username']."] password for change, found $rows rows (expected 1)");
-        print "INTERNAL ERROR: Checking password for change in config.php, found $rows rows (expected 1)";
+        print "INTERNAL ERROR [config.php] SELECT password found $rows rows (expected 1) for username ".$_SESSION['username'];
         exit;
       }
       else {
+        $hash = $t_hasher->HashPassword($tainted_newpw1);
         $answer = mysql_fetch_object($pwcheck);
-        if ($answer->password != $answer->enteredpw) {
+        if ($DEBUG && $tainted_newpw1 && $tainted_newpw1 == $tainted_newpw2) {
+          print "<!-- Hash of new password is: $hash -->\n\n\n";
+        }
+        if (!$t_hasher->CheckPassword($tainted_oldpw, $answer->password)) {
           print "Old password is incorrect.";
           exit;
-          //setcookie("pwoldincorrect", "yes");
         }
-        elseif ($newpw == "") {
+        elseif ($tainted_newpw1 == "") {
           print "New password is missing.";
           exit;
-          //setcookie("pwnewmissing", "yes");
         }
-        elseif ($confirmpw == "") {
-          print "New password (confirm) is missing.";
+        elseif ($tainted_newpw2 == "") {
+          print "New password (confirmation) is missing.";
           exit;
-          //setcookie("pwconfirmmissing", "yes");
         }
-        elseif ($newpw != $confirmpw) {
-          print "New passwords do not match.";
+        elseif ($tainted_newpw1 != $tainted_newpw2) {
+          print "New password does not match.";
           exit;
-          //setcookie("pwsdontmatch", "yes");
         }
         else {
-          MysqlQuery("UPDATE $DB_NAME.users SET password=PASSWORD('$newpw') WHERE username='".$_SESSION['username']."'");
-          //setcookie("pwchanged", "yes");
+          MysqlQuery("UPDATE $DB_NAME.users SET password='$hash' WHERE username='".$_SESSION['username']."'");
+          setcookie("config-changedpw", "yes");
         }
       }
     }
     header('Location: config.php');
+  }
+
+  if (isset($_COOKIE['config-changedpw']) && $_COOKIE['config-changedpw'] == 'yes') {
+    $config_changedpw = 1;
+    setcookie("config-changedpw", "no");
+  }
+  else {
+    $config_changedpw = 0;
   }
   header_html("Dispatch :: Configuration")
 ?>
@@ -185,12 +192,17 @@ function unitCheckboxState() {
 <!-- Change Password -->
 <br />&nbsp;<b>Change Password</b><br />
 <table width="350" style="background-color: #dddddd; border: 1px solid gray">
-  <tr><td colspan="2">Current password:</td><td><input type="password" size="15" name="oldpw" /></td></tr>
+  <tr><td colspan="2">Current password:</td><td><input type="password" size="15" name="oldpw" value=""/></td></tr>
   <tr><td colspan="3"><hr /></td></tr>
   <tr><td colspan="2">New password:</td><td><input type="password" size="15" name="newpw" /></td></tr>
   <tr><td colspan="2">Confirm new password:</td><td><input type="password" size="15" name="confirmpw" /></td></tr>
 </td></tr>
 </table>
+<?php
+  if ($config_changedpw) {
+    print "&nbsp; &nbsp; &nbsp; <font color=purple>Password changed.";
+  }
+?>
 
 <!-- System Options -->
 <!-- Removed for now...

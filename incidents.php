@@ -40,15 +40,18 @@
     //$size = '480,720'; // TODO: get new-incident window to successfully popup edit-incident of different size
     $size = '600,1000';
   }
-  print "<button type=\"submit\" value=\"Create New Incident\" title=\"Create New Incident - ALT-N\" accesskey=\"n\" onClick=\"return popup('$newurl','incident-new',$size)\" class=\"newbutton\">Create <U>N</U>ew Incident</button>";
-?>
-    </form>
-  </td>
-<?php
+  if (!isset($_SESSION['readonly']) || !$_SESSION['readonly']) {
+    print "<button type=\"submit\" value=\"Create New Incident\" title=\"Create New Incident - ALT-N\" accesskey=\"n\" onClick=\"return popup('$newurl','incident-new',$size)\" class=\"newbutton\">Create <U>N</U>ew Incident</button>";
+  }
+
+  
+  print "   </form>\n";
+  print " </td>\n";
+
   if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"] == "no") {
     print "<td nowrap>\n";
 
-    print "<form name=\"filter\" action=\"incidents-frame.php\" method=\"post\" style=\"border: 0px;\" target=\"incidents\">\n";
+    print "<form name=\"filter\" action=\"incidents-frame.php\" method=\"post\" style=\"border: 0px; margin: 0px;\" target=\"incidents\">\n";
     print "<table border=0 cellpadding=0 cellspacing=0>\n";
     print "<tr>\n";
 
@@ -99,8 +102,6 @@
     print "</table>\n";
     print "</form>\n";
     print "</td>\n";
-
-    print "<td>&nbsp;&nbsp;</td>\n";
   }
 ?>
   <td>
@@ -108,16 +109,15 @@
 <?php
   if (!isset($_COOKIE["incidents_open_only"]) || $_COOKIE["incidents_open_only"] == "yes") {
     print "<button type=\"submit\" name=\"incidents_open_only\" id=\"incidents_open_only\" ";
-    print "value=\"Show All\" title=\"Show All Incients\">Show All</button>\n";
+    print "value=\"Show All\" title=\"Show all incidents, including closed\">Show&nbsp;All</button>\n";
   }
   else {
     print "<button type=\"submit\" name=\"incidents_open_only\" id=\"incidents_open_only\" ";
-    print "value=\"Hide Closed\" title=\"Hide Closed Incients\">Hide Closed</button>\n";
+    print "value=\"Hide Closed\" title=\"Hide closed incidents\">Hide&nbsp;Closed</button>\n";
   }
 ?>
   </form>
   </td>
-  <td>&nbsp;&nbsp;</td>
   <td align="right">
   <form name="myform" action="incidents.php" method="post" style="margin: 0px;">
   <input type="text" name="displayClock" size="8" />

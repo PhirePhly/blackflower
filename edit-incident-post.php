@@ -8,6 +8,7 @@
   require_once('session.inc');
   require_once('functions.php');
   require('local-dls.php');
+  SessionErrorIfReadonly();
 
   /* Debugging */
   $out = print_r($_POST, true);
@@ -145,6 +146,45 @@
     exit;
   }
 
+  elseif (isset($_POST["channel_assign"])) {
+    $channel_to_toggle = (int) $_POST["channel_assign"];
+    MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
+    $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
+    if (mysql_num_rows($chinfo)) { 
+      $chrow = mysql_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
+      if ((int)$chrow->incident_id) {
+        MysqlQuery ("UNLOCK TABLES");
+        print "<html><body><SCRIPT LANGUAGE=\"JavaScript\">alert('That channel ($chrow->channel_name) was previously assigned to incident " . CallNumber($chrow->incident_id) . "'); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
+        exit;
+      }
+      MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES
+                  ($incident_id, NOW(), '', 'Channel $chrow->channel_name assigned to incident.', '$username') ");
+      MysqlQuery ("UPDATE channels SET incident_id=$incident_id WHERE channel_id=$channel_to_toggle");
+    }
+    MysqlQuery ("UNLOCK TABLES");
+    header("Location: edit-incident.php?incident_id=$incident_id");
+    exit;
+  }
+
+  elseif (isset($_POST["channel_unassign"])) {
+    $channel_to_toggle = (int) $_POST["channel_unassign"];
+    MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
+    $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
+    if (mysql_num_rows($chinfo)) { 
+      $chrow = mysql_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
+      if (!isset($chrow->incident_id) || !(int)$chrow->incident_id) {
+        MysqlQuery ("UNLOCK TABLES");
+        print "<html><body><SCRIPT LANGUAGE=\"JavaScript\">alert('That channel ($chrow->channel_name) was already unassigned, incident_id is empty [$chrow->incident_id].'); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
+        exit;
+      }
+      MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES
+                  ($incident_id, NOW(), '', 'Channel $chrow->channel_name unassigned from incident.', '$username') ");
+      MysqlQuery ("UPDATE channels SET incident_id=NULL WHERE channel_id=$channel_to_toggle");
+    }
+    MysqlQuery ("UNLOCK TABLES");
+    header("Location: edit-incident.php?incident_id=$incident_id");
+    exit;
+  }
 
   /* POST: takeover ****************************************************/
 

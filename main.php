@@ -15,6 +15,8 @@ header_html("Dispatch :: Main Menu");
 echo "<body vlink='blue' link='blue' alink='cyan'>\n";
 $subsys='main';
 include('include-title.php');
+#
+# TODO: default if cookies  below aren't set:
 ?>
 
 <iframe name="menu" src="main-frame.php"

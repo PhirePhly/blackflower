@@ -5,6 +5,7 @@
   include('local-dls.php');
   require_once('session.inc');
   require_once('functions.php');
+  SessionErrorIfReadonly();
 
   if (isset($_POST['unit'])) {
       $unit = strtoupper(MysqlClean($_POST,'unit',20));
