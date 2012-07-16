@@ -6,6 +6,7 @@
   require_once('session.inc');
   require_once('functions.php');
 
+  SessionErrorIfReadonly();
 
   if (isset($_POST["incident_abort"])) {
     header('Location: incidents.php');

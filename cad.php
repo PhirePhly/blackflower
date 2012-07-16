@@ -6,6 +6,7 @@
   require_once('functions.php');
 
   if (isset($_POST['unit']))  {
+    SessionErrorIfReadonly();
     $post_pend="";
     $unit = MysqlClean($_POST, 'unit', 20);
 
@@ -45,9 +46,13 @@
 <!-- Begin Add Message Form -->
 <form name="myform" action="cad.php" method="post" style="margin: 0px;">
 
-<b class="text">Log Viewer :: Add a Message:</b><br>
+<b class="text">Log Viewer
+<?php if (!isset($_SESSION['readonly']) || !$_SESSION['readonly']) { print ':: Add a Message:'; } ?>
+</b><br>
+
 
 <table width="100%" style="margin-bottom: 8px;">
+<?php if (!isset($_SESSION['readonly']) || !$_SESSION['readonly']) { ?>
 <tr>
 <td bgcolor="#aaaaaa">
 
@@ -69,6 +74,7 @@
      <input type="reset" value="Clear" tabindex="5">
    </td>
 </tr>
+<?php } ?>
 <tr class="message">
    <td><input type="text" name="displayClock" size="8" /></td>
    <td>

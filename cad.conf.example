@@ -20,6 +20,12 @@
   $AVOID_NEWINCIDENT_DIALOG = 0; // 1.7.0: use compact new incident entry?
   $USE_INCIDENT_LOCKING = 1;     // 1.8.0: lock incidents (others read-only?)
   $LOCKING_SHOW_USERNAME = 1;    //     \- if locked, show username in list?
+  $DEBUG = 0;                    // Debug logging mode (0 or 1).
+
+// Scalars:
+  $MAX_LOGIN_ATTEMPTS = 3;        // Max attempts before locking user account.
+  $ACCESS_LEVEL_EDITCHANNELS = 5; // Access level required to edit channels
+  
 
 // Logging:
   $USE_SYSLOG = 1;
@@ -39,6 +45,41 @@
   $DEFAULT_ADMIN_PW = "admin";
 
   $INCIDENT_UNIT_COLUMNS = 4;
+
+
+///////////////////////////////////////////////////////////////////////////
+// Read-Only Mode /////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+
+// The default behavior of CAD is that all connecting sessions are in 
+// read-write mode.  If you wish instead to enable read-only mode by
+// default, for example if you present your CAD instance on an external
+// virtual host over which you only want to give read-only access:
+//
+// 1) Define $READONLY_BY_DEFAULT = 1;  to default deny write access, then
+// 2) Define one or more whitelist rules to selectively allow write access:
+//
+//    $READWRITE_PERMIT_IPV4 = '<comma-separated list of CIDR ranges>';
+//       to permit users from those blocks to use read/write mode, where 
+//       each part of the comma-separated list is in RFC4632 CIDR notation.
+//    WARNING: This is currently (v1.9.0) only IPv4 aware.  IPv6 ranges
+//    cannot be whitelisted here.
+//
+//    $READWRITE_PERMIT_USERIDS = '1,4,12';
+//       to permit read/write for users with any of those user_id's,   *and/or*
+//
+//    $READWRITE_PERMIT_ACLS = 'A,B,C';
+//       to permit read/write for users with any of those ACL flags.
+//
+//    If more than one whitelist rule is set, a user passing any
+//    *any one or more* of those rules will be permitted read/write access.
+//
+// Example:
+// $READONLY_BY_DEFAULT = 1;
+// $READWRITE_PERMIT_IPV4 = '10.0.0.0/24,192.168.0.0/24';
+// $READWRITE_PERMIT_USERIDS = '4';
+
+$READONLY_BY_DEFAULT=0;
 
 ///////////////////////////////////////////////////////////////////////////
 // Call Number formatting /////////////////////////////////////////////////

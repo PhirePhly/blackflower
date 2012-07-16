@@ -1,7 +1,11 @@
 <?php
+  include('session.inc');
   $subsys="main";
 
-  header("Location: main.php");
+  if (isset($_SESSION['readonly']) && $_SESSION['readonly']) 
+    header("Location: incidents.php");
+  else 
+    header("Location: main.php");
 /*
   include('local-dls.php');
   require_once('session.inc');

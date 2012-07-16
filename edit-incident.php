@@ -368,8 +368,37 @@
 <!-- whitespace acting as horizontal rule -->
 
 <tr>
-<td valign=top width=450>
-<table height=350 cellspacing=0 cellpadding=0 border> <!-- outer color table for incident notes -->
+<td valign=top width=395>
+<table cellspacing=0 cellpadding=2 border> <!-- outer color table for channels -->
+  <tr valign=top><td colspan="2" bgcolor="#bbbbbb" class="text">
+  <table cellspacing=1 cellpadding=0>  <!-- layout table for incident notes -->
+   <tr valign=top><td class="label" align=left width=395> <b>Channels</b>
+<?php
+  $channels = MysqlQuery("SELECT * FROM channels c WHERE available=1 ORDER BY precedence,channel_name");
+  if (mysql_num_rows($channels)) {
+    while ($channel = mysql_fetch_object($channels)) {
+      $chclass='channel';
+      $chtitle='Click here to assign to this incident.';
+      $chaction='assign';
+      if ($channel->repeater) { $chclass .= ' b'; $chtitle.='  This is a repeated channel. '; }
+      if ($channel->incident_id == $incident_id) { $chclass .= ' chasg'; $chtitle = "This channel is assigned to this incident; click here to release."; $chaction = 'unassign'; }
+      elseif ($channel->incident_id) { $chclass .= ' chother'; $chtitle = "This channel is assigned to incident ". CallNumber($channel->incident_id) .".";}
+      print "<button type=submit style=\"margin: 0px; padding: 0px;\" name=\"channel_$chaction\" value=\"$channel->channel_id\" title=\"$chtitle\"><span class=\"$chclass\" title=\"$chtitle\">$channel->channel_name</span></button>\n";
+    }
+    mysql_free_result($channels);
+  }
+  else {
+    print "<span class=\"text\"><i> No channels configured. </i></span>";
+  }
+?>
+
+     
+   </td></tr>
+  </table>
+  </td></tr>
+</table>
+
+<table height=324 cellspacing=0 cellpadding=0 border> <!-- outer color table for incident notes -->
   <tr><td colspan="2" bgcolor="#bbbbbb" class="text">
   <table cellspacing=1 cellpadding=0>  <!-- layout table for incident notes -->
 
@@ -425,7 +454,7 @@
     <tr><td colspan="2">
         <iframe border=0 frameborder=0 name="notes" tabindex="-1"
          src="incident-notes.php?incident_id=<?php print $incident_id?>"
-         width=400 height=274 marginheight=0 marginwidth=0 scrolling="auto"></iframe>
+         width=400 height=248 marginheight=0 marginwidth=0 scrolling="auto"></iframe>
     </td></tr>
   </table>
   </td>
@@ -433,7 +462,7 @@
 </table>
 
 </td>
-<td valign=top width=100%>
+<td rowspan=3 valign=top width=100%>
 
 <!-- units table -->
 <table width=100% height=350 cellspacing=0 cellpadding=0 border>

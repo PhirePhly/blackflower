@@ -5,6 +5,7 @@
   require_once('session.inc');
   require_once('functions.php');
   require_once('local-dls.php');
+  SessionErrorIfReadonly();
 
 // Non-UI Methods
   
@@ -25,13 +26,13 @@
 
     for ($i=0; $i<count($import_ids); $i++) {
       $import_ids[$i] = (int)$import_ids[$i];
-      syslog(LOG_INFO, $_SESSION["username"] . "importing bulletin $import_ids[$i] from $srcdbname.$srctablename");
+      syslog(LOG_INFO, $_SESSION["username"] . " importing bulletin $import_ids[$i] from $srcdbname.$srctablename");
     }
 
     $sourcebulls = MysqlQuery("SELECT b.*,u.username FROM $srcdbname.$srctablename b LEFT OUTER JOIN users u ON b.updated_by=u.id WHERE b.bulletin_id IN (".join(",",$import_ids).")");
     while ($bulletin = mysql_fetch_object($sourcebulls)) {
       //print "fetched bulletin id $bulletin->bulletin_id subject $bulletin->bulletin_subject<br>\n";
-      syslog(LOG_INFO, $_SESSION["username"] . "fetched bulletin id ". $bulletin->bulletin_id );
+      syslog(LOG_INFO, $_SESSION["username"] . " fetched bulletin id ". $bulletin->bulletin_id );
       if ($bulletin->username != "") 
         $updated_by = $bulletin->updated_by;
       else

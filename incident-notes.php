@@ -13,6 +13,7 @@
   define ('ACTION_DELETE', 2);
 
   if (isset($_POST["incident_id"])) {
+    SessionErrorIfReadonly();
     $incident_id = MysqlClean($_POST,"incident_id",20);
     $unit = MysqlClean($_POST,"unit",20);
     $message = MysqlClean($_POST,"message",255);
@@ -48,7 +49,7 @@
      <tr bgcolor="darkgray">
 <?php
   if (!isset($_COOKIE['incidents_show_creator']) || $_COOKIE['incidents_show_creator'] == 'yes') {
-    print "      <td class=\"ihsmall\"><font size=\"-2\" color=\"gray\">Logged By</font></td>";
+    print "      <td class=\"ihsmall\"><font size=\"-2\" color=\"gray\">Noted&nbsp;by</font></td>";
   } ?>
         <td class="ihsmall">Time</td>
         <td class="ihsmall">Unit</td>
@@ -72,9 +73,9 @@
       echo "<td class=\"message\">", $quality, dls_hmtime($line["ts"]), "</td>";
       echo "<td class=\"message\">", $quality, dls_ustr($line["unit"]), "</td>";
       echo "<td class=\"message\">";
-      echo "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\"><tr><td align=\"left\" class=\"message\">\n";
+      echo "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\"><tr><td align=\"left\" class=\"message\" style=\"text-align: left\">\n";
       echo $quality, MysqlUnClean($line["message"]), "</td>\n";
-      if (isset($ALLOW_EDIT_INCIDENT_NOTES) && $ALLOW_EDIT_INCIDENT_NOTES == 1) {
+      if (isset($ALLOW_EDIT_INCIDENT_NOTES) && $ALLOW_EDIT_INCIDENT_NOTES == 1 && (!isset($_SESSION['readonly']) || !$_SESSION['readonly'])) {
         echo "<td align=\"right\" class=\"smalltext\"><a href=\"edit-incident-note.php?note_id=".$line["note_id"]."\" target=\"_self\"><font color=gray>[edit]</font></a></td>\n";
       }
       echo "</tr></table></td></tr>\n";

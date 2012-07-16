@@ -35,15 +35,15 @@
 ?>
 <!-- Display Header - custom to client -->
 <table cellspacing="0" cellpadding="0" width="100%" >
-<tr>
+<tr height="26px">
 <td rowspan=5 valign="top" style="padding-right: 0.02cm; white-space: nowrap">
 <img src="<?php print $HEADER_LOGO?>" height="72" width="72" alt="" />
 </td>
-<td class=headertext><?php print $HEADER_TITLE?></td>
+<td valign=bottom class=headertext style="padding-top: 5px"><?php print $HEADER_TITLE?></td>
 
 <td align=right class=headerinfo title="Release Date <?php print $OC_RELEASE_DATE?>">
   Black Flower CAD v<?php print $OC_VERSION?> <?php print $OC_LEVEL?> 
-<br>
+&mdash;
 <?php
   if ($_SESSION['username'] != "") {
     print "&nbsp;Logged in as <b>".$_SESSION['username']."</b>";
@@ -54,23 +54,28 @@
   else {
     print "<span style='color: red; text-decoration: blink;'>Not logged in</span>\n";
   }
+  if (isset($_SESSION['readonly']) && $_SESSION['readonly']) {
+    print "<span style='padding-left: 5px; padding-right: 5px; margin-left: 10px; border: 1px solid brown; background-color: orange; color: white; font-weight: bold'>Read-Only Mode</span>\n";
+  }
   print "<br>\n";
 
-  if ($new_bull && $upd_bull) {
-    print "<font color=red><b>You have $new_bull NEW and $upd_bull Updated bulletins to read</b></font>";
-  }
-  elseif ($new_bull) {
-    print "<font color=red><b>You have $new_bull NEW bulletin" . ($new_bull>1?"s":"") . " to read</b></font>";
-  }
-  elseif ($upd_bull) {
-    print "<font color=red><b>You have $upd_bull Updated bulletin"  . ($upd_bull>1?"s":"") ." to read</b></font>";
+  if (!isset($_SESSION['readonly']) || !$_SESSION['readonly']) {
+    if ($new_bull && $upd_bull) {
+      print "<font color=red><b>You have $new_bull NEW and $upd_bull Updated bulletins to read</b></font>";
+    }
+    elseif ($new_bull) {
+      print "<font color=red><b>You have $new_bull NEW bulletin" . ($new_bull>1?"s":"") . " to read</b></font>";
+    }
+    elseif ($upd_bull) {
+      print "<font color=red><b>You have $upd_bull Updated bulletin"  . ($upd_bull>1?"s":"") ." to read</b></font>";
+    }
   }
 ?>
   </td>
 </tr>
 
-<tr> <td colspan="3" bgcolor="menubg"></td> </tr>
 <!--
+<tr> <td colspan="3" bgcolor="menubg"></td> </tr>
 <tr> <td colspan=3 class="menubg" width=100%> </td> </tr>
 -->
 
@@ -83,36 +88,45 @@
     "units" => "headermenu",
     "cad" => "headermenu",
     "bulletins" => "headermenu",
+    "reports" => "headermenu",
+    "help" => "headermenu",
     "config" => "headermenuright",
-    "reports" => "headermenuright",
     "admin" => "headermenuright",
-    "help" => "headermenuright",
     "logout" => "headermenuright");
   $CSS[$subsys] .= "sel";
 
-  print "<span class=\"headermenu\" style=\"padding: 0px\"><img src=\"Images/nbcurve.png\" height=20 alt=\"\" /></span>\n";
+  #print "<span class=\"headermenu\" style=\"padding: 0px\"><img src=\"Images/nbcurve.png\" height=20 alt=\"\" /></span>\n";
+  print "<span class=\"headermenu\" style=\"padding-left: 4px; background-color: #EEEEFF\">&nbsp;</span>\n";
+  print "<span class=\"headermenu\" style=\"padding-left: 3px; background-color: #CCCCFF\">&nbsp;</span>\n";
+  print "<span class=\"headermenu\" style=\"padding-left: 2px; background-color: #AAAAEE\">&nbsp;</span>\n";
+  print "<span class=\"headermenu\" style=\"padding-left: 1px; background-color: #9999CC\">&nbsp;</span>\n";
   print "<span class=\"". $CSS["incidents"] . "\"><a class=menua href=\"incidents.php\">Incidents</a></span>\n";
   print "<span class=\"". $CSS["units"]     . "\"><a class=menua href=\"units.php\">Units</a></span>\n";
   print "<span class=\"". $CSS["cad"]       . "\"><a class=menua href=\"cad.php\">Log Viewer</a></span>\n";
   print "<span class=\"". $CSS["bulletins"] . "\"><a class=menua href=\"bulletins.php\">Bulletins</a></span>\n";
-
-  print "<span class=\"". $CSS["logout"]      . "\"><a class=menua href=\"main.php?logout\">Log Out</a></span>\n";
   print "<span class=\"". $CSS["help"]      . "\"><a class=menua href=\"help.php\">Help</a></span>\n";
-  if ($_SESSION["access_level"] >= 10) {
-    print "<span class=\"". $CSS["admin"]   . "\"><a class=menua href=\"admin.php\">System Admin</a></span>\n";
-  }
-  print "<span class=\"". $CSS["config"]    . "\"><a class=menua href=\"config.php\">Preferences</a></span>\n";
   if ($_SESSION["access_level"] >= 5) {
     print "<span class=\"". $CSS["reports"] . "\"><a class=menua href=\"reports.php\">Reports</a></span>\n";
   }
+
+  print "<span class=\"". $CSS["logout"]      . "\"><a class=menua href=\"main.php?logout\">Log Out</a></span>\n";
+  if (!isset($_SESSION['readonly']) || !$_SESSION['readonly']) {
+    if ($_SESSION["access_level"] >= 10) {
+      print "<span class=\"". $CSS["admin"]   . "\"><a class=menua href=\"admin.php\">System Admin</a></span>\n";
+    }
+    print "<span class=\"". $CSS["config"]    . "\"><a class=menua href=\"config.php\">Preferences</a></span>\n";
+  }
+
   print "<span class=headermenuright>&nbsp;</span>\n";
 
 ?>
 </td></tr>
+<tr height="24px" valign="bottom"> <td colspan=3 style="background-color: white; padding: 0px" width=100%> </td> </tr>
+<!--
 <tr valign="bottom"> <td colspan=3 class="menubg" width=100%> </td> </tr>
-<tr valign="bottom"> <td colspan=3 style="background-color: white; padding: 0.0001cm" width=100%> </td> </tr>
 <tr valign="bottom"> <td colspan=3 style="background-color: #666666; padding: 0.01cm" width=100%> </td> </tr>
-<tr valign="bottom"> <td colspan=3 style="background-color: #999999; padding: 0.01cm" width=100%> </td> </tr>
+<tr valign="bottom"> <td colspan=3 style="background-color: #999999; padding: 0.01cm" width=100%> </td> </tr> 
+-->
 </table>
 
 

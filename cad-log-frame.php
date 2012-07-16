@@ -7,26 +7,31 @@
 
   // Prepare page GET/POST input
 
+  $filterdate = '';
+  $filterhour = '';
+  $filterunit = '';
+  $filtermpp = '';
+  $start = '';
   // If apply was POSTed...
   if (isset($_POST['apply_filters'])) {
     if ($_POST['date'] != "") {
-      $filterdate = $_POST['date'];
+      $filterdate = MysqlClean($_POST, 'date', 20);
     }
 
     if ($_POST['hour'] != "") {
-      $filterhour = $_POST['hour'];
+      $filterhour = MysqlClean($_POST, 'hour', 5);
     }
 
     if ($_POST['funit'] != "") {
-      $filterunit = $_POST['funit'];
+      $filterunit = MysqlClean($_POST, 'funit', 100);
     }
 
     if ($_POST['mpp'] != "") {
-      $filtermpp = $_POST['mpp'];
+      $filtermpp = MysqlClean($_POST,'mpp',10);
     }
   }
 
-  // 'owever... if the remove filters button was posted, reset all filters
+  // 'owever... if the remove filters button was posted, reset all filters (redundant now that we're setting before assigning to, rev 185)
   elseif (isset($_POST['remove_filters'])) {
     $filterdate = '';
     $filterhour = '';
@@ -37,23 +42,23 @@
   // Otherwise, process GETs
   else {
     if ($_GET['date'] != "") {
-      $filterdate = $_GET['date'];
+      $filterdate = MysqlClean($_GET,'date',20);
     }
 
     if ($_GET['hour'] != "") {
-      $filterhour = $_GET['hour'];
+      $filterhour = MysqlClean($_GET,'hour',5);
     }
 
     if ($_GET['unit'] != "") {
-      $filterunit = $_GET['unit'];
+      $filterunit = MysqlClean($_GET,'unit',100);
     }
 
     if ($_GET['mpp'] != "") {
-      $filtermpp = $_GET['mpp'];
+      $filtermpp = MysqlClean($_GET,'mpp',10);
     }
 
     if ($_GET['start'] != "") {
-      $start = $_GET['start'];
+      $start = MysqlClean($_GET,'start',10);
     }
   }
 

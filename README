@@ -101,7 +101,7 @@ INSTALLATION
      to the CAD directory and execute the "initialize.sh" script.  
 
        cd /var/www/cad
-       sh ./initialize.sh
+       bash ./initialize.sh
 
      This will create and load the default SQL tables and otherwise 
      prepare the system for running.  You will be prompted to enter
@@ -117,6 +117,13 @@ INSTALLATION
      If you are on a multiuser system, ensure that cad.conf is owned
      by a user/group that is readable only by the webserver, and change
      file permissions to match, so as to safeguard your passwords.
+
+     [NOTE] As of v1.9.0pre2, the initialize.sh script does not correctly
+     set the Administrator user's password.  You must set it yourself
+     by turning DEBUG on in cad.conf and updating the database with
+     the hash displayed on an unsuccessful login.  Due to the nature
+     of changes made to passwords in v1.9 it is very likely initialize.sh
+     will be replaced or enhanced with an initialize.php in the near future.
 
      *** Manual/Windows documentation to be added ***  
      
