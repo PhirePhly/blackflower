@@ -114,7 +114,9 @@
   $locks_result = MysqlQuery($query_locks);
   while ($lock_row = mysql_fetch_object($locks_result)) {
     $locks[(int)$lock_row->incident_id] = $lock_row;
-    syslog(LOG_DEBUG, "Set lock flag for incident " . $lock_row->incident_id);
+    if ($DEBUG) {
+      syslog(LOG_DEBUG, "Set lock flag for incident " . $lock_row->incident_id);
+    }
   }
 
   // PREPARE MAIN QUERY
@@ -148,7 +150,9 @@
 
   $howmany = MysqlGrabData('SELECT COUNT(*) AS howmany FROM incidents ' . $query_where);
   $query = "$query_select $query_where $query_order $query_limit";
-  syslog(LOG_DEBUG, "Main incidents query: $query");
+  if ($DEBUG) {
+    syslog(LOG_DEBUG, "Main incidents query: $query");
+  }
   $result = MysqlQuery($query);
 
   $td = "    <td class=\"message\" nowrap>";
@@ -179,7 +183,7 @@
       print '<i>/open by</i>';
 ?> </td>
     <td class="th">Incident Details</td>
-    <td class="th">Location</td>
+    <td class="th">Channel/Location</td>
     <td class="th">Call Type</td>
     <td class="th" style="font-size: 9">Last<br>Updated?</td>
     <td class="th" >Call&nbsp;Time</td>

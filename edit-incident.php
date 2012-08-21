@@ -55,12 +55,18 @@
   $lock_obtained=0;
   if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING) {
     MysqlQuery("LOCK TABLES incident_locks LOW_PRIORITY WRITE, users READ");
+    if ($DEBUG) {
+      syslog(LOG_DEBUG, "edit-incident.php Aggressively deleting incident_lock for incident_id $incident_id, user_id ".(int)$_SESSION['id'].", session_id '".session_id());
+    }
     MysqlQuery("DELETE FROM incident_locks WHERE user_id=".(int)$_SESSION['id']." AND session_id='".session_id()."' AND takeover_timestamp IS NOT NULL"); // This may be overly aggressive, but is needed to clean up the POST/alert logic in the short term.
     $incident_lock = MysqlQuery ("SELECT incident_locks.*, users.username FROM incident_locks LEFT OUTER JOIN users on incident_locks.user_id = users.id WHERE incident_id=$incident_id AND takeover_timestamp IS NULL");
     $incident_previously_locked = mysql_num_rows($incident_lock);
     $lock_info = mysql_fetch_object($incident_lock);
 
     if ($incident_previously_locked == 0) {
+      if ($DEBUG) {
+        syslog(LOG_DEBUG, "edit-incident.php Regaining incident_lock for incident_id $incident_id, user_id ".(int)$_SESSION['id'].", session_id '".session_id());
+      }
       MysqlQuery("INSERT INTO incident_locks (incident_id, user_id, timestamp, ipaddr, session_id) VALUES ($incident_id, ".$_SESSION['id'].", NOW(), '".$_SERVER['REMOTE_ADDR']."', '".session_id()."')");
       if (mysql_affected_rows() == 1) {
         $lock_obtained=1;
@@ -84,6 +90,9 @@
       $takeover_lock_user = MysqlGrabData ("SELECT username FROM incident_locks LEFT OUTER JOIN users on incident_locks.takeover_by_user_id = users.id WHERE lock_id=".$lock_info->lock_id);
       $lock_msg = "<u>" . $takeover_lock_user ."</u> has taken over editing from you";
       $lock_msg2 = "(since ".dls_utime($lock_info->takeover_timestamp) . ", from ".$lock_info->takeover_ipaddr.")";
+      if ($DEBUG) {
+        syslog(LOG_DEBUG, "edit-incident.php Deleting incident_lock lock_id " .$lock_info->lock_id." on takeover for incident_id $incident_id, user_id ".(int)$_SESSION['id'].", session_id '".session_id());
+      }
       MysqlQuery("DELETE FROM incident_locks WHERE lock_id = ". $lock_info->lock_id);
     }
     else {
@@ -109,6 +118,7 @@
 
   header_html("Dispatch :: Call #" .$row -> call_number,
               "  <script src=\"js/clock.js\" type=\"text/javascript\"></script>\n" .
+              "  <script src=\"js/jquery-1.7.2.min.js\" type=\"text/javascript\"></script>\n" .
               "  <script src=\"js/edit-incident.js\" type=\"text/javascript\"></script>\n");
 ?>
 
@@ -372,33 +382,18 @@
 <table cellspacing=0 cellpadding=2 border> <!-- outer color table for channels -->
   <tr valign=top><td colspan="2" bgcolor="#bbbbbb" class="text">
   <table cellspacing=1 cellpadding=0>  <!-- layout table for incident notes -->
-   <tr valign=top><td class="label" align=left width=395> <b>Channels</b>
-<?php
-  $channels = MysqlQuery("SELECT * FROM channels c WHERE available=1 ORDER BY precedence,channel_name");
-  if (mysql_num_rows($channels)) {
-    while ($channel = mysql_fetch_object($channels)) {
-      $chclass='channel';
-      $chtitle='Click here to assign to this incident.';
-      $chaction='assign';
-      if ($channel->repeater) { $chclass .= ' b'; $chtitle.='  This is a repeated channel. '; }
-      if ($channel->incident_id == $incident_id) { $chclass .= ' chasg'; $chtitle = "This channel is assigned to this incident; click here to release."; $chaction = 'unassign'; }
-      elseif ($channel->incident_id) { $chclass .= ' chother'; $chtitle = "This channel is assigned to incident ". CallNumber($channel->incident_id) .".";}
-      print "<button type=submit style=\"margin: 0px; padding: 0px;\" name=\"channel_$chaction\" value=\"$channel->channel_id\" title=\"$chtitle\"><span class=\"$chclass\" title=\"$chtitle\">$channel->channel_name</span></button>\n";
-    }
-    mysql_free_result($channels);
-  }
-  else {
-    print "<span class=\"text\"><i> No channels configured. </i></span>";
-  }
-?>
-
+   <tr valign=top><td class="label" align=left width=40> <b>Channels</b> </td>
+<td class="label" align=left width=355>
+        <iframe id="chframe" border=0 frameborder=0 style="padding: 0px; spacing: 0px; margin: 0px;" name="notes" tabindex="-1"
+         src="incident-channels.php?incident_id=<?php print $incident_id?>"
+         width=320 height=72 scrolling=no marginheight=0 marginwidth=0 ></iframe>
      
    </td></tr>
   </table>
   </td></tr>
 </table>
 
-<table height=324 cellspacing=0 cellpadding=0 border> <!-- outer color table for incident notes -->
+<table height=300 cellspacing=0 cellpadding=0 border> <!-- outer color table for incident notes -->
   <tr><td colspan="2" bgcolor="#bbbbbb" class="text">
   <table cellspacing=1 cellpadding=0>  <!-- layout table for incident notes -->
 
@@ -442,19 +437,19 @@
     </tr>
 
     <tr><td></td></tr>
-
     <tr>
        <td class="label">Note:</td>
          <td>
-         <input type="text" name="note_message" id="note_message" tabindex="82" size=50 maxlength=250
-     <?php print DisabledP($is_complete); ?> > &crarr;
+         <input class="noEnterSubmit" type="text" name="note_message" id="note_message" tabindex="82" size=50 maxlength=250
+     <?php print DisabledP($is_complete); ?> >
+         <button type="submit" name="save_note" tabindex="83" title="Saves the entered note with the incident.">Save Note</button>
        </td>
     </tr>
 
     <tr><td colspan="2">
         <iframe border=0 frameborder=0 name="notes" tabindex="-1"
          src="incident-notes.php?incident_id=<?php print $incident_id?>"
-         width=400 height=248 marginheight=0 marginwidth=0 scrolling="auto"></iframe>
+         width=400 height=232 marginheight=0 marginwidth=0 scrolling="auto"></iframe>
     </td></tr>
   </table>
   </td>
@@ -465,7 +460,7 @@
 <td rowspan=3 valign=top width=100%>
 
 <!-- units table -->
-<table width=100% height=350 cellspacing=0 cellpadding=0 border>
+<table width=100% height=389 cellspacing=0 cellpadding=0 border>
   <tr valign=top><td bgcolor="#bbbbbbbb" class="text">
   <table width=100% cellspacing=0 cellpadding=2>
   <tr valign=top>

@@ -6,11 +6,14 @@ li { font-size: 10pt; text-align: justify }
 
 .button { background-color: #eeeeee; border: 2px outset #cccccc; color: black; font-family: tahoma,sans; font-size: 10pt; text-decoration: none; margin: 3px }
 
-.channel { font-family: tahoma,sans; border: 1px solid #888888; display: inline; font-size: 11; white-space: nowrap; background-color: #99ffcc; color: black; }
-.chasg { background-color: yellow; border: 2px solid #999900;}
-.chasgix { background-color: #6666cc; border: 2px solid #999900;}
-.chunav { background-color: #eeeeee; color: #cccccc;  border: 1px solid #aaaaaa }
+.channel { font-family: tahoma,sans; border: 2px outset blue; display: inline; font-size: 11; white-space: nowrap; background-color: #eeeeee; color: black; }
+.chasg { background-color: #339933; border: 1px solid black; color: white; }
+.chasgix { background-color: #333333; font-style: italic; color: #aaaaaa; border: 1px solid black;}
+.chunav { background-color: #666666; color: #999999;  border: 1px solid #333333; }
 .chother { background-color: #666666; color: black;  }
+<style>
+</style>
+
 
 .iconred    { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid red; color: red }
 .iconyellow { font-size:9px; padding-left: 2px; padding-right: 2px; border: 1px solid yellow; background-color: gray; color: yellow }

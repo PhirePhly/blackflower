@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ ! -f data/schema.sql ]
 then
@@ -26,7 +26,8 @@ defapphost="localhost"
 defdbuser="cad"
 defdbpass="default-password"
 defcaduser="Administrator"
-defcadpass="def-admin-pw"
+defcadpass="default-admin-pw"
+defcadpasshash='$2a$08$En93eo6qk7f1Ph/S6gr0V.9PCzorokzhsQsLQBZrQCnE9eMlsSIBe'
 
 echo
 if [ ! -r cad.conf.example ]
@@ -47,7 +48,6 @@ then
     defdbuser=`grep "DB_USER = " cad.conf | cut -d \" -f 2`
     defdbpass=`grep "DB_PASS = " cad.conf | cut -d \" -f 2`
     defcaduser=`grep -E "DEFAULT_ADMIN\s*=" cad.conf | cut -d \" -f 2`
-    defcadpass=`grep -E "DEFAULT_ADMIN\s*=" cad.conf | cut -d \" -f 2`
   else
     echo "CRITICAL: cad.conf already exists."
     echo "In order to run initialization again, call this script as either:"
@@ -79,9 +79,11 @@ echo
 echo "[Create a CAD administrator account]"
 echo "  Record this information and keep it secure.  This account will be used to"
 echo "  log into CAD to perform administrative tasks such as adding/deleting users."
+echo ""
+echo "  The initial password will be \"$defcadpass\" and you'll be prompted to"
+echo "  change it when first logging in."
 echo
 read -p "  Enter CAD administrator username (default: '$defcaduser'): " caduser
-read -p "  Enter new password for this user (default: '$defcadpass'): " cadpass 
 
 echo
 echo "******************************"
@@ -108,10 +110,6 @@ fi
 if [ x${caduser}x == xx ]
 then
         caduser=$defcaduser
-fi
-if [ x${cadpass}x == xx ]
-then
-        cadpass=$defcadpass
 fi
 
 
@@ -198,7 +196,7 @@ echo "done."
 
 # TODO: detect if Administrator user already exists
 echo -n "Creating CAD administrator account... "
-echo "INSERT INTO users (username, password, name, access_level) VALUES ('$caduser', PASSWORD('$cadpass'), 'Administrator Account', 15)" | mysql -u $dbuser --password=$dbpass -h $dbhost $dbname
+echo "INSERT INTO users (username, password, name, access_level, change_password) VALUES ('$caduser', '$defcadpasshash', 'Administrator Account', 15, 1)" | mysql -u $dbuser --password=$dbpass -h $dbhost $dbname
 e1=$?
 if [ $e1 -ne 0 ]
 then
@@ -209,10 +207,6 @@ echo "done."
 
 echo -n "Setting config file value for CAD administrator username..."
 perl -pi -e "s/(DEFAULT_ADMIN\s*=\s*)\"(.*)\"/\$1\"$caduser\"/" cad.conf
-echo "done."
-
-echo -n "Setting config file value for CAD administrator password..."
-perl -pi -e "s/(DEFAULT_ADMIN_PW\s*=\s*)\"(.*)\"/\$1\"$cadpass\"/" cad.conf
 echo "done."
 
 echo -n "Setting file permissions... "
@@ -235,9 +229,5 @@ fi
 
 echo
 echo "CAD initialization completed."
-echo
-echo "IMPORTANT: as of v1.9.0pre2, the Administrator password setting will not"
-echo "  work correctly.  Set \$DEBUG=1 in cad.conf and update the database "
-echo "  users table with the hash displayed on an unsuccessful login attempt."
 
 

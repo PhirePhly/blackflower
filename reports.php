@@ -29,10 +29,10 @@
   }
   mysql_free_result($result);
 
-  $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d') as ts FROM messages GROUP BY ts ASC";
+  $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d') as ts_date FROM messages GROUP BY ts_date ASC";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
   while ($line = mysql_fetch_object($result)) {
-    array_push($units_dates, $line->ts);
+    array_push($units_dates, $line->ts_date);
   }
   mysql_free_result($result);
   foreach ($incidents_dates as $idate) {

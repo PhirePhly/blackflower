@@ -11,8 +11,10 @@
   SessionErrorIfReadonly();
 
   /* Debugging */
-  $out = print_r($_POST, true);
-  syslog (LOG_DEBUG, "POST contents: $out");
+  if ($DEBUG) {
+    $out = print_r($_POST, true);
+    syslog (LOG_DEBUG, "POST contents: $out");
+  }
 
   /* Initialize variables */
 
@@ -108,6 +110,9 @@
 
   if (isset($_POST["incident_abort"])) {
     if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING && isset($_POST["incident_row_locked"])) {
+      if ($DEBUG) {
+        syslog(LOG_DEBUG, "Aborting: Clearing incident_locks on incident_id $incident_id, user_id $userid, session_id ".session_id());
+      }
       MysqlQuery ("LOCK TABLES incident_locks WRITE");
       MysqlQuery("
         DELETE FROM incident_locks 
@@ -131,6 +136,7 @@
 
   elseif (isset($_POST["cancel_changes"])) {
     if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING && isset($_POST["incident_row_locked"])) {
+      syslog(LOG_INFO, "Canceling: Clearing incident_locks on incident_id $incident_id, user_id $userid, session_id ".session_id());
       MysqlQuery ("LOCK TABLES incident_locks WRITE");
       MysqlQuery("
         DELETE FROM incident_locks 
@@ -146,42 +152,18 @@
     exit;
   }
 
-  elseif (isset($_POST["channel_assign"])) {
-    $channel_to_toggle = (int) $_POST["channel_assign"];
-    MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
-    $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
-    if (mysql_num_rows($chinfo)) { 
-      $chrow = mysql_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
-      if ((int)$chrow->incident_id) {
-        MysqlQuery ("UNLOCK TABLES");
-        print "<html><body><SCRIPT LANGUAGE=\"JavaScript\">alert('That channel ($chrow->channel_name) was previously assigned to incident " . CallNumber($chrow->incident_id) . "'); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
-        exit;
-      }
-      MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES
-                  ($incident_id, NOW(), '', 'Channel $chrow->channel_name assigned to incident.', '$username') ");
-      MysqlQuery ("UPDATE channels SET incident_id=$incident_id WHERE channel_id=$channel_to_toggle");
-    }
-    MysqlQuery ("UNLOCK TABLES");
-    header("Location: edit-incident.php?incident_id=$incident_id");
-    exit;
-  }
 
-  elseif (isset($_POST["channel_unassign"])) {
-    $channel_to_toggle = (int) $_POST["channel_unassign"];
-    MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
-    $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
-    if (mysql_num_rows($chinfo)) { 
-      $chrow = mysql_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
-      if (!isset($chrow->incident_id) || !(int)$chrow->incident_id) {
-        MysqlQuery ("UNLOCK TABLES");
-        print "<html><body><SCRIPT LANGUAGE=\"JavaScript\">alert('That channel ($chrow->channel_name) was already unassigned, incident_id is empty [$chrow->incident_id].'); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
-        exit;
-      }
-      MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES
-                  ($incident_id, NOW(), '', 'Channel $chrow->channel_name unassigned from incident.', '$username') ");
-      MysqlQuery ("UPDATE channels SET incident_id=NULL WHERE channel_id=$channel_to_toggle");
+  /* POST: note_message  *************************************************/
+
+  elseif (isset($_POST["save_note"])) {
+    if($_POST["note_message"] <> "") {
+      $unit = MysqlClean($_POST,"note_unit",20);
+      $message = MysqlClean($_POST,"note_message",255);
+
+      MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) ".
+                 "VALUES ($incident_id, NOW(), '$unit', '$message', '$username')");
+      syslog(LOG_INFO, "User $username added a note to incident $incident_id");
     }
-    MysqlQuery ("UNLOCK TABLES");
     header("Location: edit-incident.php?incident_id=$incident_id");
     exit;
   }
@@ -235,6 +217,9 @@
 
       if (mysql_num_rows($incident_lock_results) == 1) {
         $incident_lock = mysql_fetch_object($incident_lock_results);
+        if ($DEBUG) {
+          syslog(LOG_DEBUG, "Taking over: Updating old incident_lock for incident_id $incident_id");
+        }
         MysqlQuery(" 
           UPDATE incident_locks
           SET takeover_by_userid=$userid,
@@ -243,7 +228,10 @@
               WHERE lock_id=" . $incident_lock->lock_id 
         );
       }
-
+      
+      if ($DEBUG) {
+        syslog(LOG_DEBUG, "Taking over: Inserting incident_lock for incident_id $incident_id, user_id $userid, session_id ".session_id());
+      }
       MysqlQuery("
         INSERT INTO incident_locks (incident_id, user_id, timestamp, ipaddr, session_id)
         VALUES ($incident_id, 
@@ -284,7 +272,8 @@
     syslog(LOG_INFO, "$username reopened incident $incident_id");
     header("Location: edit-incident.php?incident_id=$incident_id");
     exit;
-  }
+  }  
+  
 
   /***********************************************************************/
   // Otherwise, below this point, assume we want to Save Changes.
@@ -296,17 +285,6 @@
   $oldline = mysql_fetch_array($result, MYSQL_ASSOC);
   $call_number = $oldline["call_number"];
 
-
-  /* POST: note_message  *************************************************/
-
-  if (isset($_POST["note_message"]) && $_POST["note_message"] <> "") {
-    $unit = MysqlClean($_POST,"note_unit",20);
-    $message = MysqlClean($_POST,"note_message",255);
-
-    MysqlQuery("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) ".
-               "VALUES ($incident_id, NOW(), '$unit', '$message', '$username')");
-    syslog(LOG_INFO, "User $username added a note to incident $incident_id");
-  }
 
   /* POST: (arrived|transpo|transdn|release)_unit_(\w+)  *******************/
 
@@ -341,6 +319,14 @@
           DoUnitAction($incident_id, $call_number, $unitsrelrow->uid, 'released from', 'cleared_time');
         }
       }
+    }
+
+    $numch = MysqlGrabData ("SELECT count(*) FROM channels WHERE incident_id=$incident_id");
+    if ($numch > 0) {
+      MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
+      MysqlQuery ("UPDATE channels SET incident_id=NULL WHERE incident_id=$incident_id");
+      MysqlQuery ("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES ($incident_id, NOW(), '', '$numch channel(s) unassigned from completed incident.', '$username') ");
+      MysqlQuery ("UNLOCK TABLES");
     }
   }
 
@@ -405,7 +391,9 @@
       if (isset($DB_PAGING_NAME) && isset($USE_PAGING_LINK) && $USE_PAGING_LINK && 
           (!isset($_POST['call_type']) || $_POST['call_type'] != 'TRAINING')) {
         # It is CRITICAL that if this call fails, CAD only abort the *pageout* attempt; it should save the rest of the update data rather than dieing.
-        syslog(LOG_DEBUG, "Debug: auto-paging for $unit");
+        if ($DEBUG) {
+          syslog(LOG_DEBUG, "Debug: auto-paging for $unit");
+        }
         $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS);
         if (!$paginglink) { syslog(LOG_WARNING, "Error connecting to paging db on $DB_PAGING_HOST"); }
 
@@ -484,11 +472,14 @@
         AND session_id='" . session_id() . "'
       ";
         //AND takeover_timestamp IS NULL    -- added this because we were getting num_rows=2 when trying to post on a stale lock with re-editing.  clear on load instead.
-    syslog(LOG_DEBUG, "Selecting lock to confirm read-write incident: $incident_lock_query");
+    if ($DEBUG) {
+      syslog(LOG_DEBUG, "Selecting lock to confirm read-write incident: $incident_lock_query");
+    }
     $incident_lock_results = MysqlQuery($incident_lock_query);
 
     if (mysql_num_rows($incident_lock_results) != 1) {
-      print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> alert(\"Read-write privileges disappeared while editing incident $incident_id (". mysql_num_rows($incident_lock_results) . " locks).  Contact the system administrator with this message.\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
+      syslog(LOG_NOTICE, "Read-write privileges disappeared while editing incident $incident_id, number of locks: " . mysql_num_rows($incident_lock_results));
+      print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> alert(\"Read-write privileges disappeared while editing incident $incident_id (". mysql_num_rows($incident_lock_results) . " locks).  DO NOT MANUALLY REFRESH THIS WINDOW (Control-R or equivalent); doing so will cause this error.  Otherwise, contact the system administrator with this message.\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
       exit;
     }
 
@@ -498,6 +489,9 @@
       $takeover_lock_user = MysqlGrabData ("SELECT username FROM incident_locks LEFT OUTER JOIN users on incident_locks.takeover_by_userid = users.id WHERE lock_id=".$incident_lock->lock_id);
       $lock_msg = "<u>" . $takeover_lock_user ."</u> has taken over editing from you";
       $lock_msg2 = "(since ".dls_utime($incident_lock->takeover_timestamp) . ", from ".$incident_lock->takeover_ipaddr.")";
+      if ($DEBUG) {
+        syslog(LOG_DEBUG, "Taking over: Clearing incident_lock for lock_id $incident_lock->lock_id on incident_id $incident_id");
+      }
       MysqlQuery("DELETE FROM incident_locks WHERE lock_id = ". $incident_lock->lock_id);
       if (isset($_POST["save_incident_closewin"])) 
         $window_function = "if (window.opener){window.opener.location.reload()} self.close();";
@@ -530,13 +524,18 @@
 
   // Always save updated timestamp, even when read-only.  Enter the master incident query into the DB
   $incidentquery .= " updated=NOW() WHERE incident_id=$incident_id";
-  syslog(LOG_DEBUG, "Master incident update query:  $incidentquery");
+  if ($DEBUG) {
+    syslog(LOG_DEBUG, "Master incident update query:  $incidentquery");
+  }
   MysqlQuery($incidentquery);
   syslog(LOG_INFO, "User $username updated call [$call_number] (incident $incident_id)");
 
   // Release lock if appropriate: Using locking, In Read-Write mode, and we saw a Save & Close button submit.
   if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING && $authorized_to_write_lockable_fields &&
       isset($_POST["incident_row_locked"]) && isset($_POST["save_incident_closewin"]) ) {
+    if ($DEBUG) {
+      syslog(LOG_DEBUG, "Saw Save&Close: Clearing incident_locks on incident_id $incident_id, user_id $userid, session_id ".session_id());
+    }
     MysqlQuery ("LOCK TABLES incident_locks WRITE");
     MysqlQuery("
       DELETE FROM incident_locks 

@@ -36,7 +36,7 @@
     MysqlQuery("UPDATE incidents SET call_number='" .CallNumber($incident_id) . "' WHERE incident_id=$incident_id ");
     MysqlQuery("UNLOCK TABLES");
     syslog(LOG_INFO, $_SESSION['username'] . " created call [" . CallNumber($incident_id). "] (incident $incident_id)");
-    print "
+  /*  print "
       <html>
       <head>
       <script language=JavaScript>
@@ -83,8 +83,9 @@
       </body>
       </html>
 ";
+   */
       //<button onClick=\"return popup('edit-incident.php?incident_id=$incident_id','incident-new',width=1000,height=600,scrollbars)\">Go To New Incident</button>
-    //header("Location: edit-incident.php?incident_id=$incident_id");
+    header("Location: edit-incident.php?incident_id=$incident_id");
     //print "<a href=\"javascript:return popup('edit-incident.php?incident_id=$incident_id','incident-new',600,1000); self.close();\">Click here to continue to incident</a>";
     exit;
   }
@@ -175,7 +176,7 @@
    <td class="label">&nbsp;</td>
    <td class="label" align="middle">
    <button type="submit" name="new_incident" tabindex="41" accesskey="S"><u>S</u>ave New Incident</button>
-   <button type="submit" name="incident_abort" tabindex="43" accesskey="C"><u>C</u>ancel New Incident</button>
+   <button name="incident_abort" tabindex="43" accesskey="C" onClick='if (window.opener){window.opener.location.reload()} self.close()'><u>C</u>ancel New Incident</button>
    </td>
 
 </tr>

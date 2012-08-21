@@ -228,7 +228,7 @@
     }
 ?>
     Editing Bulletin <?php print $bid_request ?><p>
-    <form action=bulletins.php method=post>
+    <form id=edit_form action=bulletins.php method=post>
     <input name=bulletin_id type=hidden value="<?php print $bid_request ?>">
 
     
@@ -254,9 +254,25 @@
     <input name=orig_closed type=hidden value="<?php print $closed ? "closed" : "open"?>">
     Bulletin text: <br/>
     <textarea wrap=hard name=bulletin_text rows=10 cols=60 wrap="hard"><?php print $bulletin_text ?></textarea><br/>
-    <input type=submit name=save_bulletin value="Save Changes"> <input type=submit name=clear_bulletin value="Cancel">
-
+    <input type=button onclick="validateAndSubmit();" value="Save Changes"> <input type=submit name=clear_bulletin value="Cancel">
+    <input type=hidden name=save_bulletin value="1"/>
     </form>
+    
+    <script type="text/javascript">
+      function validateAndSubmit() {
+        
+        var subjectInput = document.getElementsByName('bulletin_subject')[0];
+        var subject = subjectInput.value.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+        if(subject === "") {
+          alert("You must provide a subject.");
+          subjectInput.focus();
+          return;
+        }
+        
+        document.forms["edit_form"].submit();
+        
+      }
+    </script>
 
 <?php
 

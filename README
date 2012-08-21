@@ -118,13 +118,6 @@ INSTALLATION
      by a user/group that is readable only by the webserver, and change
      file permissions to match, so as to safeguard your passwords.
 
-     [NOTE] As of v1.9.0pre2, the initialize.sh script does not correctly
-     set the Administrator user's password.  You must set it yourself
-     by turning DEBUG on in cad.conf and updating the database with
-     the hash displayed on an unsuccessful login.  Due to the nature
-     of changes made to passwords in v1.9 it is very likely initialize.sh
-     will be replaced or enhanced with an initialize.php in the near future.
-
      *** Manual/Windows documentation to be added ***  
      
   5) Configure your Apache installation to serve the CAD application.
