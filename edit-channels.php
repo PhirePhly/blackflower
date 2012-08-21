@@ -6,11 +6,12 @@
   require_once('local-dls.php');
   SessionErrorIfReadonly();
 
-  if (isset($DEBUG) && $DEBUG) {
-    foreach ($_POST as $key => $value) {
-      syslog(LOG_INFO, "\$_POST[$key] = $value");
-    }
-  }
+  //if (isset($DEBUG) && $DEBUG) {
+    //foreach ($_POST as $key => $value) {
+      //syslog(LOG_INFO, "\$_POST[$key] = $value");
+    //}
+  //}
+  //
   #
   # Verify access level
   #
@@ -41,9 +42,10 @@
       print "<html><body><SCRIPT LANGUAGE=\"JavaScript\">alert('Error: You must provide a channel name.'); window.location=\"edit-channels.php\"; </SCRIPT></body></html>\n";
       exit;
     } 
-    syslog(LOG_INFO, "Channel [$cleanuser] was added by [".$_SESSION['username']."]");
     MysqlQuery("INSERT INTO $DB_NAME.channels (channel_name, repeater, available, precedence, notes) VALUES ('$channel_name', $repeater, $available, $precedence, '$notes')");
     // TODO: better error checking?
+    syslog(LOG_INFO, "Channel [$channel_name] was added by [".$_SESSION['username']."]");
+
     $rid = mysql_insert_id();
     header("Location: edit-channels.php?modchannel=$rid&action=Added");
     exit;

@@ -42,8 +42,7 @@
 
 // Config values:
   $DEFAULT_ADMIN = "Administrator";
-  $DEFAULT_ADMIN_PW = "admin";
-
+  
   $INCIDENT_UNIT_COLUMNS = 4;
 
 

@@ -2,7 +2,7 @@ CHANGES
 -------
 
 --------------------------
-Version 1.9.0 - 2012-07-08
+Version 1.9.0 - 2012-08-21
 --------------------------
 [major]  THE PASSWORD HASH FORMAT HAS CHANGED AS OF 1.9.0.  All passwords 
          generated on previous versions must be reset per this example
@@ -26,6 +26,8 @@ Version 1.9.0 - 2012-07-08
          If read-only settings are not defined, the app will remain wide open
          (in read-write mode) for all connections.
          
+[minor]  Removed green interstitial process screen from new incident creation.
+
 [minor]  Users are now locked out after repeated incorrect login attempts
          (default limit = 5 attempts, configurable in cad.conf.)
 

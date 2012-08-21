@@ -71,3 +71,35 @@ function handleDisposition() {
   }
 }
 
+var needToCancel = true;
+var myform;
+
+$(document).ready(function() { 
+    
+    myform = $('form[name=myform]').first();
+    
+    myform.submit(function() {
+      needToCancel = false;
+    });
+    
+    $('.noEnterSubmit').keypress(function(e){
+        if ( e.which == 13 ) e.preventDefault();
+    });
+
+});
+
+$(window).unload(function() 
+  { 
+    if(needToCancel) {
+    
+      var url = myform.attr('action');
+
+      var data = myform.serialize();
+      data += '&cancel_changes=';
+      
+      $.post(url, data);
+      
+    }
+  } 
+);
+
