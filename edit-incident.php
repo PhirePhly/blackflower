@@ -265,27 +265,6 @@
     </label>
     </td>
 
-    <td class="label"></td><td align=left class="label"><!--a href="">Other Units...</a--></td>
-
-    <td width="100" align=right class="label">Unit&nbsp;On&nbsp;Scene</td>
-    <td align=left class="text">
-       <input type="hidden" name="ts_arrival" value="<?php print $row->ts_arrival  ?>">
-       <input type="text" name="dts_arrival" tabindex="123" class="time" size=8 readonly disabled style="color: black"
-              value="<?php if ($row->ts_arrival) print dls_dhmtime($row->ts_arrival) ?>">
-    </td>
-</tr>
-
-<!-- ****************************************** -->
-<tr>
-    <td align=right class="label"><u>C</u>ontact&nbsp;At</td>
-    <td align=left class="text">
-    <label for="contact_at" accesskey="c">
-    <input type="text" name="contact_at" id="contact_at" tabindex="4" size="50" maxlength="80" 
-      <?php print DisabledP($is_locked | $is_complete) ?>
-     value="<?php print MysqlUnClean($row->contact_at)  ?>">
-    </label>
-    </td>
-
     <td align=right class="label">Dis<u>p</u>osition</td>
     <td align=left class="text">
     <label for="disposition" accesskey="p">
@@ -308,6 +287,52 @@
     </label>
     </td>
 
+    <td width="100" align=right class="label">Unit&nbsp;On&nbsp;Scene</td>
+    <td align=left class="text">
+       <input type="hidden" name="ts_arrival" value="<?php print $row->ts_arrival  ?>">
+       <input type="text" name="dts_arrival" tabindex="123" class="time" size=8 readonly disabled style="color: black"
+              value="<?php if ($row->ts_arrival) print dls_dhmtime($row->ts_arrival) ?>">
+    </td>
+</tr>
+
+<!-- ****************************************** -->
+<tr>
+    <td align=right class="label"><u>C</u>ontact&nbsp;At</td>
+    <td align=left class="text">
+    <label for="contact_at" accesskey="c">
+    <input type="text" name="contact_at" id="contact_at" tabindex="4" size="50" maxlength="80" 
+      <?php print DisabledP($is_locked | $is_complete) ?>
+     value="<?php print MysqlUnClean($row->contact_at)  ?>">
+    </label>
+    </td>
+
+    <td align="right" class="label"><span id="duplicate_label">Duplicate Of</span></td>
+    <td align=left class="label">
+    <label for="duplicate_of" accesskey="d">
+    <select name="duplicate_of" id="duplicate_of" tabindex="62"
+      <?php print DisabledP($is_locked | $is_complete) ?> >
+<?php
+   $dupresult = MysqlQuery("SELECT incident_id, call_number FROM incidents ORDER BY call_number DESC");
+   echo "<option ";
+   if(!$row->duplicate_of_incident_id) {
+     echo "selected ";
+   }
+   echo "value=\"\">(Select)</option>";
+   while ($duprow = mysql_fetch_array($dupresult,MYSQL_ASSOC)) {
+     if ($duprow["call_number"] != $row->call_number) {
+       echo "<option ";
+       if($row->duplicate_of_incident_id == $duprow["incident_id"]) {
+         echo "selected ";
+       }
+       echo "value=\"" . $duprow["incident_id"]."\">". $duprow["call_number"] . "</option>\n";
+     } 
+   }
+   mysql_free_result($dupresult);
+?>
+    </select>
+    </label>
+    </td>
+
     <td width="100" align=right class="label">Completed</td>
     <td align=left class="text">
        <input type="hidden" name="ts_complete" value="<?php print $row->ts_complete  ?>">
@@ -325,7 +350,7 @@
    <?php
    if (!$row->completed) {
      print "<td class=\"label\" rowspan=2 align=right valign=top style=\"padding-top: 5px;\">".
-           "<input type=\"checkbox\" checked name=\"release_query\" tabindex=\"62\" disabled value=\"0\">".
+           "<input type=\"checkbox\" checked name=\"release_query\" tabindex=\"63\" disabled value=\"0\">".
            "</td>\n";
      print "<td class=\"label\" rowspan=2 colspan=3 valign=top style=\"padding-top: 5px;\">".
            "Release Assigned Units on Incident Completion<br />".

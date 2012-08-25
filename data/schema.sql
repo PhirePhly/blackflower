@@ -213,6 +213,7 @@ CREATE TABLE incidents (
 	primary_unit	varchar(20),
 	completed	bool not null default 0,
 	updated datetime not null,
+	duplicate_of_incident_id int null,
 
   INDEX (visible, completed),
   INDEX (ts_opened)
@@ -274,6 +275,7 @@ INSERT INTO incident_disposition_types VALUES ('Transferred to Rangers');
 INSERT INTO incident_disposition_types VALUES ('Treated And Released');
 INSERT INTO incident_disposition_types VALUES ('Unable To Locate');
 INSERT INTO incident_disposition_types VALUES ('Unfounded');
+INSERT INTO incident_disposition_types VALUES ('Duplicate');
 
 INSERT INTO incident_types VALUES ('FIRE');
 INSERT INTO incident_types VALUES ('LAW ENFORCEMENT');

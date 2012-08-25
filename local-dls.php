@@ -99,4 +99,10 @@
     else return "";
   }
 
+  function dls_hmmdtime ($tm_var) {
+    if ($tm_var && $tm_var <> "0000-00-00 00:00:00")
+      return date("H:i m/d", strtotime($tm_var));
+    else return "";
+  }
+
 ?>

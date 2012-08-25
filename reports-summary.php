@@ -52,7 +52,7 @@ if (isset($_GET["startdate"]) && isset($_GET["enddate"])) {
   <?php
 
   $types = array();
-  $typesquery = MysqlQuery("SELECT DISTINCT call_type FROM incidents UNION SELECT DISTINCT call_type FROM incident_types");
+  $typesquery = MysqlQuery("SELECT call_type FROM incident_types WHERE call_type != 'TRAINING'");
   while ($call_type = mysql_fetch_object($typesquery)) {
     if ($call_type->call_type == '' || $call_type->call_type == 'NULL') {
       $call_type->call_type = 'undefined';
