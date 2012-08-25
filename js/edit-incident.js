@@ -58,6 +58,22 @@ function handleDisposition() {
         document.myform.release_query.disabled = false;
         document.getElementById('mustassign').textContent = ' ';
       }
+      if(document.myform.disposition.value == "Duplicate") {
+        $('#duplicate_label').show();
+        $('#duplicate_of').show();
+        if($('#duplicate_of').val() == "") {
+	    		$("button[name='save_incident_closewin']").first().attr("disabled", true);
+  	  		$("button[name='save_incident']").first().attr("disabled", true);
+  	  	} else {
+	    		$("button[name='save_incident_closewin']").first().attr("disabled", false);
+  	  		$("button[name='save_incident']").first().attr("disabled", false);
+  	  	}
+      } else {
+		    $('#duplicate_label').hide();
+    		$('#duplicate_of').hide();
+    		$("button[name='save_incident_closewin']").first().attr("disabled", false);
+    		$("button[name='save_incident']").first().attr("disabled", false);
+      }
     }
   }
   else {
@@ -68,6 +84,10 @@ function handleDisposition() {
       document.myform.release_query.disabled = true;
       document.getElementById('mustassign').textContent = '(Must Assign a Disposition first)';
     }
+    $('#duplicate_label').hide();
+    $('#duplicate_of').hide();
+		$("input[name='save_incident_closewin']").first().attr("disabled", false);
+		$("input[name='save_incident']").first().attr("disabled", false);
   }
 }
 
@@ -85,6 +105,26 @@ $(document).ready(function() {
     $('.noEnterSubmit').keypress(function(e){
         if ( e.which == 13 ) e.preventDefault();
     });
+    
+    if(document.myform.disposition.value == "Duplicate") {
+    	$('#duplicate_label').show();
+    	$('#duplicate_of').show();
+    } else {
+    	$('#duplicate_label').hide();
+    	$('#duplicate_of').hide();
+    }
+    
+    $('#duplicate_of').change(
+      function() {
+        if($('#duplicate_of').val() == "") {
+	    		$("button[name='save_incident_closewin']").first().attr("disabled", true);
+  	  		$("button[name='save_incident']").first().attr("disabled", true);
+  	  	} else {
+	    		$("button[name='save_incident_closewin']").first().attr("disabled", false);
+  	  		$("button[name='save_incident']").first().attr("disabled", false);
+  	  	}
+      }
+    );
 
 });
 

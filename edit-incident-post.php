@@ -266,7 +266,8 @@
       UPDATE incidents 
       SET completed=0, visible=1,
           ts_complete='0000-00-00 00:00:00', 
-          disposition='' 
+          disposition='',
+          duplicate_of_incident_id=null 
       WHERE incident_id=$incident_id
       ");
     syslog(LOG_INFO, "$username reopened incident $incident_id");
@@ -328,6 +329,7 @@
       MysqlQuery ("INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES ($incident_id, NOW(), '', '$numch channel(s) unassigned from completed incident.', '$username') ");
       MysqlQuery ("UNLOCK TABLES");
     }
+    
   }
 
   /* POST: attach_unit  *************************************************/
@@ -515,7 +517,11 @@
       if ($oldline[$col_name] != $_POST[$col_name])
         $incidentquery .= "$col_name = '" .  MysqlClean($_POST, $col_name, $lockable_column_widths[$col_name]) . "', ";
     }
-  
+    
+    if($_POST["disposition"] == "Duplicate") {
+      $incidentquery .= "duplicate_of_incident_id = '" . MysqlClean($_POST, 'duplicate_of', 11) . "', ";
+    }
+      
     if ($set_ts_complete) $incidentquery .= " ts_complete=NOW(), visible=0, completed=1, ";
     if (!$set_ts_complete && $oldline["visible"] == 0) {   // Make visible after first full save for $AVOID_NEWINCIDENT_DIALOG
       $incidentquery .= "visible=1, ";

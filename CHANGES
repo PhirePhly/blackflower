@@ -2,6 +2,18 @@ CHANGES
 -------
 
 --------------------------
+Version 1.9.1 - 2012-08-25
+--------------------------
+
+[minor]  Added ability to resolve a call as a duplicate of another call.
+
+[minor]  Don't show duplicate/training calls in status totals.
+
+[minor]  Focus cursor to unit name field on new unit screen.
+
+[minor]  Improved cosmetics of incidents reports and unit reports.
+
+--------------------------
 Version 1.9.0 - 2012-08-21
 --------------------------
 [major]  THE PASSWORD HASH FORMAT HAS CHANGED AS OF 1.9.0.  All passwords 

@@ -219,7 +219,10 @@
   }
 
 
-  header_html('Dispatch :: Unit Details');
+  header_html(
+    "Dispatch :: Unit Details",               
+    "  <script src=\"js/jquery-1.7.2.min.js\" type=\"text/javascript\"></script>\n"
+  );
 
   if (isset($_POST["deleteunit"]) || isset($_POST['deleteforsure']))
     $disabledp = ' disabled ';
@@ -254,6 +257,12 @@
   <table cellpadding="0" cellspacing="0" border="1" width="100%">
   <tr>
   <td>
+  
+    <script type="text/javascript">
+      $(document).ready(function() {
+        $("input[name='unit']").first().focus();
+      });
+    </script>
 
     <!-- Begin Unit Form Inner Table -->
     <table cellpadding="2" cellspacing="0" width="100%">

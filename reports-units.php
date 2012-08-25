@@ -232,6 +232,36 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
         $pdf->Cell(70, 5, 'Attached to Call (Error: Call Number not available - Incident ID# ' .$line->incident_id.')', 0, 1, "L");
       }
 
+      if($date == substr($line->dispatch_time, 0, 10)) {
+        $line->dispatch_time = substr($line->dispatch_time, 11);
+      } else {
+        $line->dispatch_time = substr($line->dispatch_time, 11) . ' ' . substr($line->dispatch_time, 0, 10);
+      }
+      
+      if($date == substr($line->arrival_time, 0, 10)) {
+        $line->arrival_time = substr($line->arrival_time, 11);
+      } else {
+        $line->arrival_time = substr($line->arrival_time, 11) . ' ' . substr($line->arrival_time, 0, 10);
+      }
+      
+      if($date == substr($line->transport_time, 0, 10)) {
+        $line->transport_time = substr($line->transport_time, 11);
+      } else {
+        $line->transport_time = substr($line->transport_time, 11) . ' ' . substr($line->transport_time, 0, 10);
+      }
+
+      if($date == substr($line->transportdone_time, 0, 10)) {
+        $line->transportdone_time = substr($line->transportdone_time, 11);
+      } else {
+        $line->transportdone_time = substr($line->transportdone_time, 11) . ' ' . substr($line->transportdone_time, 0, 10);
+      }
+        
+      if($date == substr($line->cleared_time, 0, 10)) {
+        $line->cleared_time = substr($line->cleared_time, 11);
+      } else {
+        $line->cleared_time = substr($line->cleared_time, 11) . ' ' . substr($line->cleared_time, 0, 10);
+      }
+        
       $thisrow_top = $pdf->GetY();
       $pdf->SetFont('Arial','',10);
       $pdf->Cell(5,5); $pdf->Cell(30, 5, "Dispatch Time:", 0, 0, "R");  $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->dispatch_time, 1, 1);
