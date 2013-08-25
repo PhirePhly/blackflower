@@ -10,6 +10,7 @@
   $DB_PAGING_HOST = "localhost--unused-by-default";
   $DB_PAGING_USER = "cad--unused-by-default";
   $DB_PAGING_PASS = "cad-password--unused-by-default";
+  $ALLOW_MANUAL_PAGE = 0;  // Can a dispatcher page a unit manually from CAD?  This feature has problems, use with care; default is now 0 (don't allow it.)
 
 // Header display:
   $HEADER_LOGO = "Logos/logo.png";
@@ -20,6 +21,8 @@
   $AVOID_NEWINCIDENT_DIALOG = 0; // 1.7.0: use compact new incident entry?
   $USE_INCIDENT_LOCKING = 1;     // 1.8.0: lock incidents (others read-only?)
   $LOCKING_SHOW_USERNAME = 1;    //     \- if locked, show username in list?
+  $FORCE_MANUAL_UNIT_RELEASE= 1; // 1.10.0: require attached units to be released manually before allowing an incident to be closed?
+  $SUPERVISOR_INCIDENT_REVIEW = 0; // 1.10.0: require a supervisor to review each incident before fully closing?
   $DEBUG = 0;                    // Debug logging mode (0 or 1).
 
 // Scalars:

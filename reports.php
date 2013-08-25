@@ -18,6 +18,7 @@
 
   // Initialize date arrays for choosers, unit array for unit chooser
   $incidents_dates = array();
+  $incidents_types = array();
   $units_dates = array();
   $units = array();
   $message_types = array();
@@ -42,7 +43,7 @@
   }
   rsort($units_dates);
 
-  $query = "SELECT unit FROM units";
+  $query = "SELECT unit FROM units ORDER BY unit ASC";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
   while ($line = mysql_fetch_object($result)) {
     array_push($units, $line->unit);
@@ -50,7 +51,14 @@
   natsort($units);
   mysql_free_result($result);
 
-  $query = "SELECT message_type FROM message_types";
+  $query = "SELECT call_type FROM incident_types ORDER BY call_type ASC";
+  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+  while ($line = mysql_fetch_object($result)) {
+    array_push($incidents_types, $line->call_type);
+  }
+  mysql_free_result($result);
+
+  $query = "SELECT message_type FROM message_types ORDER BY message_type ASC";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
   while ($line = mysql_fetch_object($result)) {
     array_push($message_types, $line->message_type);
@@ -82,7 +90,7 @@
        <td align=left><SELECT name="enddate">
 
   <?php
-  rsort($incidents_dates);
+  sort($incidents_dates);
   foreach($incidents_dates as $idate) {
     print "<OPTION ";
     if (date('Y-m-d', time()-86400) == $idate) print "selected ";
@@ -108,10 +116,13 @@
   <font class="h1"><u>Incidents Report</u></font><br>
   <ul>
   <table>
-  <tr> <td class="text" align=left><b>Date</b> </td>
-       <td align=left><SELECT name="selected-date">
+  <tr><td class="text" colspan=2>Enter the range of dates over which to show incidents.</td></tr>
+
+  <tr> <td class="text" align=left><b>Start Date</b> </td>
+       <td align=left><SELECT name="startdate">
 
   <?php
+  sort($incidents_dates);
   foreach($incidents_dates as $idate) {
     print "<OPTION ";
     if (date('Y-m-d', time()-86400) == $idate) print "selected ";
@@ -120,10 +131,37 @@
   ?>
 
   </select></td><td> </td></tr>
+  <tr> <td class="text" align=left><b>End Date</b> </td>
+       <td align=left><SELECT name="enddate">
+
+  <?php
+  sort($incidents_dates);
+  foreach($incidents_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+
+
+  </select></td><td> </td></tr>
+  <tr><td></td></tr>
+
+  <tr> <td class="text" align=left><b>Incident Type</b> </td>
+       <td align=left><SELECT name="selected-type">
+  <?php
+  print "<option selected value=\"\">All types</option>\n";
+  foreach($incidents_types as $itype) {
+    print "<option value=\"".$itype."\">".$itype."</option>\n";
+  }
+?>
+  </select></td><td> </td></tr>
   <tr><td></td></tr>
 
   <tr> <td class="text"><b>All Incidents For Date</b></td>
        <td align="left"> <input type="checkbox" name="mode" checked disabled value="report-by-date" /></td></tr>
+  <tr> <td  class="text"><b>Exclude calls of type TRAINING?</td>
+       <td> <input type="checkbox" checked name="hidetraining" value="1" /></tr>
   <tr> <td  class="text"><b>New page for each incident?</td>
        <td> <input type="checkbox" name="always-pagebreak" value="1" /></tr>
 

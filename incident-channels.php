@@ -15,6 +15,7 @@
     SessionErrorIfReadonly();
     $channel_to_toggle = (int) $_POST['channel_assign'];
     $incident_id = (int) $_POST['incident_id'];
+    // TODO: guard against assigning channels on Closed/Dispositioned incident
     MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
     $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
     if (mysql_num_rows($chinfo)) { 
@@ -37,6 +38,7 @@
     SessionErrorIfReadonly();
     $channel_to_toggle = (int) $_POST['channel_unassign'];
     $incident_id = (int) $_POST['incident_id'];
+    // TODO: guard against unassigning channels on Closed/Dispositioned incident
     MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
     $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
     if (mysql_num_rows($chinfo)) { 
@@ -62,6 +64,7 @@
   else
     die ("Invalid parameter set - No incident ID specified in URI.");
 
+  $incident_status = MysqlGrabData("SELECT incident_status FROM incidents WHERE incident_id=$incident_id");
 
   $resultURI = $_SERVER["PHP_SELF"];
   if (isset($_GET["incident_id"]))
@@ -71,19 +74,27 @@
 ?>
   <body vlink="blue" link="blue" alink="cyan">
   <form name="myform" action="incident-channels.php" method="post" style="width: 320px; margin: 0px; padding: 0px">
+<?php if ($incident_status == 'Open') { ?>
   <input type="hidden" name="incident_id" value="<?php print $incident_id?>">
 
 <?php
+}
   $channels = MysqlQuery("SELECT * FROM channels c WHERE available=1 ORDER BY precedence,channel_name");
   if (mysql_num_rows($channels)) {
     while ($channel = mysql_fetch_object($channels)) {
       $chclass='channel';
-      $chtitle='This channel is available, click here to assign to this incident.';
       $chaction='assign';
-      if ($channel->repeater) { $chclass .= ' b'; $chtitle.='  This is a repeated channel. '; }
-      if ($channel->incident_id == $incident_id) { $chclass .= ' chasg'; $chtitle = "This channel is assigned to this incident; click here to release."; $chaction = 'unassign'; }
-      elseif ($channel->incident_id) { $chclass .= ' chother'; $chtitle = "This channel is assigned to incident ". CallNumber($channel->incident_id) .".";}
-      print "<button type=submit style=\"margin: 0px; padding: 0px;\" name=\"channel_$chaction\" value=\"$channel->channel_id\" title=\"$chtitle\"><span class=\"$chclass\" title=\"$chtitle\">$channel->channel_name</span></button>\n";
+      if ($incident_status == 'Open') {
+        $chtitle='This channel is available, click here to assign to this incident.';
+        if ($channel->repeater) { $chclass .= ' b'; $chtitle.='  This is a repeated channel. '; }
+        if ($channel->incident_id == $incident_id) { $chclass .= ' chasg'; $chtitle = "This channel is assigned to this incident; click here to release."; $chaction = 'unassign'; }
+        elseif ($channel->incident_id) { $chclass .= ' chother'; $chtitle = "This channel is assigned to incident ". CallNumber($channel->incident_id) .".";}
+        print "<button type=submit style=\"margin: 0px; padding: 0px;\" name=\"channel_$chaction\" value=\"$channel->channel_id\" title=\"$chtitle\"><span class=\"$chclass\" title=\"$chtitle\">$channel->channel_name</span></button>\n";
+      }
+      else {
+        $chtitle='This incident is closed, channels may not be assigned/unassigned.';
+        print "<button type=button style=\"margin: 0px; padding: 0px;\" name=\"channel_$chaction\" value=\"$channel->channel_id\" title=\"$chtitle\"><span class=\"$chclass\" title=\"$chtitle\">$channel->channel_name</span></button>\n";
+      }
     }
     mysql_free_result($channels);
   }

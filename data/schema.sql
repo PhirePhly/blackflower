@@ -209,13 +209,12 @@ CREATE TABLE incidents (
 	reporting_pty	varchar(80),
 	contact_at	varchar(80),
 	disposition	varchar(80),
-	visible		bool not null default 0,
 	primary_unit	varchar(20),
-	completed	bool not null default 0,
 	updated datetime not null,
 	duplicate_of_incident_id int null,
+        incident_status ENUM('New', 'Open', 'Dispositioned', 'Closed'),
 
-  INDEX (visible, completed),
+  INDEX (incident_status),
   INDEX (ts_opened)
 	);
 
@@ -277,6 +276,7 @@ INSERT INTO incident_disposition_types VALUES ('Unable To Locate');
 INSERT INTO incident_disposition_types VALUES ('Unfounded');
 INSERT INTO incident_disposition_types VALUES ('Duplicate');
 
+INSERT INTO incident_types VALUES ('COURTESY TRANSPORT');
 INSERT INTO incident_types VALUES ('FIRE');
 INSERT INTO incident_types VALUES ('LAW ENFORCEMENT');
 INSERT INTO incident_types VALUES ('ILLNESS');
@@ -323,7 +323,11 @@ INSERT INTO unit_assignments (assignment, description, display_class, display_st
 ('CDC', 'Comm Duty Chief', 'iconpurple', NULL),
 ('OC', 'On-Call', 'icongray', NULL),
 ('S', 'Supervisor', 'icongray', NULL),
-('FS', 'Field Supervisor', 'icongray', NULL);
+('FS', 'Field Supervisor', 'icongray', NULL),
+('MHDC', 'Mental Health Duty Chief', 'icongreen', NULL),
+('L2000', 'Legal 2000 On-Call', 'icongreen', NULL),  
+('CRC', 'Child Respite Center On-Call', 'icongreen', NULL);
+
 
 INSERT INTO channels (channel_name, repeater, available, precedence) VALUES 
 ('Tac 11', 0, 1, 10),

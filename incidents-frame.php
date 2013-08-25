@@ -145,7 +145,10 @@
   }
   else {
     $show_closed = 0;
-    $query_where = ' WHERE visible = 1';
+    $query_where = " WHERE incident_status='Open'";
+    if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $_SESSION['access_level'] >= 5) { // todo: magic number "5"
+      $query_where .= " OR incident_status='Dispositioned'";
+    }
   }
 
   $howmany = MysqlGrabData('SELECT COUNT(*) AS howmany FROM incidents ' . $query_where);
@@ -218,8 +221,12 @@
       }
 
 
-      if ($line["completed"])
+      if ($line["incident_status"] == 'Dispositioned' || $line["incident_status"] == 'Closed') {
         $quality = "<span style='color: #666666;'>";
+        if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $line["incident_status"] == 'Dispositioned') {
+            $td = "   <td class=\"message-review\" nowrap>";
+        }
+      }
       elseif (isset($line["ts_opened"]) && $line["ts_opened"] <> "" && $line["age_secs"] < 300)
         $quality="<span style='font-weight: bold;'>";
       else
@@ -256,7 +263,11 @@
       else {
         echo $td, $quality, $href, 'legacy incident_id ', $incident_id, "</span></a>";  # bug 75 conversion
       }
-      if ($line["completed"]) {
+      if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $line['incident_status'] == 'Dispositioned' && $_SESSION['access_level'] >= 5) { // TODO: magic number "5"
+        echo "&nbsp;&nbsp;<span style='font-size: 8pt; font-weight: bold; background-color: yellow; border: 1px solid black'>READY FOR REVIEW</span>";
+        $quality = "<span style='color: #666666; font-style: italic;'>";
+      }
+      elseif ($line["incident_status"] == 'Dispositioned' || $line["incident_status"] == 'Closed') {
         echo "&nbsp;&nbsp;<span style='font-size: 8pt;'>[completed]</span>";
         $quality = "<span style='color: #666666; font-style: italic;'>";
       }
@@ -290,12 +301,13 @@
 
       
       echo $td, $quality, str_replace(" ", "&nbsp;", $line["call_type"]), "</span></td>\n";
-      if ($line["completed"]) 
+      if ($line["incident_status"] == 'Dispositioned' || $line["incident_status"] == 'Closed') 
         echo $td, $quality, "</td>\n";
       else
         echo $td, $quality, "$staleness</td>\n";
       echo $td, $quality, dls_utime($line["ts_opened"]), "</span></td>\n";
-      if (!$line["completed"] && (!$line["ts_dispatch"] || !strcmp($line["ts_dispatch"], "0000-00-00 00:00:00")))
+
+      if (($line["incident_status"] == 'New' || $line["incident_status"] == 'Open')  && (!$line["ts_dispatch"] || !strcmp($line["ts_dispatch"], "0000-00-00 00:00:00")))
         echo $td, $quality, "</span><span style='color: darkred; text-decoration: blink;'>Undispatched</span></td>\n";
       else
         echo $td, $quality, dls_utime($line["ts_dispatch"]), "</span></td>\n";

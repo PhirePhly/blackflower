@@ -8,17 +8,53 @@ require_once('session.inc');
 
 $subsys="reports";
 
-  if ($_SESSION["access_level"] < 5) {
-    header_html('Dispatch :: Access Restricted');
-    include('include-title.php');
-    print "Access level too low to access Reports page.";
-    exit;
-  }
+if ($_SESSION["access_level"] < 5) {
+  header_html('Dispatch :: Access Restricted');
+  include('include-title.php');
+  print "Access level too low to access Reports page.";
+  exit;
+}
+
+$where_call_type_clause = '';
+$filter_description = '';
+$typefilter = '';
+$itype = MysqlClean($_GET, "selected-type", 40);
+if ($_GET['selected-type'] == 'TRAINING') {
+  $_GET['hidetraining'] = 0;
+}
+$startdate = MysqlClean($_GET,"startdate",20);
+$enddate = MysqlClean($_GET,"enddate",20);
+$daterange = $startdate;
+$selected_date='';
+if ($startdate != $enddate) {
+  $daterange .= " - $enddate";
+}
+else {
+  $selected_date = $startdate;
+}
+
+if ($itype != '') { 
+  $where_call_type_clause = " WHERE call_type = '$itype' AND ";
+  $filter_description = "Showing only calls of type '$itype'.";
+  $typefilter = " - $itype -";
+}
+elseif (isset($_GET['hidetraining'])) {
+  $where_call_type_clause = " WHERE call_type != 'TRAINING' AND ";
+  $filter_description = 'Calls of type "TRAINING" are hidden.';
+}
+else {
+  $where_call_type_clause = " WHERE ";
+  $typefilter = ' - Unfiltered -';
+  // Filter noop, use empty strings
+}
+
+
 
 if(isset($_GET["confirmed"])) {
   $opencount = 0;
 } else {
-  $openquery = "SELECT call_number, call_type, call_details, TIME(ts_opened) as open_time FROM incidents WHERE ts_opened LIKE '".MysqlClean($_GET, "selected-date", 20)."%' AND visible = 1 AND completed = 0 AND call_type != 'TRAINING' AND disposition != 'Duplicate' ORDER BY incident_id DESC";
+  $openquery = "SELECT call_number, call_type, call_details, TIME(ts_opened) as open_time FROM incidents $where_call_type_clause ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59' AND incident_status = 'Open' AND disposition != 'Duplicate' ORDER BY incident_id DESC";
+  // TODO 1.10.x: Isn't "disposition != Duplicate" redundant here?
   $openresult = mysql_query($openquery) or die("In query: $openquery<br>\nError: ".mysql_error());
   $opencount = mysql_num_rows($openresult);
 }
@@ -29,7 +65,6 @@ if($opencount > 0) {
 
   header_html('Confirm Incidents Report');
   
-  $selected_date = $_GET["selected-date"];
   $mode = $_GET["mode"];
   $always_pagebreak = $_GET["always-pagebreak"];
 
@@ -45,7 +80,7 @@ if($opencount > 0) {
   <div style="margin:1em">
   
     <div>  
-    Warning, <?php print "$opencount" ?> incident(s) created on <?php print "$selected_date" ?> are still 
+    Warning, <?php print "$opencount" ?> incident(s) created on <?php $enddate ?> are still 
     open, and the details written into the report for these incident(s) will be incomplete:
     </div>
     
@@ -78,9 +113,10 @@ if($opencount > 0) {
     
       <form name="myform" method="GET" action="reports-incidents.php" style="display:inline">
         <input type="submit" name="confirmed" value="Yes, Get PDF Incidents Report" />
-        <input type="hidden" name="selected-date" value="<?= $selected_date ?>" />
-        <input type="hidden" name="mode" value="<?= $mode ?>" />
-        <input type="hidden" name="always-pagebreak" value="<?= $always_pagebreak ?>" />
+        <input type="hidden" name="startdate" value="<?php print $startdate ?>" />
+        <input type="hidden" name="enddate" value="<?php print $enddate ?>" />
+        <input type="hidden" name="mode" value="<?php print $mode ?>" />
+        <input type="hidden" name="always-pagebreak" value="<?php print $always_pagebreak ?>" />
       </form>
       
       <form name="myform" method="GET" action="reports.php" style="display:inline">
@@ -111,7 +147,7 @@ if($opencount > 0) {
       if ($value == "") 
         $this->showcriteria = "For [all incidents in database] ";
       else
-        $this->showcriteria = "For incidents on: " . date('l', strtotime($value)) . " " . $value;
+        $this->showcriteria = "For date(s): " . $value;
     }
 
     function Header()
@@ -259,7 +295,7 @@ if($opencount > 0) {
     }
 
     function StatsColumnHeader() {
-      $this->SetY(30);
+      $this->SetY(38);
       $this->SetFont('Arial','B',10);
       $this->Cell(50,5,'Call Type',1,0);
       $this->Cell(25,5,'No. Incidents', 1,0);
@@ -273,7 +309,7 @@ if($opencount > 0) {
   #if (isset($_GET["mode"]) && $_GET["mode"] == "report-by-date") {
     
     $pdf=new PDF();
-    $pdf->SetReportsCriteria($_GET["selected-date"]);
+    $pdf->SetReportsCriteria($daterange);
     $pdf->SetFont('Arial','',10);
     $pdf->Open();
     $pdf->AliasNbPages();
@@ -281,19 +317,33 @@ if($opencount > 0) {
     $pdf->AddPage('');
     $pdf->SetWidths(array(50,25));
     $pdf->SetDrawColor(64);
-    syslog(LOG_INFO, $_SESSION['username'] . " generated incidents report");
+    //
+    if ($filter_description != '') {
+      $pdf->Cell(80,5,"Filter applied: $filter_description",0,0,'L');
+      $pdf->Ln(8);
+    }
 
-    $query = "SELECT * FROM incident_types WHERE call_type != 'TRAINING'";
+    syslog(LOG_INFO, $_SESSION['username'] . " generated incidents report");
+    if ($DEBUG) syslog(LOG_INFO, " -- beginning report generation.");
+
+
+    $query = "SELECT * FROM incident_types ";
     $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
 
     $pdf->StatsColumnHeader();
     $totalincidents = 0;
     while ($line = mysql_fetch_object($result)) {
-      $query = "SELECT COUNT(*) AS subtotal FROM incidents WHERE ts_opened LIKE '".MysqlClean($_GET, "selected-date", 20)."%' AND (visible = 1 OR completed = 1) AND call_type='".$line->call_type."'";
+      $query = "SELECT COUNT(*) AS subtotal FROM incidents $where_call_type_clause ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59'  AND incident_status != 'New' AND call_type='".$line->call_type."'";
       $subresult = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
       $subline = mysql_fetch_object($subresult);
       $totalincidents = $totalincidents + $subline->subtotal;
-      $pdf->Row(array($line->call_type, $subline->subtotal));
+      if ((isset($_GET['selected-type']) && $_GET['selected-type'] != '' && $_GET['selected-type'] != $line->call_type) || 
+          ($line->call_type == 'TRAINING' && isset($_GET['hidetraining']))) {
+        $pdf->Row(array($line->call_type, ' (filtered)'));
+      }
+      else {
+        $pdf->Row(array($line->call_type, $subline->subtotal));
+      }
       mysql_free_result($subresult);
     }
     mysql_free_result($result);
@@ -304,36 +354,36 @@ if($opencount > 0) {
     $pdf->AddPage('');
     $pdf->SetWidths(array(19,40,90,21,21));
     
-    $selected_date = MysqlClean($_GET, "selected-date", 20);
-    
-    $query = "SELECT * FROM incidents WHERE ts_opened LIKE '".$selected_date."%' AND (visible = 1 OR completed = 1) AND call_type != 'TRAINING' AND disposition != 'Duplicate'";
+    $query = "SELECT * FROM incidents $where_call_type_clause  ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59' AND incident_status != 'New' AND disposition != 'Duplicate'";
+
     $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+    if ($DEBUG) syslog(LOG_INFO, " -- selected appropriate incidents.");
 
     while ($line = mysql_fetch_object($result)) {
       if ($pdf->GetY() < 31) 
         $pdf->DLSColumnHeader();
-      if ($line->ts_opened == "0000-00-00 00:00:00") {
-        $line->ts_opened = "";
-      } else {
-        if($selected_date == substr($line->ts_opened, 0, 10)) {
-          $line->ts_opened = substr($line->ts_opened, 11);
-        } else {
-          $line->ts_opened = substr($line->ts_opened, 11) . ' ' . substr($line->ts_opened, 0, 10);
-        }
-      }
-      if ($line->ts_complete == "0000-00-00 00:00:00") {
-        $line->ts_complete = "";
-      } else {
-        if($selected_date == substr($line->ts_complete, 0, 10)) {
-          $line->ts_complete = substr($line->ts_complete, 11);
-        } else {
-          $line->ts_complete = substr($line->ts_complete, 11) . ' ' . substr($line->ts_complete, 0, 10);
-        } 
-      }
+      //if ($line->ts_opened == "0000-00-00 00:00:00") {
+        //$line->ts_opened = "";
+      //} else {
+        //if($selected_date == substr($line->ts_opened, 0, 10)) {
+          //$line->ts_opened = substr($line->ts_opened, 11);
+        //} else {
+          //$line->ts_opened = substr($line->ts_opened, 11) . ' ' . substr($line->ts_opened, 0, 10);
+        //}
+      //}
+      //if ($line->ts_complete == "0000-00-00 00:00:00") {
+        //$line->ts_complete = "";
+      //} else {
+        //if($selected_date == substr($line->ts_complete, 0, 10)) {
+          //$line->ts_complete = substr($line->ts_complete, 11);
+        //} else {
+          //$line->ts_complete = substr($line->ts_complete, 11) . ' ' . substr($line->ts_complete, 0, 10);
+        //} 
+      //}
       if ($line->call_number != '') {
-        $pdf->Row(array($line->call_number, $line->call_type, $line->call_details, $line->ts_opened, $line->ts_complete));
+        $pdf->Row(array($line->call_number, $line->call_type, $line->call_details, dls_mdhmtime($line->ts_opened), dls_mdhmtime($line->ts_complete)));
       } else {
-        $pdf->Row(array("incident #" . $line->incident_id, $line->call_type, $line->call_details, $line->ts_opened, $line->ts_complete));
+        $pdf->Row(array("incident #" . $line->incident_id, $line->call_type, $line->call_details, dls_mdhmtime($line->ts_opened), dls_mdhmtime($line->ts_complete)));
       }
     }
     mysql_free_result($result);
@@ -345,52 +395,52 @@ if($opencount > 0) {
     $pdf->SetDrawColor(64);
     
     // TODO: don't repeat this query needlessly
-    $query = "SELECT * FROM incidents WHERE ts_opened LIKE '".MysqlClean($_GET,"selected-date", 20)."%' AND (visible = 1 OR completed = 1) AND call_type != 'TRAINING' AND disposition != 'Duplicate'";
+    $query = "SELECT * FROM incidents $where_call_type_clause  ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59' AND incident_status != 'New' AND disposition != 'Duplicate'";
     $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
     $numrows = mysql_num_rows($result);
     $thisrow=0;
     while ($line = mysql_fetch_object($result)) {
       $thisrow++;
     
-      if ($line->ts_opened == "0000-00-00 00:00:00") {
-        $line->ts_opened = "";
-      } else {
-        if($selected_date == substr($line->ts_opened, 0, 10)) {
-          $line->ts_opened = substr($line->ts_opened, 11);
-        } else {
-          $line->ts_opened = substr($line->ts_opened, 11) . ' ' . substr($line->ts_opened, 0, 10);
-        } 
-      }
-        
-      if ($line->ts_dispatch == "0000-00-00 00:00:00") {
-        $line->ts_dispatch = "";
-      } else {
-        if($selected_date == substr($line->ts_dispatch, 0, 10)) {
-          $line->ts_dispatch = substr($line->ts_dispatch, 11);
-        } else {
-          $line->ts_dispatch = substr($line->ts_dispatch, 11) . ' ' . substr($line->ts_dispatch, 0, 10);
-        } 
-      }
-      
-      if ($line->ts_arrival == "0000-00-00 00:00:00") {
-        $line->ts_arrival = "";
-      } else {
-        if($selected_date == substr($line->ts_arrival, 0, 10)) {
-          $line->ts_arrival = substr($line->ts_arrival, 11);
-        } else {
-          $line->ts_arrival = substr($line->ts_arrival, 11) . ' ' . substr($line->ts_arrival, 0, 10);
-        } 
-      }  
-      
-      if ($line->ts_complete == "0000-00-00 00:00:00") {
-        $line->ts_complete = "";
-      } else {
-        if($selected_date == substr($line->ts_complete, 0, 10)) {
-          $line->ts_complete = substr($line->ts_complete, 11);
-        } else {
-          $line->ts_complete = substr($line->ts_complete, 11) . ' ' . substr($line->ts_complete, 0, 10);
-        } 
-      }  
+      //if ($line->ts_opened == "0000-00-00 00:00:00") {
+        //$line->ts_opened = "";
+      //} else {
+        //if($selected_date == substr($line->ts_opened, 0, 10)) {
+          //$line->ts_opened = substr($line->ts_opened, 11);
+        //} else {
+          //$line->ts_opened = substr($line->ts_opened, 11) . ' ' . substr($line->ts_opened, 0, 10);
+        //} 
+      //}
+        //
+      //if ($line->ts_dispatch == "0000-00-00 00:00:00") {
+        //$line->ts_dispatch = "";
+      //} else {
+        //if($selected_date == substr($line->ts_dispatch, 0, 10)) {
+          //$line->ts_dispatch = substr($line->ts_dispatch, 11);
+        //} else {
+          //$line->ts_dispatch = substr($line->ts_dispatch, 11) . ' ' . substr($line->ts_dispatch, 0, 10);
+        //} 
+      //}
+      //
+      //if ($line->ts_arrival == "0000-00-00 00:00:00") {
+        //$line->ts_arrival = "";
+      //} else {
+        //if($selected_date == substr($line->ts_arrival, 0, 10)) {
+          //$line->ts_arrival = substr($line->ts_arrival, 11);
+        //} else {
+          //$line->ts_arrival = substr($line->ts_arrival, 11) . ' ' . substr($line->ts_arrival, 0, 10);
+        //} 
+      //}  
+      //
+      //if ($line->ts_complete == "0000-00-00 00:00:00") {
+        //$line->ts_complete = "";
+      //} else {
+        //if($selected_date == substr($line->ts_complete, 0, 10)) {
+          //$line->ts_complete = substr($line->ts_complete, 11);
+        //} else {
+          //$line->ts_complete = substr($line->ts_complete, 11) . ' ' . substr($line->ts_complete, 0, 10);
+        //} 
+      //}  
     
       $pdf->Ln(2);
       $pdf->SetFont('Arial','B',14);
@@ -422,10 +472,10 @@ if($opencount > 0) {
       if ($pdf->GetY() > $thisrow_endhdr) $thisrow_endhdr = $pdf->GetY();
     
       $pdf->SetXY(160, $thisrow_top);
-      $pdf->Cell(38, 5, $line->ts_opened, 1,2);
-      $pdf->Cell(38, 5, $line->ts_dispatch, 1,2);
-      $pdf->Cell(38, 5, $line->ts_arrival,1,2);
-      $pdf->Cell(38, 5, $line->ts_complete, 1,2);
+      $pdf->Cell(38, 5, dls_mdhmtime($line->ts_opened), 1,2);
+      $pdf->Cell(38, 5, dls_mdhmtime($line->ts_dispatch), 1,2);
+      $pdf->Cell(38, 5, dls_mdhmtime($line->ts_arrival),1,2);
+      $pdf->Cell(38, 5, dls_mdhmtime($line->ts_complete), 1,2);
       $pdf->SetXY($pdf->GetX(), $pdf->GetY()+2);
       $pdf->SetFont('Arial','B',10);
       $pdf->Cell(38, 5, $line->disposition, 0, 2);
@@ -442,54 +492,54 @@ if($opencount > 0) {
     
       if (mysql_num_rows($unitresult)>0) {
         $pdf->Cell(5,5);
-        $pdf->Cell(40,5,"Unit Name");
-        $pdf->Cell(25,5,"Dispatched");
-        $pdf->Cell(25,5,"On Scene");
-        $pdf->Cell(25,5,"Transporting");
-        $pdf->Cell(25,5,"At Destination");
-        $pdf->Cell(25,5,"Cleared");
+        $pdf->Cell(60,5,"Unit Name");
+        $pdf->Cell(21,5,"Dispatched");
+        $pdf->Cell(21,5,"On Scene");
+        $pdf->Cell(24,5,"Transporting");
+        $pdf->Cell(24,5,"At Destination");
+        $pdf->Cell(21,5,"Cleared");
         $pdf->Ln(5);
-        $pdf->SetWidths(array(40, 25, 25, 25, 25, 25));
+        $pdf->SetWidths(array(60, 21, 21, 24, 24, 21));
         while ($unit = mysql_fetch_object($unitresult)) {
         
-					if($selected_date == substr($unit->dispatch_time, 0, 10)) {
-						$unit->dispatch_time = substr($unit->dispatch_time, 11);
-					}  else {
-					  $unit->dispatch_time = dls_hmmdtime($unit->dispatch_time);
-					}
+					//if($selected_date == substr($unit->dispatch_time, 0, 10)) {
+						//$unit->dispatch_time = substr($unit->dispatch_time, 11);
+					//}  else {
+					  //$unit->dispatch_time = dls_hmmdtime($unit->dispatch_time);
+					//}
 				
-					if($selected_date == substr($unit->arrival_time, 0, 10)) {
-						$unit->arrival_time = substr($unit->arrival_time, 11);
-					}  else {
-					  $unit->arrival_time = dls_hmmdtime($unit->arrival_time);
-					}
-				
-					if($selected_date == substr($unit->transport_time, 0, 10)) {
-						$unit->transport_time = substr($unit->transport_time, 11);
-					}  else {
-					  $unit->transport_time = dls_hmmdtime($unit->transport_time);
-					}
-	
-					if($selected_date == substr($unit->transportdone_time, 0, 10)) {
-						$unit->transportdone_time = substr($unit->transportdone_time, 11);
-					}  else {
-					  $unit->transportdone_time = dls_hmmdtime($unit->transportdone_time);
-					}
-					
-					if($selected_date == substr($unit->cleared_time, 0, 10)) {
-						$unit->cleared_time = substr($unit->cleared_time, 11);
-					}  else {
-					  $unit->cleared_time = dls_hmmdtime($unit->cleared_time);
-					}
+					//if($selected_date == substr($unit->arrival_time, 0, 10)) {
+						//$unit->arrival_time = substr($unit->arrival_time, 11);
+					//}  else {
+					  //$unit->arrival_time = dls_hmmdtime($unit->arrival_time);
+					//}
+				//
+					//if($selected_date == substr($unit->transport_time, 0, 10)) {
+						//$unit->transport_time = substr($unit->transport_time, 11);
+					//}  else {
+					  //$unit->transport_time = dls_hmmdtime($unit->transport_time);
+					//}
+	//
+					//if($selected_date == substr($unit->transportdone_time, 0, 10)) {
+						//$unit->transportdone_time = substr($unit->transportdone_time, 11);
+					//}  else {
+					  //$unit->transportdone_time = dls_hmmdtime($unit->transportdone_time);
+					//}
+					//
+					//if($selected_date == substr($unit->cleared_time, 0, 10)) {
+						//$unit->cleared_time = substr($unit->cleared_time, 11);
+					//}  else {
+					  //$unit->cleared_time = dls_hmmdtime($unit->cleared_time);
+					//}
         
           $pdf->Row(
             array(
               $unit->unit, 
-              $unit->dispatch_time, 
-              $unit->arrival_time,
-              $unit->transport_time,
-              $unit->transportdone_time,
-              $unit->cleared_time
+              dls_mdhmtime($unit->dispatch_time), 
+              dls_mdhmtime($unit->arrival_time),
+              dls_mdhmtime($unit->transport_time),
+              dls_mdhmtime($unit->transportdone_time),
+              dls_mdhmtime($unit->cleared_time)
             ),
             5
           );
@@ -514,17 +564,17 @@ if($opencount > 0) {
         $pdf->Cell(5,5);
         $pdf->Cell(21,5,"Time");
         $pdf->Cell(25,5,"Noted By");
-        $pdf->Cell(25,5,"Unit");
-        $pdf->Cell(112,5,"Note");
+        $pdf->Cell(30,5,"Unit");
+        $pdf->Cell(107,5,"Note");
         $pdf->Ln(5);
-        $pdf->SetWidths(array(21,25,25,112));
+        $pdf->SetWidths(array(21,25,30,107));
         while ($note = mysql_fetch_object($noteresult)) {
-          if($selected_date == substr($note->ts, 0, 10)) {
-            $note->ts = substr($note->ts, 11);
-          } else {
-            $note->ts = substr($note->ts, 11) . "\n" . substr($note->ts, 0, 10);
-          }
-          $pdf->Row(array($note->ts, $note->creator, $note->unit, $note->message), 5);
+          //if($selected_date == substr($note->ts, 0, 10)) {
+            //$note->ts = substr($note->ts, 11);
+          //} else {
+            //$note->ts = substr($note->ts, 11) . "\n" . substr($note->ts, 0, 10);
+          //}
+          $pdf->Row(array(dls_mdhmtime($note->ts), $note->creator, $note->unit, $note->message), 5);
         }
       }
       else {
@@ -544,7 +594,9 @@ if($opencount > 0) {
     mysql_free_result($result);
     mysql_close($link);
     
-    $pdf->Output();
+    if ($DEBUG) syslog(LOG_INFO, " -- closed database connection.");
+    $pdf->Output("\"CAD Incidents Report$typefilter $daterange.pdf\"",D);
+    if ($DEBUG) syslog(LOG_INFO, " -- output the pdf report.");
   #}
   #else 
   #{
