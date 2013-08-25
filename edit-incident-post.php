@@ -264,20 +264,93 @@
       ");
     MysqlQuery("
       UPDATE incidents 
-      SET completed=0, visible=1,
+      SET incident_status='Open',
           ts_complete='0000-00-00 00:00:00', 
           disposition='',
           duplicate_of_incident_id=null 
       WHERE incident_id=$incident_id
       ");
+    MysqlQuery ("LOCK TABLES incident_locks WRITE");
+    MysqlQuery("
+      DELETE FROM incident_locks 
+      WHERE incident_id=$incident_id 
+        AND user_id=$userid 
+        AND session_id='" . session_id() . "'
+      ");
+    MysqlQuery ("UNLOCK TABLES");
     syslog(LOG_INFO, "$username reopened incident $incident_id");
     header("Location: edit-incident.php?incident_id=$incident_id");
     exit;
+  }
+  /* POST: reopen_incident_admin *********************************************/
+
+  elseif (isset($_POST["reopen_incident_admin"])) {
+    $complete_date = MysqlGrabData("SELECT ts_complete FROM incidents WHERE incident_id=$incident_id");
+    $disposition   = MysqlGrabData("SELECT disposition FROM incidents WHERE incident_id=$incident_id");
+
+    MysqlQuery("
+      INSERT INTO incident_notes (incident_id, ts, unit, message, creator) 
+      VALUES ($incident_id, 
+               NOW(), 
+              '$unit', 
+              'During supervisor review, incident was reopened by $username for administrative update at $complete_date', 
+              '$username')
+      ");
+    MysqlQuery("
+      UPDATE incidents 
+      SET incident_status='Open',
+          ts_complete='0000-00-00 00:00:00', 
+          disposition='',
+          duplicate_of_incident_id=null 
+      WHERE incident_id=$incident_id
+      ");
+    MysqlQuery ("LOCK TABLES incident_locks WRITE");
+    MysqlQuery("
+      DELETE FROM incident_locks 
+      WHERE incident_id=$incident_id 
+        AND user_id=$userid 
+        AND session_id='" . session_id() . "'
+      ");
+    MysqlQuery ("UNLOCK TABLES");
+    syslog(LOG_INFO, "$username reopened incident $incident_id for administrative updates");
+    print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
+    die("(Error: JavaScript not enabled or not present) Incident reopened for updates; you may close this window if it does not automatically close.");
+    exit;
   }  
   
+  /* POST: reviewed_incident *********************************************/
+
+  elseif (isset($_POST["reviewed_incident"])) {
+    MysqlQuery("
+      INSERT INTO incident_notes (incident_id, ts, unit, message, creator) 
+      VALUES ($incident_id, 
+               NOW(), 
+              '$unit', 
+              'Incident was reviewed and content was approved by $username, setting to fully closed.', 
+              '$username')
+      ");
+    MysqlQuery("
+      UPDATE incidents 
+      SET incident_status='Closed'
+      WHERE incident_id=$incident_id
+      ");
+    MysqlQuery ("LOCK TABLES incident_locks WRITE");
+    MysqlQuery("
+      DELETE FROM incident_locks 
+      WHERE incident_id=$incident_id 
+        AND user_id=$userid 
+        AND session_id='" . session_id() . "'
+      ");
+    MysqlQuery ("UNLOCK TABLES");
+    syslog(LOG_INFO, "$username reviewed and fully closed incident $incident_id");
+    print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
+    die("(Error: JavaScript not enabled or not present) Incident reviewed and closed; you may close this window if it does not automatically close.");
+    exit;
+  }
 
   /***********************************************************************/
   // Otherwise, below this point, assume we want to Save Changes.
+  // TODO: This is a really bad assumption.  When adding new post variables that aren't yet handled, it saves the incident with blank fields...
   // Prep the standard fields for saving, then evaluate conditionals.
 
   $result = MysqlQuery("SELECT * FROM incidents WHERE incident_id=$incident_id");
@@ -305,13 +378,15 @@
   if (isset($uid_release)) DoUnitAction($incident_id, $call_number, $uid_release, 'released from', 'cleared_time');
       
 
-  /* POST: completed is true *********************************************/
-  if (isset($_POST["disposition"]) && $_POST["disposition"] != "") {
+  /* POST: incident has been completed *********************************************/
+  // TODO 1.10.x: this logic seems flaky.  Where do we SET incident_status=Dispositioned?  (200 lines below)  Why is it not part of this?
+  if (isset($_POST["disposition"]) && $_POST["disposition"] != "" && !(isset($_POST["attach_unit"]))) {
+    // TODO: Enforce business logic server side as well as client side: don't set disposition and release units if FORCE_MANUAL_UNIT_RELEASE while units are attached.
     $set_ts_complete = 1;
 
     // Check for DB completion status of this incident, and if not, do units need to be released?
-    $previously_completed = MysqlGrabData("SELECT completed FROM incidents WHERE incident_id=$incident_id");
-    if (!$previously_completed && isset($_POST["release_query"])) {
+    $previous_status = MysqlGrabData("SELECT incident_status FROM incidents WHERE incident_id=$incident_id");
+    if ($previous_status != 'Dispositioned' && $previous_status != 'Closed' && isset($_POST["release_query"])) {
       syslog(LOG_INFO, "User $username marked call [$call_number] (incident $incident_id) as complete");
 
       $unitsrelresult = MysqlQuery("SELECT * FROM incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL");
@@ -522,9 +597,10 @@
       $incidentquery .= "duplicate_of_incident_id = '" . MysqlClean($_POST, 'duplicate_of', 11) . "', ";
     }
       
-    if ($set_ts_complete) $incidentquery .= " ts_complete=NOW(), visible=0, completed=1, ";
-    if (!$set_ts_complete && $oldline["visible"] == 0) {   // Make visible after first full save for $AVOID_NEWINCIDENT_DIALOG
-      $incidentquery .= "visible=1, ";
+    if ($set_ts_complete) 
+      $incidentquery .= " ts_complete=NOW(), incident_status='Dispositioned', ";
+    elseif ($oldline["incident_status"] == 'New') {   
+      $incidentquery .= "incident_status='Open', ";
     }
   }
 

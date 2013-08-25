@@ -25,7 +25,7 @@
       MysqlQuery("LOCK TABLES incidents WRITE");
       // if this fails ... is another incident being created right now?  TODO: error handling?
 
-      MysqlQuery("INSERT INTO incidents (ts_opened, visible, updated) VALUES (NOW(), 0, NOW())");
+      MysqlQuery("INSERT INTO incidents (ts_opened, incident_status, updated) VALUES (NOW(), 'New', NOW())");
       if (mysql_affected_rows() != 1)
         die("Critical error: ".mysql_affected_rows()." is a bad number of rows when inserting new incident.");
       $findlastIDquery = "SELECT LAST_INSERT_ID()";
@@ -129,7 +129,22 @@
 <tr>
 <?php 
 
-  print "<td colspan=2 bgcolor=\"" .  ($row->completed ?  "#660000" : "darkblue") ."\" class=\"text\">\n";
+  $display_closemsg='';
+  $display_bgcolor='darkblue';
+  if ($row->incident_status == 'Closed' || $row->incident_status == 'Dispositioned') {
+    $display_closemsg = 'This Incident Is Completed';
+    $display_bgcolor = '#333333';
+  }
+  if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $row->incident_status == 'Dispositioned') {
+    if ($_SESSION['access_level'] >= 5) {
+      $display_closemsg = '<span style="background-color: yellow">Now reviewing this incident for approval/reopening</span>';
+    }
+    else {
+      $display_closemsg .= ' <span style="background-color: yellow"> (pending review)</span>';
+    }
+  }
+
+  print "<td colspan=2 class=\"text\" style=\"background-color: $display_bgcolor\">\n";
   print "<table width=\"100%\"><tr><td>\n";
 
   print "<font color=\"white\" size=\"+1\">\n";
@@ -137,11 +152,7 @@
   if ($_SESSION['access_level'] >= 10 || $row->call_number == '') {
     print "<font size=\"-1\" color=\"lightgray\"> &nbsp; (Incident $incident_id)</font>";
   }
-  if ($row->visible == 0) {
-    if ($row->completed) {
-      print "&nbsp; &nbsp; <font color=\"#FF0000\"><b>&nbsp; &nbsp;This Incident Is Completed </b></font>";
-    }
-  }
+  print "&nbsp; &nbsp; <font color=\"#FF0000\"><b>&nbsp; &nbsp;$display_closemsg</b></font>";
 
 
 ?>
@@ -175,7 +186,7 @@
   }
 
     $is_locked = 0;
-    $is_complete = ($row->completed == 1);
+    $is_complete = ($row->incident_status == 'Dispositioned' || $row->incident_status == 'Closed');
 
     if (isset($USE_INCIDENT_LOCKING) && $USE_INCIDENT_LOCKING) {
       if ($lock_obtained) {
@@ -265,26 +276,39 @@
     </label>
     </td>
 
-    <td align=right class="label">Dis<u>p</u>osition</td>
-    <td align=left class="text">
-    <label for="disposition" accesskey="p">
-    <select name="disposition" id="disposition" tabindex="61" onChange="handleDisposition()" onKeyUp="handleDisposition()" 
-      <?php print DisabledP($is_locked | $is_complete) ?> >
 <?php
-   $dispresult = MysqlQuery("SELECT disposition FROM incident_disposition_types");
-   if (!$row->disposition || !strcmp($row->disposition, ''))
-     echo "<option selected value=\"\"></option>\n";
-   while ($disprow = mysql_fetch_array($dispresult,MYSQL_ASSOC)) {
-    echo "<option ";
-     if (!strcmp($disprow["disposition"], $row->disposition)) {
-       echo "selected ";
-     }
-     echo "value=\"" . $disprow["disposition"]."\">". $disprow["disposition"] . "</option>\n";
-   }
-   mysql_free_result($dispresult);
+    # TODO: PERFORMANCE: we do a very similar query below - instead, select * here once?
+    $numunitsassigned = MysqlGrabData("SELECT count(*) from incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL ORDER BY dispatch_time DESC");
 ?>
-    </select>
-    </label>
+
+  <td align=right class="label" <?php   if (isset($FXORCE_MANUAL_UNIT_RELEASE) && $FORCE_MANUAL_UNIT_RELEASE && $numunitsassigned > 0) { print " style=\"color: gray\" "; } ?> >Dis<u>p</u>osition</td>
+
+    <td align=left class="text" <?php   if (isset($FORCE_MANUAL_UNIT_RELEASE) && $FORCE_MANUAL_UNIT_RELEASE && $numunitsassigned > 0) { print " style=\"color: gray\" "; } ?> >
+    <label for="disposition" accesskey="p">
+<?php 
+   if (isset($FORCE_MANUAL_UNIT_RELEASE) && $FORCE_MANUAL_UNIT_RELEASE && $numunitsassigned > 0) {
+     print '<input type=hidden name="disposition" id="disposition" value="">';
+     print "<b> (Release units first) </b>";
+   }
+   else {
+     print '<select name="disposition" id="disposition" tabindex="61" onChange="handleDisposition()" onKeyUp="handleDisposition()" ';
+     print DisabledP($is_locked | $is_complete) . ">\n";
+
+     $dispresult = MysqlQuery("SELECT disposition FROM incident_disposition_types");
+     if (!$row->disposition || !strcmp($row->disposition, ''))
+       echo "<option selected value=\"\"></option>\n";
+     while ($disprow = mysql_fetch_array($dispresult,MYSQL_ASSOC)) {
+      echo "<option ";
+       if (!strcmp($disprow["disposition"], $row->disposition)) {
+         echo "selected ";
+       }
+       echo "value=\"" . $disprow["disposition"]."\">". $disprow["disposition"] . "</option>\n";
+     }
+     mysql_free_result($dispresult);
+     print "</select>\n";
+   } 
+?>
+  </label>
     </td>
 
     <td width="100" align=right class="label">Unit&nbsp;On&nbsp;Scene</td>
@@ -306,7 +330,7 @@
     </label>
     </td>
 
-    <td align="right" class="label"><span id="duplicate_label">Duplicate Of</span></td>
+    <td align="right" class="label"><span id="duplicate_label">Duplicate&nbsp;Of</span></td>
     <td align=left class="label">
     <label for="duplicate_of" accesskey="d">
     <select name="duplicate_of" id="duplicate_of" tabindex="62"
@@ -348,7 +372,7 @@
    <noscript><span style="background-color: #cc9999"><b>Warning</b>: Javascript is disabled. Close this incident popup to cancel changes.</span></noscript>
    </td>
    <?php
-   if (!$row->completed) {
+   if ($row->incident_status != 'Dispositioned' && $row->incident_status != 'Closed' && !(isset($FORCE_MANUAL_UNIT_RELEASE) && $FORCE_MANUAL_UNIT_RELEASE)) {
      print "<td class=\"label\" rowspan=2 align=right valign=top style=\"padding-top: 5px;\">".
            "<input type=\"checkbox\" checked name=\"release_query\" tabindex=\"63\" disabled value=\"0\">".
            "</td>\n";
@@ -370,6 +394,15 @@
      $readonly_disabled = 1;
    else
      $readonly_disabled = 0;
+
+   if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW  && $row->incident_status == 'Dispositioned' && $_SESSION['access_level'] >= 5) {
+     print "<tr>\n<td rowspan=2 colspan=8>\n";
+     print "<button type=\"submit\" name=\"reviewed_incident\" tabindex=\"41\" class=\"blabel btn blu b\" style=\"width: 300px; height: 100px;\"><div class=sz16> Approve</div><div class=sz12>I've reviewed all fields, notes, and units logged for this incident.  I confirm it is sufficient information to factually recreate this event.</div></button>\n";
+     print "<button type=\"submit\" name=\"cancel_changes\" tabindex=\"42\" class=\"blabel btn brn b\" style=\"width: 200px; height: 100px;\"><div class=sz16> Cancel</div><div class=sz12>Just close this window for right now.</div></button>\n";
+     print "<button type=\"submit\" name=\"reopen_incident_admin\" tabindex=\"44\" class=\"blabel btn brn b\" style=\"width: 300px; height: 100px;\"><div class=sz16>Reopen</div><div class=sz12>There is insufficient detail or notes logged for this incident.  It must be reopened for administrative updates by the appropriate dispatcher(s).</div></button>\n";
+     print "</td></tr>\n";
+   }
+   else {
 ?>
 <tr>
    <td class="label" align="right" colspan=2>
@@ -378,21 +411,22 @@
    <button type="submit" name="save_incident_closewin" tabindex="42" value="Save & Close" accesskey="2" 
      <?php print DisabledP($readonly_disabled | $is_complete, 'button'); ?> ><u>2</u>  Save & Close</button>
 <?php
-  if (!$row->visible && !$row->completed) {
+  if ($row->incident_status == 'New') {
     echo "<button type=\"submit\" name=\"incident_abort\" tabindex=\"43\" accesskey=\"3\"><u>3</u>  Abort Incident</button>\n";
     echo "</td>\n";
   }
   else {
     echo "<button type=\"submit\" name=\"cancel_changes\" tabindex=\"43\" accesskey=\"3\"><u>3</u>  Cancel</button>\n";
-    if  ($row->completed) {
+    if  ($row->incident_status == 'Dispositioned' || $row->incident_status=='Closed') {
       echo "<button type=\"submit\" name=\"reopen_incident\" tabindex=\"44\" accesskey=\"4\"><u>4</u>  Reopen</button> ";
     }
     echo "</td>\n";
   }
+  echo "</tr>\n";
+  }
 
 ?>
 
-</tr>
 </table>
 </td></tr>
 </table>
@@ -467,7 +501,8 @@
          <td>
          <input class="noEnterSubmit" type="text" name="note_message" id="note_message" tabindex="82" size=50 maxlength=250
      <?php print DisabledP($is_complete); ?> >
-         <button type="submit" name="save_note" tabindex="83" title="Saves the entered note with the incident.">Save Note</button>
+         <button type="submit" name="save_note" tabindex="83" title="Saves the entered note with the incident."
+     <?php print DisabledP($is_complete); ?> >Save Note</button>
        </td>
     </tr>
 

@@ -25,7 +25,7 @@
     MysqlQuery("LOCK TABLES incidents WRITE");
     // if this fails ... is another incident being created right now?
 
-    MysqlQuery("INSERT INTO incidents (call_details, location, call_type, ts_opened, visible, updated) VALUES ('$call_details', '$location', '$call_type', NOW(), 1, NOW())");
+    MysqlQuery("INSERT INTO incidents (call_details, location, call_type, ts_opened, incident_status, updated) VALUES ('$call_details', '$location', '$call_type', NOW(), 'Open', NOW())");
     if (mysql_affected_rows() != 1)
       die("Critical error: When inserting incident, mysql_affected_rows(".mysql_affected_rows().") != 1.");
     $findlastIDquery = "SELECT LAST_INSERT_ID()";

@@ -139,6 +139,9 @@
           isset($DB_PAGING_NAME) &&
           isset($USE_PAGING_LINK) && $USE_PAGING_LINK) {
 
+    if (!isset($ALLOW_MANUAL_PAGE) || !$ALLOW_MANUAL_PAGE) {
+      die ('Manual paging is disabled.');
+    }
     $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
       or die("Could not connect : " . mysql_error());
 
@@ -489,6 +492,12 @@
       print "<tr><td colspan=3>Save unit in order to edit auto-paging links.</td></tr>";
     }
     else {
+      $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
+        or die("Could not connect : " . mysql_error());
+
+
+      if (isset($ALLOW_MANUAL_PAGE) && $ALLOW_MANUAL_PAGE) {
+
   ?>
 <!-- Begin Outer Table Row 2 -->
 <tr>
@@ -502,8 +511,6 @@
     <table cellpadding="2" cellspacing="0" width="100%">
 
     <?php
-    $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS) 
-      or die("Could not connect : " . mysql_error());
     $querytext = "SELECT person_id,name FROM $DB_PAGING_NAME.people ".
       " WHERE UPPER(REPLACE(name, ' ', '')) = '" . strtoupper(str_replace(' ', '', $unit)) . "'";
     $pager_query = mysql_query($querytext, $paginglink) or die ("<b>Problem with query: </b><font color=red> $querytext </font>");
@@ -542,6 +549,10 @@
 
 <!-- Outer Table Spacer Row -->
 <tr><td></td></tr>
+
+<?php 
+      }
+?>
 
 <!-- Begin Outer Table Row 3 -->
 <tr>
