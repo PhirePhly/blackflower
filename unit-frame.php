@@ -9,6 +9,11 @@
   $td= "    <td class=\"message\">";
 
   if (isset($_POST["addunit"])) {
+    if (!CheckAuthByLevel('admin_general', $_SESSION['access_level'])) {
+      print "Access level too low to create units.";
+      exit;
+    }
+
     if (strpos($_POST["addunit"], "'")) {
       die("An apostrophe is an invalid character for use in a unit name.");
       // TODO: handle error condition better

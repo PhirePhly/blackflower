@@ -15,8 +15,7 @@
   #
   # Verify access level
   #
-  if (isset($ACCESS_LEVEL_EDITCHANNELS) && $_SESSION['access_level'] < $ACCESS_LEVEL_EDITCHANNELS ||
-      !isset($ACCESS_LEVEL_EDITCHANNELS) && $_SESSION['access_level'] < 10) {
+  if (!CheckAuthByLevel('edit_channels', $_SESSION['access_level'])) {
     syslog(LOG_WARNING, "Channel editing attempted without permissions by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
     echo "Access level insufficient for this operation.<br />\n";
     echo "User: " . $_SESSION['username'] . "<br />\n";

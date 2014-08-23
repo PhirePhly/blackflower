@@ -16,7 +16,7 @@
   }
 
   elseif (isset($_POST["import_bulletins"])) {
-    if ($_SESSION["access_level"] < 10) {
+    if (!CheckAuthByLevel('import_bulletins', $_SESSION["access_level"])) {
       print "Access level (". $_SESSION["access_level"] . ") too low to import bulletins.\n";
       exit;
     }
@@ -93,7 +93,7 @@
   /////////////////////////////////////////////////////////////////////////////////
   
   if (!isset($_POST["dbsource"])) {
-    if ($_SESSION["access_level"] < 10) {
+    if (!CheckAuthByLevel('import_bulletins', $_SESSION["access_level"])) {
       print "Access level (". $_SESSION["access_level"] . ") too low to import bulletins.\n";
       exit;
     }
@@ -121,7 +121,7 @@
 
   /////////////////////////////////////////////////////////////////////////////////
   elseif (isset($_POST["select_bulletins"])) {
-    if ($_SESSION["access_level"] < 10) {
+    if (!CheckAuthByLevel('import_bulletins',$_SESSION["access_level"])) {
       print "Access level (". $_SESSION["access_level"] . ") too low to import bulletins.\n";
       exit;
     }

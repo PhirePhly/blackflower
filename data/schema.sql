@@ -247,6 +247,16 @@ CREATE TABLE incident_units (
 	);
 
 
+CREATE TABLE unit_filter_sets (
+  idx               INT NOT NULL AUTO_INCREMENT,
+  filter_set_name   VARCHAR(80) NOT NULL,
+  row_description   VARCHAR(80) NOT NULL,
+  row_regexp        VARCHAR(255) NOT NULL,
+
+  PRIMARY KEY (idx),
+  INDEX (filter_set_name)
+);
+
 CREATE TABLE deployment_history (
   idx               INT NOT NULL AUTO_INCREMENT,
   schema_load_ts    DATETIME NOT NULL,
@@ -316,6 +326,7 @@ INSERT INTO unit_roles (role, color_name, color_html) VALUES
 INSERT INTO unit_assignments (assignment, description, display_class, display_style) VALUES
 ('BC', 'Battalion Chief', 'iconyellow', NULL),
 ('IC', 'Incident Commander', 'iconwhite', NULL),
+('ODC', 'Operations Duty Chief', 'iconwhite', NULL),
 ('FDC', 'Fire Duty Chief', 'iconred', NULL),
 ('MDC', 'Medical Duty Chief', 'iconblue', NULL),
 ('ADC', 'Assistant Medical Duty Chief', 'iconblue', NULL),

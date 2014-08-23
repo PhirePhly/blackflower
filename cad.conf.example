@@ -27,7 +27,21 @@
 
 // Scalars:
   $MAX_LOGIN_ATTEMPTS = 3;        // Max attempts before locking user account.
-  $ACCESS_LEVEL_EDITCHANNELS = 5; // Access level required to edit channels
+  $ACCESS_LEVEL_EDIT_CHANNELS = 5;              // Access level required to edit channels.  Renamed from ACCESS_LEVEL_EDITCHANNELS in v1.11.0.
+  $ACCESS_LEVEL_EDIT_USERS = 10;                // Access level required to edit user accounts.
+  $ACCESS_LEVEL_ADMIN_GENERAL = 10;             // Access level required for admin functions overall.
+  $ACCESS_LEVEL_ADMIN_UPGRADE = 10;             // Access level required for system upgrade functions.
+  $ACCESS_LEVEL_ADMIN_CLEARDB = 10;             // Access level required for database clearing functions.
+  $ACCESS_LEVEL_EDIT_REPORT_FILTERS = 10;       // Access level required to edit reporting filters.
+  $ACCESS_LEVEL_CREATE_BULLETINS = 5;           // Access level required to create new bulletins.
+  $ACCESS_LEVEL_IMPORT_BULLETINS = 10;           // Access level required to import bulletins from old databases.
+  $ACCESS_LEVEL_REVIEW_INCIDENTS = 5;           // Access level required to review and close incidents (see $SUPERVISOR_INCIDENT_REVIEW.)
+  $ACCESS_LEVEL_ACCESS_REPORTS = 10;            // Access level required to access reporting functions.
+  $ACCESS_LEVEL_CREATE_UNITS = 5;               // Access level required to create units.
+  $ACCESS_LEVEL_DELETE_UNITS = 10;              // Access level required to delete existing units.
+  $ACCESS_LEVEL_CREATE_UNITPAGING = 5;          // Access level required to create a unit-paging association.
+  $ACCESS_LEVEL_DELETE_UNITPAGING = 5;          // Access level required to delete a unit-paging association.
+
   
 
 // Logging:

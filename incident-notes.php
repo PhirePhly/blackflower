@@ -70,7 +70,7 @@
         else
           echo "<td class=\"message\"></td>";
       }
-      echo "<td class=\"message\">", $quality, dls_hmtime($line["ts"]), "</td>";
+      echo "<td class=\"message\">", $quality, dls_utime_bare($line["ts"]), "</td>";
       echo "<td class=\"message\">", $quality, dls_ustr($line["unit"]), "</td>";
       echo "<td class=\"message\">";
       echo "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\"><tr><td align=\"left\" class=\"message\" style=\"text-align: left\">\n";

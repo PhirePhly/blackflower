@@ -34,7 +34,8 @@
   else
     $incident_id = (int)MysqlClean($_POST, "incident_id", 20);
 
-  $set_ts_dispatch = 0; $set_ts_arrival = 0; $set_ts_complete = 0;
+  // $set_ts_dispatch = 0; $set_ts_arrival = 0;    // OBSOLETED 1.11.0
+  $set_ts_complete = 0;
 
   /* Local functions
    * 
@@ -325,7 +326,7 @@
       INSERT INTO incident_notes (incident_id, ts, unit, message, creator) 
       VALUES ($incident_id, 
                NOW(), 
-              '$unit', 
+              '', 
               'Incident was reviewed and content was approved by $username, setting to fully closed.', 
               '$username')
       ");
@@ -459,9 +460,10 @@
       syslog(LOG_INFO, "$username attached unit [$unit] to call [$call_number] (incident $incident_id)");
 
       // If this is the first unit to be attached (dispatched timestamp wasn't already set), set it.
-      if (isset($_POST["ts_dispatch"]) && ($_POST["ts_dispatch"] == "" || $_POST["ts_dispatch"] == "0000-00-00 00:00:00")) {
-        $set_ts_dispatch = 1;
-      }
+      // OBSOLETED 1.11.0
+      //if (isset($_POST["ts_dispatch"]) && ($_POST["ts_dispatch"] == "" || $_POST["ts_dispatch"] == "0000-00-00 00:00:00")) {
+        //$set_ts_dispatch = 1;
+      //}
 
       // Do Auto-Pageout AFTER unlocking CAD tables, since there may be delays entering batches and messages.
       // TODO 1.7: convert to paging API
@@ -479,7 +481,7 @@
           $fromuser = 'CAD Auto Page';
           $ipaddr = $_SERVER['REMOTE_ADDR'];
           $message = ">>> $unit Assigned to Call #$call_number";
-          if (isset($_POST['location'])) {
+          if (isset($_POST['location']) && $_POST['location'] != '') {                                             # bug 2013-08-28: location is not always coming through in the POST for subsequently assigned units?  or for other users' locked incidents?
             $message .= ' - Location [' . MysqlClean($_POST, 'location', 80) . ']';
           }
           if (strlen($message) < 110 && isset($_POST['call_details'])) {
@@ -532,8 +534,11 @@
     'contact_at' => 80,  'disposition'   => 80 );
 
   $incidentquery = "UPDATE incidents SET ";                          // Start building incident update.  
-  if ($set_ts_dispatch) $incidentquery .= " ts_dispatch=NOW(), ";    // Always save first unit timestamps if needed, 
-  if ($set_ts_arrival)  $incidentquery .= " ts_arrival=NOW(), ";     // even when text fields are read-only.
+
+  // Obsoleted 1.11.0
+  //if ($set_ts_dispatch) $incidentquery .= " ts_dispatch=NOW(), ";    // Always save first unit timestamps if needed, 
+  //if ($set_ts_arrival)  $incidentquery .= " ts_arrival=NOW(), ";     // even when text fields are read-only.
+  //
 
 
   if (!isset($USE_INCIDENT_LOCKING) || !$USE_INCIDENT_LOCKING) {
@@ -555,7 +560,7 @@
     $incident_lock_results = MysqlQuery($incident_lock_query);
 
     if (mysql_num_rows($incident_lock_results) != 1) {
-      syslog(LOG_NOTICE, "Read-write privileges disappeared while editing incident $incident_id, number of locks: " . mysql_num_rows($incident_lock_results));
+      syslog(LOG_NOTICE, "Read-write privileges [user_id $userid, session ". session_id() . "] disappeared while editing incident $incident_id, number of locks: " . mysql_num_rows($incident_lock_results));
       print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> alert(\"Read-write privileges disappeared while editing incident $incident_id (". mysql_num_rows($incident_lock_results) . " locks).  DO NOT MANUALLY REFRESH THIS WINDOW (Control-R or equivalent); doing so will cause this error.  Otherwise, contact the system administrator with this message.\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
       exit;
     }
@@ -590,7 +595,11 @@
   if ($authorized_to_write_lockable_fields) {
     foreach (array_keys($lockable_column_widths) as $col_name) {
       if ($oldline[$col_name] != $_POST[$col_name])
-        $incidentquery .= "$col_name = '" .  MysqlClean($_POST, $col_name, $lockable_column_widths[$col_name]) . "', ";
+      {
+        $newcolval = MysqlClean($_POST, $col_name, $lockable_column_widths[$col_name]);
+        $incidentquery .= "$col_name = '$newcolval', ";
+        syslog(LOG_INFO, "Incident $incident_id / User $username : updating $col_name to [$newcolval]");
+      }
     }
     
     if($_POST["disposition"] == "Duplicate") {

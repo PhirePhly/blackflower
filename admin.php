@@ -9,7 +9,7 @@
 
   print "<body vlink=\"blue\" link=\"blue\" alink=\"cyan\">\n";
   include('include-title.php'); 
-  if ($_SESSION['access_level'] < 10) {
+  if (!CheckAuthByLevel('admin_general', $_SESSION['access_level'])) {
     print "Access level too low to access System Administration features.";
   }
   else {

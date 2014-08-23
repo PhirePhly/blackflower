@@ -4,48 +4,65 @@ define('FPDF_FONTPATH','font/');
 require('fpdf.php');
 require_once('db-open.php');
 include('local-dls.php');
+include('functions.php');
 require_once('session.inc');
+
 
 $subsys="reports";
 
-if ($_SESSION["access_level"] < 5) {
+if (!CheckAuthByLevel('reports', $_SESSION["access_level"])) {
   header_html('Dispatch :: Access Restricted');
   include('include-title.php');
   print "Access level too low to access Reports page.";
   exit;
 }
 
-$where_call_type_clause = '';
+
+$where_clause = '';
 $filter_description = '';
 $typefilter = '';
-$itype = MysqlClean($_GET, "selected-type", 40);
-if ($_GET['selected-type'] == 'TRAINING') {
-  $_GET['hidetraining'] = 0;
-}
-$startdate = MysqlClean($_GET,"startdate",20);
-$enddate = MysqlClean($_GET,"enddate",20);
-$daterange = $startdate;
-$selected_date='';
-if ($startdate != $enddate) {
-  $daterange .= " - $enddate";
-}
-else {
-  $selected_date = $startdate;
+$toc_page = 1;
+$daterange = '';
+$call_num = MysqlClean($_GET, "call_number", 40);
+
+if ($call_num != '') {
+  $toc_page = 0;
+  $where_clause = "WHERE call_number = '$call_num' "; 
+  // TODO: this will break if not using dateformat/baseindex call numbers, right?
 }
 
-if ($itype != '') { 
-  $where_call_type_clause = " WHERE call_type = '$itype' AND ";
-  $filter_description = "Showing only calls of type '$itype'.";
-  $typefilter = " - $itype -";
-}
-elseif (isset($_GET['hidetraining'])) {
-  $where_call_type_clause = " WHERE call_type != 'TRAINING' AND ";
-  $filter_description = 'Calls of type "TRAINING" are hidden.';
-}
 else {
-  $where_call_type_clause = " WHERE ";
-  $typefilter = ' - Unfiltered -';
-  // Filter noop, use empty strings
+  $itype = MysqlClean($_GET, "selected-type", 40);
+  if ($_GET['selected-type'] == 'TRAINING') {
+    $_GET['hidetraining'] = 0;
+  }
+  $startdate = MysqlClean($_GET,"startdate",20);
+  $enddate = MysqlClean($_GET,"enddate",20);
+  $daterange = $startdate;
+  $selected_date='';
+  if ($startdate != $enddate) {
+    $daterange .= " - $enddate";
+  }
+  else {
+    $selected_date = $startdate;
+  }
+  
+  if ($itype != '') { 
+    $where_clause = " WHERE call_type = '$itype' AND ";
+    $filter_description = "Showing only calls of type '$itype'.";
+    $typefilter = " - $itype -";
+  }
+  elseif (isset($_GET['hidetraining'])) {
+    $where_clause = " WHERE call_type != 'TRAINING' AND ";
+    $filter_description = 'Calls of type "TRAINING" are hidden.';
+  }
+  else {
+    $where_clause = " WHERE ";
+    $typefilter = ' - Unfiltered -';
+    // Filter noop, use empty strings
+  }
+
+  $where_clause .= " ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59' ";
 }
 
 
@@ -53,7 +70,7 @@ else {
 if(isset($_GET["confirmed"])) {
   $opencount = 0;
 } else {
-  $openquery = "SELECT call_number, call_type, call_details, TIME(ts_opened) as open_time FROM incidents $where_call_type_clause ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59' AND incident_status = 'Open' AND disposition != 'Duplicate' ORDER BY incident_id DESC";
+  $openquery = "SELECT call_number, call_type, call_details, TIME(ts_opened) as open_time FROM incidents $where_clause  AND incident_status = 'Open' AND disposition != 'Duplicate' ORDER BY incident_id DESC";
   // TODO 1.10.x: Isn't "disposition != Duplicate" redundant here?
   $openresult = mysql_query($openquery) or die("In query: $openquery<br>\nError: ".mysql_error());
   $opencount = mysql_num_rows($openresult);
@@ -143,11 +160,13 @@ if($opencount > 0) {
     var $aligns;
     var $showcriteria;
 
-    function SetReportsCriteria($value) {
-      if ($value == "") 
-        $this->showcriteria = "For [all incidents in database] ";
+    function SetReportsCriteria($date, $call_number) {
+      if ($date != '')
+        $this->showcriteria = "For date(s): " . $date;
+      elseif ($call_number != '')
+        $this->showcriteria = "For incident #: " . $call_number;
       else
-        $this->showcriteria = "For date(s): " . $value;
+        $this->showcriteria = "For all incidents in database. ";
     }
 
     function Header()
@@ -309,7 +328,7 @@ if($opencount > 0) {
   #if (isset($_GET["mode"]) && $_GET["mode"] == "report-by-date") {
     
     $pdf=new PDF();
-    $pdf->SetReportsCriteria($daterange);
+    $pdf->SetReportsCriteria($daterange, $call_num);
     $pdf->SetFont('Arial','',10);
     $pdf->Open();
     $pdf->AliasNbPages();
@@ -327,13 +346,14 @@ if($opencount > 0) {
     if ($DEBUG) syslog(LOG_INFO, " -- beginning report generation.");
 
 
+    if ($toc_page) {
     $query = "SELECT * FROM incident_types ";
     $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
 
     $pdf->StatsColumnHeader();
     $totalincidents = 0;
     while ($line = mysql_fetch_object($result)) {
-      $query = "SELECT COUNT(*) AS subtotal FROM incidents $where_call_type_clause ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59'  AND incident_status != 'New' AND call_type='".$line->call_type."'";
+      $query = "SELECT COUNT(*) AS subtotal FROM incidents $where_clause  AND incident_status != 'New' AND call_type='".$line->call_type."'";
       $subresult = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
       $subline = mysql_fetch_object($subresult);
       $totalincidents = $totalincidents + $subline->subtotal;
@@ -354,7 +374,17 @@ if($opencount > 0) {
     $pdf->AddPage('');
     $pdf->SetWidths(array(19,40,90,21,21));
     
-    $query = "SELECT * FROM incidents $where_call_type_clause  ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59' AND incident_status != 'New' AND disposition != 'Duplicate'";
+    // preload times -- for all incidents since $where_clause is highly variable
+    
+    $dispatch_times = array();
+    $arrival_times = array();
+    $times = MysqlQuery("SELECT incident_id, MIN(iu.dispatch_time) as dispatch_time, MIN(iu.arrival_time) as arrival_time FROM incident_units iu GROUP BY iu.incident_id");
+    while ($incident_time = mysql_fetch_array($times, MYSQL_ASSOC)) {
+      $dispatch_times[$incident_time["incident_id"]] = $incident_time["dispatch_time"];
+      $arrival_times[$incident_time["incident_id"]] = $incident_time["arrival_time"];
+    }
+
+    $query = "SELECT * FROM incidents $where_clause  AND incident_status != 'New' AND disposition != 'Duplicate'";
 
     $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
     if ($DEBUG) syslog(LOG_INFO, " -- selected appropriate incidents.");
@@ -387,7 +417,7 @@ if($opencount > 0) {
       }
     }
     mysql_free_result($result);
-
+}
     if ($pdf->GetY() > 31)
       $pdf->AddPage('');
 
@@ -395,7 +425,7 @@ if($opencount > 0) {
     $pdf->SetDrawColor(64);
     
     // TODO: don't repeat this query needlessly
-    $query = "SELECT * FROM incidents $where_call_type_clause  ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59' AND incident_status != 'New' AND disposition != 'Duplicate'";
+    $query = "SELECT * FROM incidents $where_clause  AND incident_status != 'New' AND disposition != 'Duplicate'";
     $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
     $numrows = mysql_num_rows($result);
     $thisrow=0;
@@ -473,8 +503,8 @@ if($opencount > 0) {
     
       $pdf->SetXY(160, $thisrow_top);
       $pdf->Cell(38, 5, dls_mdhmtime($line->ts_opened), 1,2);
-      $pdf->Cell(38, 5, dls_mdhmtime($line->ts_dispatch), 1,2);
-      $pdf->Cell(38, 5, dls_mdhmtime($line->ts_arrival),1,2);
+      $pdf->Cell(38, 5, dls_mdhmtime(array_key_exists($line->incident_id, $dispatch_times) ? $dispatch_times[$line->incident_id] : ''), 1,2);
+      $pdf->Cell(38, 5, dls_mdhmtime(array_key_exists($line->incident_id, $arrival_times) ? $arrival_times[$line->incident_id] : ''),1,2);
       $pdf->Cell(38, 5, dls_mdhmtime($line->ts_complete), 1,2);
       $pdf->SetXY($pdf->GetX(), $pdf->GetY()+2);
       $pdf->SetFont('Arial','B',10);
@@ -595,7 +625,7 @@ if($opencount > 0) {
     mysql_close($link);
     
     if ($DEBUG) syslog(LOG_INFO, " -- closed database connection.");
-    $pdf->Output("\"CAD Incidents Report$typefilter $daterange.pdf\"",D);
+    $pdf->Output("\"CAD Incidents Report$typefilter $daterange.pdf\"",'D');
     if ($DEBUG) syslog(LOG_INFO, " -- output the pdf report.");
   #}
   #else 

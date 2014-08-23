@@ -78,6 +78,40 @@
     }
   }
 
+  // horribly duplicative of code from above func, but sleep is of the essence. 
+  function dls_utime_bare ($datetime, $year=TRUE, $seconds=FALSE) {
+    if ($datetime && $datetime <> "0000-00-00 00:00:00") {
+      $old=0;
+      $tval = strtotime($datetime);
+      if ($seconds) $u_fmt = "H:i:s";
+      else $u_fmt = "H:i";
+
+      $vardate = date("Y-m-d", $tval);
+      //print "\n<!-- comparing ".THIS_DATE." and $vardate -->\n";
+      if ($vardate <> THIS_DATE) {
+        $varweek = date("Y-W", $tval);
+        $vardow = date("w", $tval);
+        //print "<!-- comparing weeks ".THIS_WEEK." and variable $varweek -- comparing dow ".THIS_DOW." and variable $vardow -->\n";
+        if ((int)THIS_PAGETS - $tval < TS_WEEK) {
+        //($varweek == THIS_WEEK || ($varweek == THIS_WEEK-1 && $vardow > THIS_DOW)) {
+          $u_fmt = "D $u_fmt";
+        }
+        else {
+          $u_fmt = "Y-m-d $u_fmt";
+        }
+        $u_time = date($u_fmt, $tval);
+        $old=1;
+      }
+      else {
+        $u_time = date($u_fmt, $tval);
+      }
+      return $u_time;
+    }
+    else {
+      return "";
+    }
+  }
+
   // For timestamping in the edit_incident window ONLY -- we don't want huge amounts of detail there.
   function dls_hmtime ($tm_var) {
     if ($tm_var && $tm_var <> "0000-00-00 00:00:00")

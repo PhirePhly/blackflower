@@ -16,7 +16,7 @@
   elseif (isset($_POST["save_bulletin"])) {
     SessionErrorIfReadonly();
     $insert_not_update=0;
-    if ($_SESSION["access_level"] < 5) {
+    if (!CheckAuthByLevel('create_bulletins',$_SESSION["access_level"])) {
       print "Access level (". $_SESSION["access_level"] . ") too low to edit/create bulletin.\n";
       exit;
     }
@@ -201,7 +201,7 @@
   /////////////////////////////////////////////////////////////////////////////////
   elseif (isset($_GET["edit_bulletin"])) {
     SessionErrorIfReadonly();
-    if ($_SESSION["access_level"] < 5) {
+    if (!CheckAuthByLevel('create_bulletins', $_SESSION["access_level"])) {
       print "Access level (". $_SESSION["access_level"] . ") too low to edit/create bulletin.\n";
       exit;
     }
@@ -298,15 +298,15 @@
   }
 
   if (!isset($_SESSION['readonly']) || !$_SESSION['readonly']) {
-    if ($_SESSION["access_level"] >= 5) {
+    if (CheckAuthByLevel('create_bulletins', $_SESSION["access_level"])) {
       print "<a class=\"button\" href=\"bulletins.php?edit_bulletin=new\">Add New Bulletin</a>\n";
     }
 
-    if (isset($_GET["bulletin_id"]) && $_SESSION["access_level"] >= 5) {
+    if (isset($_GET["bulletin_id"]) && CheckAuthByLevel('create_bulletins', $_SESSION["access_level"])) {
       print "<a class=\"button\" href=\"bulletins.php?edit_bulletin=$bulletin_id\">Edit This Bulletin</a>\n";
     }
 
-    if ($_SESSION["access_level"] >= 10) {
+    if (CheckAuthByLevel('import_bulletins', $_SESSION["access_level"])) {
       print "<a class=\"button\" href=\"bulletins_import.php\">Database Import</a>\n";
     }
   }

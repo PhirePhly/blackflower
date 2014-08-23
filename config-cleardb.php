@@ -7,7 +7,7 @@
 
   $td = "<td bgcolor=#cccccc>";
 
-  if ($_SESSION['access_level'] < 10) {
+  if (!CheckAuthByLevel('admin_cleardb', $_SESSION['access_level'])) {
     syslog(LOG_WARNING, "Database clearing attempted without permissions by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
     echo "Access level insufficient for this operation.<br>\n";
     echo "User: " . $_SESSION['username'] . "<br>\n";
@@ -38,6 +38,11 @@
 
   /* Make backup copies of all relevant tables and data */
 
+    MysqlQuery("LOCK TABLES messages WRITE, incidents WRITE, incident_notes WRITE, 
+                  incident_units WRITE, bulletins WRITE, bulletin_views WRITE,
+                  bulletin_history WRITE, units WRITE, unit_incident_paging WRITE, deployment_history WRITE, users WRITE, channels WRITE");
+
+
     MysqlQuery("CREATE TABLE cadarchives.messages_$ts LIKE messages ");
     MysqlQuery("CREATE TABLE cadarchives.incidents_$ts LIKE incidents ");
     MysqlQuery("CREATE TABLE cadarchives.incident_notes_$ts LIKE incident_notes ");
@@ -48,6 +53,8 @@
     MysqlQuery("CREATE TABLE cadarchives.units_$ts LIKE units ");
     MysqlQuery("CREATE TABLE cadarchives.unit_incident_paging_$ts LIKE unit_incident_paging ");
     MysqlQuery("CREATE TABLE cadarchives.deployment_history_$ts LIKE deployment_history ");
+    MysqlQuery("CREATE TABLE cadarchives.users_$ts LIKE users ");
+    MysqlQuery("CREATE TABLE cadarchives.channels_$ts LIKE channels ");
 
     MysqlQuery("LOCK TABLES messages WRITE, incidents WRITE, incident_notes WRITE, 
                   incident_units WRITE, bulletins WRITE, bulletin_views WRITE,
@@ -56,6 +63,8 @@
                   cadarchives.incident_units_$ts WRITE, cadarchives.bulletins_$ts WRITE, cadarchives.bulletin_views_$ts WRITE,
                   cadarchives.bulletin_history_$ts WRITE, cadarchives.units_$ts WRITE, cadarchives.unit_incident_paging_$ts WRITE,
                   cadarchives.deployment_history_$ts WRITE, deployment_history WRITE,
+                  cadarchives.users_$ts WRITE, users WRITE,
+                  cadarchives.channels_$ts WRITE, channels WRITE,
                   archive_master WRITE");
 
     MysqlQuery("INSERT INTO  cadarchives.messages_$ts SELECT * FROM messages");
@@ -68,22 +77,25 @@
     MysqlQuery("INSERT INTO  cadarchives.units_$ts SELECT * FROM units");
     MysqlQuery("INSERT INTO  cadarchives.unit_incident_paging_$ts SELECT * FROM unit_incident_paging");
     MysqlQuery("INSERT INTO  cadarchives.deployment_history_$ts SELECT * FROM deployment_history");
+    MysqlQuery("INSERT INTO  cadarchives.users_$ts SELECT * FROM users");
+    MysqlQuery("INSERT INTO  cadarchives.channels_$ts SELECT * FROM channels");
 
   /* Clear relevant tables and data */
     MysqlQuery("DELETE FROM messages");
     MysqlQuery("DELETE FROM incident_notes");
     MysqlQuery("DELETE FROM incident_units");
     MysqlQuery("DELETE FROM incidents");
-    MysqlQuery("TRUNCATE incidents");
     MysqlQuery("DELETE FROM bulletins");
     MysqlQuery("DELETE FROM bulletin_views");
     MysqlQuery("DELETE FROM bulletin_history");
     MysqlQuery("UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL, personnel_ts=NULL, location_ts=NULL, notes_ts=NULL, assignment='', location='', personnel='', notes=''");
+    MysqlQuery("UPDATE channels SET available=1, incident_id=NULL");
     //MysqlQuery
     # TODO - clear unit locations, personnel, notes
     
   /* Finish */
     MysqlQuery("UNLOCK TABLES");
+    MysqlQuery("TRUNCATE incidents");
     sleep(1);
     header("Location: admin.php");
     exit;

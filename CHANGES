@@ -2,6 +2,37 @@ CHANGES
 -------
 
 ---------------------------
+Version 1.11.0 - 2014-08-23
+---------------------------
+
+[bugfix] Fixed erroneous incident "Undispatched" status that could be 
+         displayed if User A created an incident, User B took over the
+         incident's read/write lock, but User A then attached a unit 
+         prior to refreshing the window and losing their original read/write 
+         lock to User B.  Resolved multiple related bug reports.
+[minor]  Changed Incident window to display times as full date + time rather
+         than just name of day + time, if a timestamp was from a different 
+         calendar day.  Display is not very elegant currently, but is more 
+         correct functionality.
+[minor]  Implemented configurable permissions levels for administrative
+         and supervisory functions.
+[minor]  Implemented single-incident report.
+[minor]  Restricted incident note entry from allowing browser form history.
+[minor]  Tweaked incident list "Undispatched" flag display style for increased 
+         visibility. (blink property doesn't work everywhere any more.)
+[minor]  Fixed config-cleardb to work with Mysql 5.x constraints.
+
+---------------------------
+Version 1.10.1 - 2013-09-30
+---------------------------
+
+[minor]  Applied viewport setting to stop iPad client from continually 
+         refreshing incidents pane bigger than one screen.
+[minor]  Added unit response time reports.
+[minor]  Enhanced unit reports by allowing range of start and end dates.
+[minor]  Added unit daily summary reports.
+
+---------------------------
 Version 1.10.0 - 2013-07-18
 ---------------------------
 

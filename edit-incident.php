@@ -89,7 +89,7 @@
     elseif ($lock_info->takeover_timestamp != '') { // duplicate logic right now wrt post, future safety net for meta refresh
       $takeover_lock_user = MysqlGrabData ("SELECT username FROM incident_locks LEFT OUTER JOIN users on incident_locks.takeover_by_user_id = users.id WHERE lock_id=".$lock_info->lock_id);
       $lock_msg = "<u>" . $takeover_lock_user ."</u> has taken over editing from you";
-      $lock_msg2 = "(since ".dls_utime($lock_info->takeover_timestamp) . ", from ".$lock_info->takeover_ipaddr.")";
+      $lock_msg2 = "(since ".dls_utime_bare($lock_info->takeover_timestamp) . ", from ".$lock_info->takeover_ipaddr.")";
       if ($DEBUG) {
         syslog(LOG_DEBUG, "edit-incident.php Deleting incident_lock lock_id " .$lock_info->lock_id." on takeover for incident_id $incident_id, user_id ".(int)$_SESSION['id'].", session_id '".session_id());
       }
@@ -101,7 +101,7 @@
       else 
         $lock_msg = "These fields are read-only while <u>".  $lock_info->username ."</u> is editing the incident";
 
-      $lock_msg2 = "(since ".dls_utime($lock_info->timestamp) . ", from ".$lock_info->ipaddr.")";
+      $lock_msg2 = "(since ".dls_utime_bare($lock_info->timestamp) . ", from ".$lock_info->ipaddr.")";
     }
 
     MysqlQuery("UNLOCK TABLES");
@@ -114,6 +114,20 @@
   }
   $row = mysql_fetch_object($incidentdataresult);
 
+  $query = "SELECT incident_id, MIN(iu.dispatch_time) as dispatch_time, MIN(iu.arrival_time) as arrival_time FROM incident_units iu WHERE iu.incident_id=$incident_id GROUP BY iu.incident_id";
+  $result = MysqlQuery ($query);
+  $dispatch_time = '';
+  $arrival_time = '';
+  if (mysql_num_rows($result) > 1) {
+    die("Critical error: ".mysql_num_rows($result).
+        " is a bad number of rows when looking for unit times for incident_id $incident_id");
+  }
+  elseif (mysql_num_rows($result) == 1) {
+    $times_row = mysql_fetch_object($result);
+    $dispatch_time = $times_row->dispatch_time;
+    $arrival_time = $times_row->arrival_time;
+
+  }
 
 
   header_html("Dispatch :: Call #" .$row -> call_number,
@@ -136,7 +150,7 @@
     $display_bgcolor = '#333333';
   }
   if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $row->incident_status == 'Dispositioned') {
-    if ($_SESSION['access_level'] >= 5) {
+    if (CheckAuthByLevel('review_incidents', $_SESSION['access_level'])) {
       $display_closemsg = '<span style="background-color: yellow">Now reviewing this incident for approval/reopening</span>';
     }
     else {
@@ -149,7 +163,7 @@
 
   print "<font color=\"white\" size=\"+1\">\n";
   print "<span title=\"$lock_msg\"> Call #<b>" . $row->call_number . "</b></font>";
-  if ($_SESSION['access_level'] >= 10 || $row->call_number == '') {
+  if (CheckAuthByLevel('admin_general',$_SESSION['access_level']) || $row->call_number == '') {
     print "<font size=\"-1\" color=\"lightgray\"> &nbsp; (Incident $incident_id)</font>";
   }
   print "&nbsp; &nbsp; <font color=\"#FF0000\"><b>&nbsp; &nbsp;$display_closemsg</b></font>";
@@ -241,8 +255,8 @@
     <td width="100" align=right class="label">Received</td>
     <td align=left class="text">
        <input type="hidden" name="ts_opened" value="<?php print $row->ts_opened ?>">
-       <input type="text" name="dts_opened" tabindex="121" class="time" size=8 readonly disabled style="color: black" 
-              value="<?php print dls_dhmtime($row->ts_opened) ?>">
+       <input type="text" name="dts_opened" tabindex="121" class="time" size=13 readonly disabled style="color: black" 
+              value="<?php print dls_utime_bare($row->ts_opened) ?>">
     </td>
 </tr>
 
@@ -259,9 +273,9 @@
 
     <td width="100" align=right class="label">Dispatched</td>
     <td align=left class="text">
-       <input type="hidden" name="ts_dispatch" value="<?php print $row->ts_dispatch  ?>">
-       <input type="text" name="dts_dispatch" tabindex="122" class="time" size=8 readonly disabled style="color: black"
-              value="<?php if ($row->ts_dispatch) print dls_dhmtime($row->ts_dispatch) ?>">
+       <!-- <input type="hidden" name="ts_dispatch" value="<?php //print $row->ts_dispatch  ?>"> -->
+       <input type="text" name="dts_dispatch" tabindex="122" class="time" size=13 readonly disabled style="color: black"
+              value="<?php if ($dispatch_time) print dls_utime_bare($dispatch_time) ?>">
     </td>
 </tr>
 
@@ -313,9 +327,9 @@
 
     <td width="100" align=right class="label">Unit&nbsp;On&nbsp;Scene</td>
     <td align=left class="text">
-       <input type="hidden" name="ts_arrival" value="<?php print $row->ts_arrival  ?>">
-       <input type="text" name="dts_arrival" tabindex="123" class="time" size=8 readonly disabled style="color: black"
-              value="<?php if ($row->ts_arrival) print dls_dhmtime($row->ts_arrival) ?>">
+       <!-- <input type="hidden" name="ts_arrival" value="<?php // print $row->ts_arrival  ?>"> -->
+       <input type="text" name="dts_arrival" tabindex="123" class="time" size=13 readonly disabled style="color: black"
+              value="<?php if ($arrival_time) print dls_utime_bare($arrival_time) ?>">
     </td>
 </tr>
 
@@ -360,9 +374,9 @@
     <td width="100" align=right class="label">Completed</td>
     <td align=left class="text">
        <input type="hidden" name="ts_complete" value="<?php print $row->ts_complete  ?>">
-       <input type="text" name="dts_complete" tabindex="124" class="time" size=8 readonly
+       <input type="text" name="dts_complete" tabindex="124" class="time" size=13 readonly
               <?php if (!$row->disposition || !strcmp($row->disposition, "")) print "disabled"?>
-              value="<?php if ($row->ts_complete) print dls_dhmtime($row->ts_complete) ?>">
+              value="<?php if ($row->ts_complete) print dls_utime_bare($row->ts_complete) ?>">
     </td>
 </tr>
 
@@ -395,7 +409,7 @@
    else
      $readonly_disabled = 0;
 
-   if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW  && $row->incident_status == 'Dispositioned' && $_SESSION['access_level'] >= 5) {
+   if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW  && $row->incident_status == 'Dispositioned' && CheckAuthByLevel('review_incidents', $_SESSION['access_level'])) {
      print "<tr>\n<td rowspan=2 colspan=8>\n";
      print "<button type=\"submit\" name=\"reviewed_incident\" tabindex=\"41\" class=\"blabel btn blu b\" style=\"width: 300px; height: 100px;\"><div class=sz16> Approve</div><div class=sz12>I've reviewed all fields, notes, and units logged for this incident.  I confirm it is sufficient information to factually recreate this event.</div></button>\n";
      print "<button type=\"submit\" name=\"cancel_changes\" tabindex=\"42\" class=\"blabel btn brn b\" style=\"width: 200px; height: 100px;\"><div class=sz16> Cancel</div><div class=sz12>Just close this window for right now.</div></button>\n";
@@ -499,7 +513,8 @@
     <tr>
        <td class="label">Note:</td>
          <td>
-         <input class="noEnterSubmit" type="text" name="note_message" id="note_message" tabindex="82" size=50 maxlength=250
+<!-- TODO: autocomplete=off is nonstandard.  works in 2014ish FF but subject to change.  -->
+         <input class="noEnterSubmit" type="text" autocomplete=off name="note_message" id="note_message" tabindex="82" size=50 maxlength=250
      <?php print DisabledP($is_complete); ?> >
          <button type="submit" name="save_note" tabindex="83" title="Saves the entered note with the incident."
      <?php print DisabledP($is_complete); ?> >Save Note</button>
@@ -603,10 +618,10 @@
 
        print "<tr>\n";
        print "<td class=\"message\" align=\"left\">$quality$html_unit</td>\n";
-       print "<td class=\"message\" align=\"right\">$quality".dls_hmtime($line["dispatch_time"])."</td>";
+       print "<td class=\"message\" align=\"right\">$quality".dls_utime_bare($line["dispatch_time"])."</td>";
 
        if (isset($line["arrival_time"]) && $line["arrival_time"] != "") {
-         print "<td class=\"message\" align=\"right\">".dls_hmtime($line["arrival_time"])."</td>";
+         print "<td class=\"message\" align=\"right\">".dls_utime_bare($line["arrival_time"])."</td>";
        }
        else {
          print "<td class=\"message\" align=\"right\">".
@@ -617,7 +632,7 @@
        }
 
        if (isset($line["transport_time"]) && $line["transport_time"] != "") {
-         print "<td class=\"message\" align=\"right\">".dls_hmtime($line["transport_time"])."</td>";
+         print "<td class=\"message\" align=\"right\">".dls_utime_bare($line["transport_time"])."</td>";
        }
        else {
          print "<td class=\"message\" align=\"right\">".
@@ -628,7 +643,7 @@
        }
 
        if (isset($line["transportdone_time"]) && $line["transportdone_time"] != "") {
-         print "<td class=\"message\" align=\"right\">".dls_hmtime($line["transportdone_time"])."</td>";
+         print "<td class=\"message\" align=\"right\">".dls_utime_bare($line["transportdone_time"])."</td>";
        }
        else {
          print "<td class=\"message\" align=\"right\">".
@@ -671,11 +686,11 @@
        $html_unit = str_replace(" ", "&nbsp;", $line["unit"]);
        print "<tr>\n";
        print "<td class=\"messageold\" align=\"left\">$html_unit</td>\n";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["dispatch_time"])."</td>";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["arrival_time"])."</td>";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["transport_time"])."</td>";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["transportdone_time"])."</td>";
-       print "<td class=\"messageold\" align=\"right\">".dls_hmtime($line["cleared_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_utime_bare($line["dispatch_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_utime_bare($line["arrival_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_utime_bare($line["transport_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_utime_bare($line["transportdone_time"])."</td>";
+       print "<td class=\"messageold\" align=\"right\">".dls_utime_bare($line["cleared_time"])."</td>";
      }
   ?>
 
