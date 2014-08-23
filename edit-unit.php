@@ -91,7 +91,11 @@
      // Noop, just reload
   }
   elseif (isset($_POST["deleteunit"])) {
-    if (isset($_POST['deleteforsure'])) {
+    if (!CheckAuthByLevel('delete_units',$_SESSION['access_level'])) {
+      print "Access level (". $_SESSION['access_level'] . ") too low to delete unit.\n";
+      exit;
+    }
+    elseif (isset($_POST['deleteforsure'])) {
       syslog(LOG_INFO, $_SESSION['username'] . ' deleted unit [' . $_POST['unit'] . ']');
       MysqlQuery("DELETE FROM units WHERE unit='".MysqlClean($_POST,"unit",20)."'");
       MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit deleted.')");
@@ -127,6 +131,10 @@
      mysql_free_result($unitresult);
   }
   elseif (isset($_POST['add_pageout'])) {
+    if (!CheckAuthByLevel('create_unitpaging',$_SESSION['access_level'])) {
+      print "Access level (". $_SESSION['access_level'] . ") too low to create autopaging link.\n";
+      exit;
+    }
     $newval = MysqlClean($_POST, 'newpageout', 20);
     if ($newval != '0') {
       syslog(LOG_INFO, $_SESSION['username'] . " added page-out of pager ID $newval to unit [$unit]");
@@ -205,6 +213,10 @@
     $action = 0;
     foreach (array_keys($_POST) as $postkey) {
       if (preg_match("/delete_pageout_(\d+)_(\d+)/", $postkey, $matches)) {
+        if (!CheckAuthByLevel('delete_unitpaging',$_SESSION['access_level'])) {
+          print "Access level (". $_SESSION["access_level"] . ") too low to delete autopaging link.\n";
+          exit;
+        }
         syslog(LOG_INFO, $_SESSION['username'] . ' deleted page-out of pager ID ' . $matches[2] . ' from unit [' . $_POST['unit'].']');
         MysqlQuery("DELETE FROM unit_incident_paging WHERE row_id=" . $matches[1] );
         if (mysql_affected_rows() != 1) {
@@ -446,7 +458,9 @@
     <button type="submit" id="saveunit_closewin" name="saveunit_closewin" <?php print $disabledp ?> tabindex="42" value="Save & Return" accesskey="2"><u>2</u>   Save & Return</button>
     <button type="button" id="cancel" name="cancel" <?php print $disabledp ?> tabindex="43" accesskey="3"
      onClick='if (window.opener){window.opener.location.reload()} self.close()'><u>3</u>  Cancel</button>
-<?php if (isset($_POST["deleteunit"]) || isset($_POST['deleteforsure'])) {
+<?php 
+    if (CheckAuthByLevel('delete_units', $_SESSION['access_level'])) {
+      if (isset($_POST["deleteunit"]) || isset($_POST['deleteforsure'])) {
 ?>
     <button type="submit" id="abortdelete" name="abortdelete" tabindex="44" accesskey="4"><u>4</u>  Abort Deletion</button>
 <?php
@@ -457,7 +471,7 @@
     </tr>
 
 <?php
-  // Begin Unit Form Row: If Existing Unit
+  // Begin Unit Form Row: If Existing Unit, possible to delete it...
   if(!$newunit) {
     print "<tr>\n";
     print "<td colspan=\"6\" class=\"label\" align=\"right\">";
@@ -468,6 +482,7 @@
     }
     print "<input type=\"submit\" id=\"deleteunit\" name=\"deleteunit\" value=\"Delete Unit\" /></td>\n";
     print "</tr>\n";
+  }
   }
 ?>
 
@@ -577,7 +592,7 @@
     $pageout_qty = MysqlGrabData("SELECT COUNT(*) FROM unit_incident_paging WHERE unit='$unit'");
     $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
     // TODO: set access level dynamically
-    if (mysql_num_rows($pageout_query) || $_SESSION['access_level'] >= 5) {
+    if (mysql_num_rows($pageout_query) || CheckAuthByLevel('create_unitpaging',$_SESSION['access_level'])) {
 ?>
 
   <!-- Begin Unit AutoPage Row: Labels -->
@@ -606,7 +621,7 @@ When <?php print $unit?> is assigned to an incident, CAD will page a notificatio
 
           else {
             print "<tr><td class=\"label\">&nbsp;&nbsp;<b>". $Pagers[$pageout_rcpt->to_person_id] .  "</b>&nbsp;&nbsp;";
-            if ($_SESSION['access_level'] >= 5) {
+            if (CheckAuthByLevel('delete_unitpaging',$_SESSION['access_level'])) {
                 print "<input type=image title=\"Remove this pager from the notification list\" src=\"Images/cross-16.png\" name=\"delete_pageout_". 
                   $pageout_rcpt->row_id . '_' . $pageout_rcpt->to_person_id . "\" alt=\"Delete\"></td></tr>";
             }

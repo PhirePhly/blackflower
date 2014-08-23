@@ -16,11 +16,17 @@
 <table width="98%">
 <tr>
   <td align="left" class="text"><b>Units</b></td>
+<?php 
+  if (CheckAuthByLevel('create_units', $_SESSION['access_level'])) {
+?>
   <td align="left" width="100%">
-  <button type="submit" value="Add New Unit" title="Add New User - ALT-N" accesskey="n"
+  <button type="submit" value="Add New Unit" title="Add New Unit - ALT-N" accesskey="n"
    onClick="return popup('edit-unit.php?new-unit','unit-new',500,700)" class="newbutton"
    >Add <u>N</u>ew Unit</button>
   </td>
+<?php
+  }
+?>
   <td align="right"><input type="text" name="displayClock" size="8" /></td>
 </tr>
 </table>
@@ -31,8 +37,14 @@
         height="<?php print trim($_COOKIE['height']) - 175;?>"
         marginheight="0" marginwidth="0" frameborder="0"></iframe>
 
+<?php 
+  if (CheckAuthByLevel('create_units', $_SESSION['access_level'])) {
+?>
 <button type="submit" value="Add New Unit" title="Add New User - ALT-N" accesskey="n"
    onClick="return popup('edit-unit.php?new-unit','unit-new',500,700)" class="newbutton"
    >Add <u>N</u>ew Unit</button>
+<?php
+  }
+?>
 </body>
 </html>

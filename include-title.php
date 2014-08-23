@@ -105,13 +105,13 @@
   print "<span class=\"". $CSS["cad"]       . "\"><a class=menua href=\"cad.php\">Log Viewer</a></span>\n";
   print "<span class=\"". $CSS["bulletins"] . "\"><a class=menua href=\"bulletins.php\">Bulletins</a></span>\n";
   print "<span class=\"". $CSS["help"]      . "\"><a class=menua href=\"help.php\">Help</a></span>\n";
-  if ($_SESSION["access_level"] >= 5) {
+  if (CheckAuthByLevel('reports', $_SESSION["access_level"])) {
     print "<span class=\"". $CSS["reports"] . "\"><a class=menua href=\"reports.php\">Reports</a></span>\n";
   }
 
   print "<span class=\"". $CSS["logout"]      . "\"><a class=menua href=\"main.php?logout\">Log Out</a></span>\n";
   if (!isset($_SESSION['readonly']) || !$_SESSION['readonly']) {
-    if ($_SESSION["access_level"] >= 10) {
+    if (CheckAuthByLevel('admin_general',$_SESSION["access_level"])) {
       print "<span class=\"". $CSS["admin"]   . "\"><a class=menua href=\"admin.php\">System Admin</a></span>\n";
     }
     print "<span class=\"". $CSS["config"]    . "\"><a class=menua href=\"config.php\">Preferences</a></span>\n";

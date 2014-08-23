@@ -11,7 +11,7 @@
 <body vlink="blue" link="blue" alink="cyan">
 <?php
   include('include-title.php');
-  if ($_SESSION["access_level"] < 5) {
+  if (!CheckAuthByLevel('reports', $_SESSION["access_level"])) {
     print "Access level too low to access Reports page.";
     exit;
   }
@@ -22,6 +22,7 @@
   $units_dates = array();
   $units = array();
   $message_types = array();
+  $unit_filter_sets = array();
 
   $query = "SELECT DATE_FORMAT(ts_opened,'%Y-%m-%d') as ts_date FROM incidents GROUP BY ts_date DESC";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
@@ -64,16 +65,24 @@
     array_push($message_types, $line->message_type);
   }
   mysql_free_result($result);
+
+  $query = "SELECT DISTINCT filter_set_name FROM unit_filter_sets ORDER BY filter_set_name ASC";
+  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+  while ($line = mysql_fetch_object($result)) {
+    array_push($unit_filter_sets, $line->filter_set_name);
+  }
+  mysql_free_result($result);
   ?>
 
-  <p>
-  <form name="myform" method="GET" action="reports-summary.php">
-  <font class="h1"><u>Summary Report</u></font><br>
+  
+<div style="float: left; width: 400px;">
 
-  <ul>
+  <div class="rbtn">
+  <form style="margin: 0px" name="myform" method="GET" action="reports-summary.php">
+  <font class="h2"><u>Incidents Summary Report</u></font><br>
+
   <table>
-  <tr><td class="text" colspan=2>Enter the range of dates over which to show summary statistics.</td></tr>
-  <tr> <td class="text" align=left><b>Start Date</b> </td>
+  <tr> <td class="text" align=left>Start Date </td>
        <td align=left><SELECT name="startdate">
 
   <?php
@@ -86,12 +95,15 @@
   ?>
 
   </select></td><td> </td></tr>
-  <tr> <td class="text" align=left><b>End Date</b> </td>
+  <tr> <td class="text" align=left>End Date </td>
        <td align=left><SELECT name="enddate">
 
   <?php
   sort($incidents_dates);
-  foreach($incidents_dates as $idate) {
+  foreach($incidents_dates as $idate) { 
+    // This is a poor way of doing it, assumes there are incidents each day and that operational period was continuous through today.  
+    // Also not sure of this code.
+    // TODO: refactor to only exclude last idate if idate==today.  
     print "<OPTION ";
     if (date('Y-m-d', time()-86400) == $idate) print "selected ";
     print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
@@ -100,25 +112,34 @@
 
   </select></td><td> </td></tr>
 
-  <tr> <td  class="text"><b>Show empty dates?</td>
+  <tr> <td  class="text">Show empty dates?
        <td> <input type="checkbox" name="show-alldates" checked /></tr>
   
   <tr><td></td></tr>
-  <tr> <td><input type="submit" name="summary_report" value="Get Summary Report" /></td></tr>
+  <tr> <td><input class="btn" type="submit" name="summary_report" value="Get Report" /></td></tr>
   </table>
-  </ul>
   </form>
+</div>
 
   <!-- ---------------------------------------------------------------------------------->
 
-  <p>
-  <form name="myform" method="GET" action="reports-incidents.php">
-  <font class="h1"><u>Incidents Report</u></font><br>
-  <ul>
+  <div class="rbtn">
+  <form style="margin: 0px" name="myform" method="GET" action="reports-incidents.php">
+  <div class="h2"><u>Incident Details Report</u></div>
+  
   <table>
-  <tr><td class="text" colspan=2>Enter the range of dates over which to show incidents.</td></tr>
+  <tr> <td title="Get report for a specific incident/call number" class="Text" align=left>For Incident # : </td>
+       <td title="Get report for a specific incident/call number" align=left><INPUT type=text name="call_number">
+  
+   <input class="btn" type="submit" name="incidents_report" value="Get Report PDF" /></td></tr>
+  </table>
+  </form>
 
-  <tr> <td class="text" align=left><b>Start Date</b> </td>
+  <table>
+  <tr> <td colspan=2 align=center> <hr> </td></tr>
+
+  <form style="margin: 0px" name="myform" method="GET" action="reports-incidents.php">
+  <tr> <td class="text" align=left>Start Date </td>
        <td align=left><SELECT name="startdate">
 
   <?php
@@ -131,7 +152,7 @@
   ?>
 
   </select></td><td> </td></tr>
-  <tr> <td class="text" align=left><b>End Date</b> </td>
+  <tr> <td class="text" align=left>End Date </td>
        <td align=left><SELECT name="enddate">
 
   <?php
@@ -147,7 +168,7 @@
   </select></td><td> </td></tr>
   <tr><td></td></tr>
 
-  <tr> <td class="text" align=left><b>Incident Type</b> </td>
+  <tr> <td class="text" align=left>Incident Type </td>
        <td align=left><SELECT name="selected-type">
   <?php
   print "<option selected value=\"\">All types</option>\n";
@@ -158,60 +179,27 @@
   </select></td><td> </td></tr>
   <tr><td></td></tr>
 
-  <tr> <td class="text"><b>All Incidents For Date</b></td>
+  <tr> <td class="text">All Incidents For Date</td>
        <td align="left"> <input type="checkbox" name="mode" checked disabled value="report-by-date" /></td></tr>
-  <tr> <td  class="text"><b>Exclude calls of type TRAINING?</td>
+  <tr> <td  class="text">Exclude TRAINING calls?</td>
        <td> <input type="checkbox" checked name="hidetraining" value="1" /></tr>
-  <tr> <td  class="text"><b>New page for each incident?</td>
-       <td> <input type="checkbox" name="always-pagebreak" value="1" /></tr>
+  <tr> <td  class="text">New page for each incident?</td>
+       <td> <input type="checkbox" checked name="always-pagebreak" value="1" /></tr>
 
   <tr> <td></td></tr>
-  <tr> <td><input type="submit" name="incidents_report" value="Get PDF Incidents Report" /></td></tr>
+  <tr> <td><input class="btn" type="submit" name="incidents_report" value="Get Report PDF" /></td></tr>
   </table>
-  </ul>
   </form>
+</div>
 
   <!-- ---------------------------------------------------------------------------------->
 
-  <form name="myform" method="GET" action="reports-units.php">
-  <font class="h1"><u>Units Report</u></font><br>
-  <ul>
-  <table>
-  <tr> <td class="text" align="left"><b>Unit</b></td>
-       <td align="left"><select name="unit">
-  <?php
-  foreach($units as $unit) {
-    print "<OPTION value=\"".$unit."\">".$unit."</option>\n";
-  }
-  ?>
-  </select></td><td> </td></tr>
-
-  <tr> <td class="text" align="left"><b>Date</b></td>
-       <td align="left"><select name="selected-date">
-  <?php
-  foreach($units_dates as $idate) {
-    print "<OPTION ";
-    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
-    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
-  }
-  ?>
-
-  </select></td><td> </td></tr>
-  <tr><td></td></tr>
-  <tr> <td><INPUT type="submit" name="units_report" value="Get PDF Units Report"></td></tr>
-
-  </table>
-  </ul>
-  </form>
-
-  <!-- ---------------------------------------------------------------------------------->
-
-<form name="myform" method="GET" action="reports-messages.php">
-<font class="h1"><u>Message Report</u></font><br>
-<ul>
+  <div class="rbtn">
+<form style="margin: 0px" name="myform" method="GET" action="reports-messages.php">
+<font class="h2"><u>Message Report</u></font><br>
 <table>
   <tr>
-    <td class="text" align="left"><b>Message Type</b></td>
+    <td class="text" align="left">Message Type</td>
     <td align="left">
       <SELECT name="message_type">
       <OPTION value="All Messages">All Messages</option>
@@ -223,7 +211,7 @@
   </select></td> <td> </td></tr>
 
   <tr>
-    <td class="text" align="left"><b>Date</b></td>
+    <td class="text" align="left">Date</td>
     <td align="left"><select name="selected-date">
   <?php
   foreach($units_dates as $idate) {
@@ -237,11 +225,163 @@
     <td></td>
   </tr>
   <tr> <td></td> </tr>
-  <tr> <td><input type="submit" name="messages_report" value="Get Messages Report" /></td> </tr>
+  <tr> <td><input class="btn" type="submit" name="messages_report" value="Get Report PDF" /></td> </tr>
 
 </table>
-</ul>
 </form>
+</div>
+
+</div> <!-- outer -->
+<div style="float: left; width: 20px;">
+&nbsp;
+</div> <!-- outer -->
+<div style="float: left; width: 400px;">
+  <div class="rbtn">
+<form style="margin: 0px" name="myform" method="GET" action="reports-responsetimes.php">
+<font class="h2"><u>Response Times Report</u></font><br>
+  <table>
+  <tr> <td class="text" align=left>Start Date </td>
+       <td align=left><SELECT name="startdate">
+
+  <?php
+  sort($incidents_dates); // TODO: these sorts are all massively repetitive and unnecessary, right??
+  foreach($incidents_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+
+  </select></td><td> </td></tr>
+  <tr> <td class="text" align=left>End Date </td>
+       <td align=left><SELECT name="enddate">
+
+  <?php
+  sort($incidents_dates); // TODO: these sorts are all massively repetitive and unnecessary, right??
+  foreach($incidents_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+  </select></td><td> </td></tr>
+  <tr><td></td></tr>
+
+  <tr> <td class="text" align=left>Filter by Unit Set? </td>
+       <td align=left><SELECT name="filterset">
+  <?php
+  print "<option selected value=\"\">All units</option>\n";
+  foreach($unit_filter_sets as $setname) {
+    print "<option value=\"".$setname."\">".$setname."</option>\n";
+  }
+?> 
+  </select></td><td> </td></tr>
+  <tr> <td class="text" align=left>Filter by incident type? </td>
+       <td align=left><SELECT name="incidenttypes">
+  <?php
+  print "<option selected value=\"filter\">Select specific types</option>\n";
+  print "<option value=\"all\">All types (except TRAINING)</option>\n";
+
+?>
+  </select></td><td> </td></tr>
+  <tr><td></td></tr>
+  <tr> <td><INPUT class="btn" type="submit" name="units_report" value="Get Report PDF"></td></tr>
+
+  </table>
+
+</form>
+</div>
+
+  <!-- ---------------------------------------------------------------------------------->
+
+  <div class="rbtn">
+  <form style="margin: 0px" name="myform" method="GET" action="reports-units.php">
+  <font class="h2"><u>Unit Details Report</u></font><br>
+  <table>
+  <tr> <td class="text" align="left">Unit</td>
+       <td align="left"><select name="unit">
+  <?php
+  foreach($units as $unit) {
+    print "<OPTION value=\"".$unit."\">".$unit."</option>\n";
+  }
+  ?>
+  </select></td><td> </td></tr>
+
+  <tr> <td class="text" align="left">Date</td>
+       <td align="left"><select name="selected-date">
+  <?php
+  foreach($units_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+
+  </select></td><td> </td></tr>
+  <tr><td></td></tr>
+  <tr> <td><INPUT class="btn" type="submit" name="units_report" value="Get Report PDF"></td></tr>
+
+  </table>
+  </form>
+</div>
+
+  <!-- ---------------------------------------------------------------------------------->
+
+  <div class="rbtn">
+  <form style="margin: 0px" name="myform" method="GET" action="reports-utilization.php">
+  <font class="h2"><u>Unit Utilization Report</u></font><br>
+  <table>
+
+  <tr> <td class="text" align=left>Start Date </td>
+       <td align=left><SELECT name="startdate">
+
+  <?php
+  sort($incidents_dates); // TODO: these sorts are all massively repetitive and unnecessary, right??
+  foreach($incidents_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+
+  </select></td><td> </td></tr>
+  <tr> <td class="text" align=left>End Date </td>
+       <td align=left><SELECT name="enddate">
+
+  <?php
+  sort($incidents_dates); // TODO: these sorts are all massively repetitive and unnecessary, right??
+  foreach($incidents_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+  </select></td><td> </td></tr>
+  <tr><td></td></tr>
+
+  <tr> <td class="text" align=left>Filter by Unit Set? </td>
+       <td align=left><SELECT name="filterset">
+  <?php
+  print "<option selected value=\"\">All units</option>\n";
+  foreach($unit_filter_sets as $setname) {
+    print "<option value=\"".$setname."\">".$setname."</option>\n";
+  }
+?> 
+  </select></td><td> </td></tr>
+  <tr> <td class="text" align=left>Filter by incident type? </td>
+       <td align=left><SELECT name="incidenttypes">
+  <?php
+  print "<option value=\"filter\">Select specific types</option>\n";
+  print "<option selected value=\"all\">All types (except TRAINING)</option>\n";
+
+?>
+  </select></td><td> </td></tr>
+  <tr><td></td></tr>
+  <tr> <td><INPUT class="btn" type="submit" name="units_report" value="Get Report PDF"></td></tr>
+
+  </table>
+  </form>
+</div>
 
   <!-- ---------------------------------------------------------------------------------->
 

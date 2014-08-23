@@ -35,7 +35,7 @@
     mysql_free_result($findlastIDresult);
     MysqlQuery("UPDATE incidents SET call_number='" .CallNumber($incident_id) . "' WHERE incident_id=$incident_id ");
     MysqlQuery("UNLOCK TABLES");
-    syslog(LOG_INFO, $_SESSION['username'] . " created call [" . CallNumber($incident_id). "] (incident $incident_id)");
+    syslog(LOG_INFO, $_SESSION['username'] . " created call [" . CallNumber($incident_id). "] (incident $incident_id) with values: details ($call_details), location ($location), type ($call_type)");
   /*  print "
       <html>
       <head>

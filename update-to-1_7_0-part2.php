@@ -1,7 +1,7 @@
 <?php
   require('db-open.php');
   require ('session.inc');
-  if ($_SESSION['access_level'] < 10) {
+  if (!CheckAuthByLevel('admin_upgrades', $_SESSION['access_level'])) {
     print "ERROR - Administrator access required for this feature.";
     exit;
   }

@@ -19,8 +19,8 @@
   #
   # Verify access level
   #
-  if (!CheckAuthByLevel('edit_users', $_SESSION['access_level'])) {
-    syslog(LOG_WARNING, "User editing attempted without permissions by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
+  if (!CheckAuthByLevel('edit_report_filters', $_SESSION['access_level'])) {
+    syslog(LOG_WARNING, "Report unit filter editing attempted without permissions by user ". $_SESSION['username'] ." level ". $_SESSION['access_level']);
     echo "Access level insufficient for this operation.<br />\n";
     echo "User: " . $_SESSION['username'] . "<br />\n";
     echo "Level: " . $_SESSION['access_level'] . "<br />\n";
@@ -33,9 +33,11 @@
   $check_timeout = 0;
   $check_errormsg = "";
 
+  /*  TESTING UI 2013-09-12
+   *
   if (isset($_GET["delete"]) && $_GET["delete"]) {
     $cleandelete = MysqlClean($_GET, "delete", 20);
-    $levelrow = MysqlQuery("SELECT username, access_level FROM $DB_NAME.users WHERE id='$cleandelete'");
+    $levelrow = MysqlQuery("SELECT row_description, row_regexp FROM $DB_NAME.unit_filter_sets WHERE idx='$cleandelete'");
     $levelobj = mysql_fetch_object($levelrow);
     $username = $levelobj->username;
     if ($_SESSION['access_level'] < $levelobj->access_level ) {
@@ -44,20 +46,20 @@
       exit;
     }
     else {
-      syslog(LOG_INFO, "User [$username] was deleted by [".$_SESSION['username']."]");
-      MysqlQuery("DELETE FROM $DB_NAME.users WHERE id='$cleandelete'");
-      header('Location: config-users.php?action=Deleted&username='.$username);
+      syslog(LOG_INFO, "Unit filter set [$description] entry [$regexp] was deleted by [".$_SESSION['username']."]");
+      MysqlQuery("DELETE FROM $DB_NAME.unit_filter_sets WHERE idx='$cleandelete'");
+      header('Location: config-unitfilters.php?action=Deleted&username='.$username);
     }
   }
-  elseif (isset($_POST["edituser"]) && $_POST["edituser"]) {
+  elseif (isset($_POST["update"]) && $_POST["update"]) {
   #
   # Submitted a user form to save - check validation.
   #
-    if ($DEBUG) syslog (LOG_INFO, "entering post edituser");
+    if ($DEBUG) syslog (LOG_INFO, "entering post update");
     if (!isset($_POST["password"]) || $_POST["password"]=='') {
       if (isset($_POST['newuser']) && $_POST['newuser']) {
         print "Must set password when adding new user.<br />\n";
-        print "<a href=\"config-users.php?adduser\">Return to form and try again</a><br>\n";
+        print "<a href=\"config-unitfilters.php?adduser\">Return to form and try again</a><br>\n";
         exit;
       }
     }
@@ -66,14 +68,15 @@
       $check_password = 1;
       $check_errormsg .= "Passwords do not match.<br />";
     }
-    if ($_POST["username"] == $_SESSION['username'])
+    if ($_POST["username"] == $_SESSION['username'] &&
+            $_POST["access_level"] < 10)
     {
       $check_accesslevel = 1;
-      $check_errormsg .= "You cannot change your own access level.<br>";
+      $check_errormsg .= "Cannot set own access level to a non-administrator level (less than 10.)<br>";
     }
 
     if ($check_errormsg != "") {
-    # If we did not pass validation, continue to the GET edituser case, and flag corrections...
+    # If we did not pass validation, continue to the GET update case, and flag corrections...
       $_GET["edituserid"] = $_POST["id"];
     }
     else {
@@ -120,14 +123,14 @@
         else {
           syslog(LOG_INFO, "User [$cleanuser] was added by [".$_SESSION['username']."]");
           MysqlQuery("INSERT INTO $DB_NAME.users (username, password, name, access_level, access_acl, timeout, locked_out, change_password) VALUES ('$cleanuser', '$hash', '$cleanname', '$cleanaccesslevel', '$cleanaccessacl', '$cleantimeout', $locked_out, $change_password)");
-          header('Location: config-users.php?moduser='.mysql_insert_id().'&action=Added');
+          header('Location: config-unitfilters.php?moduser='.mysql_insert_id().'&action=Added');
           exit;
         }
       }
       elseif ($cleanid) {
         syslog(LOG_INFO, "User [$cleanuser] was edited by [".$_SESSION['username']."]");
         MysqlQuery("UPDATE $DB_NAME.users SET $pwhash_query_frag  access_level='$cleanaccesslevel', access_acl='$cleanaccessacl', timeout='$cleantimeout', name='$cleanname', locked_out=$locked_out, change_password=$change_password WHERE id='$cleanid'");
-        header('Location: config-users.php?moduser='.$cleanid.'&action=Saved');
+        header('Location: config-unitfilters.php?moduser='.$cleanid.'&action=Saved');
         exit;
       }
       else {
@@ -137,7 +140,7 @@
     }
   }
 
-  if (isset($_GET["edituserid"]) || isset($_GET["adduser"]) || $check_errormsg != "") {
+  if (isset($_GET["edit"]) || isset($_GET["adduser"]) || $check_errormsg != "") {
   #
   # Loaded a user to edit (could have edited and come back to this screen)
   #
@@ -156,7 +159,7 @@
       $edituserid = MysqlClean($_GET, "edituserid", 20);
       $oneuser = MysqlQuery("SELECT * FROM $DB_NAME.users WHERE id='$edituserid'");
       if (mysql_num_rows($oneuser) != 1) {
-        syslog(LOG_CRITICAL, "Expected 1 row for config-users.php?edituserid=$edituserid -- got " . mysql_num_rows($oneuser));
+        syslog(LOG_CRITICAL, "Expected 1 row for config-unitfilters.php?edituserid=$edituserid -- got " . mysql_num_rows($oneuser));
         echo "INTERNAL ERROR: bad number of rows (". mysql_num_rows($oneuser) . ") for user ID [$edituserid] (expected 1).<p>";
         exit;
       }
@@ -166,6 +169,7 @@
       }
     }
     header_html("Dispatch :: Configuration :: Users");
+
 ?>
 <body vlink="blue" link="blue" alink="cyan">
 <?php include('include-title.php'); ?>
@@ -189,7 +193,7 @@
       <?php  } ?>
 
       </tr>
-      <tr><td><input type=hidden name="edituser" value="1"/> </td></tr>
+      <tr><td><input type=hidden name="update" value="1"/> </td></tr>
       </tr>
       <tr><td class="cell">Full Name
           <td><input type="text" size="40" name="name"
@@ -272,12 +276,12 @@
       </table>
       <input value="Save Changes" type="submit"><input value="Clear Changes" type="reset" />
       <?php if (!isset($_GET["adduser"])) {
-          echo "&nbsp;&nbsp;&nbsp;    <a class=button href=\"config-users.php?delete=".$user['id']."\">Delete This User</a><br>";
+          echo "&nbsp;&nbsp;&nbsp;    <a class=button href=\"config-unitfilters.php?delete=".$user['id']."\">Delete This User</a><br>";
           }?>
       </form>
       <p>
 <p>
-      <a class=button href="config-users.php">Abort Changes, Go Back To Config::Users</a>
+      <a class=button href="config-unitfilters.php">Abort Changes, Go Back To Config::Users</a>
       <a class=button href="admin.php">Abort Changes, Go Back To Config main menu</a>
       </body>
       </html>
@@ -297,70 +301,51 @@
     if (isset($_GET["action"]) && $_GET["action"]) {
       $action = $_GET["action"];
     }
-    header_html('Dispatch :: Configuration :: Users')
+    
+   ******************************************************************************************************/
+
+    header_html('Dispatch :: Configuration :: Unit Filter Sets')
 ?>
 <body vlink="blue" link="blue" alink="cyan">
 <?php
   include('include-title.php');
+
 ?>
 
-<p>
-<span style="h1"><b>User Administration</b></span><p>
-<a class=button href="config-users.php?adduser">Add New User</a>
-<a class=button href="admin.php">Back to Main Configuration Menu</a><p>
-<table style="border: black solid 1px; background-color: gray" >
-<tr>
-  <td class="th">Login</td>
-  <td class="th">Name</td>
-  <td class="th">Access Level</td>
-  <td class="th">Access ACL</td>
-  <td class="th">Timeout</td>
-  <td class="th">Password expired?</td>
-  <td class="th">Locked out?</td>
-  <td class="th">Failed logins</td>
-  <td class="th">Last login</td>
-<?php if ($moduser) {
-    echo "<td class=\"th\">Status</td>\n";
+  <script type=text/javascript>
+  function ShowPane(panename) {
+    document.getElementById(panename).style.display = "inline";
   }
-?>
-</tr>
+  function HidePane(panename) {
+    document.getElementById(panename).style.display = "none";
+  }
+
+  </script>
+<p>
+<span style="h1"><b>Unit Filter Sets</b></span><p>
+Click to view or modify.
+
+<div style="border: black solid 1px;" >
 <?php
-    $userlist = MysqlQuery("SELECT * FROM $DB_NAME.users ORDER BY username");
-    while ($user = mysql_fetch_object($userlist)) {
-      echo "<tr>\n";
-      echo "  <td class=\"cell bgeee\"><a href=\"config-users.php?edituserid=$user->id\">" . 
-           MysqlUnClean($user->username) . "</a></td>\n";
-      echo "  <td class=\"cell bgeee\">" . MysqlUnClean($user->name) . "</td>\n";
-      echo "  <td class=\"cell bgeee\">" . MysqlUnClean($user->access_level) . "</td>\n";
-      echo "  <td class=\"cell bgeee\">" . MysqlUnClean($user->access_acl) . "</td>\n";
-      echo "  <td class=\"cell bgeee\">" . MysqlUnClean($user->timeout) . "</td>\n";
-      if ($user->change_password) echo "  <td class=\"cell bgeee green b\">Yes</td>\n";
-      else                        echo "  <td class=\"cell bgeee fgray\">No</td>\n";
-      if ($user->locked_out)      echo "  <td class=\"cell bgred b\">Yes</td>\n";
-      else                        echo "  <td class=\"cell bgeee fgray\">No</td>\n";
-      echo "  <td class=\"cell bgeee\">" . MysqlUnClean($user->failed_login_count) . "</td>\n";
-      echo "  <td class=\"cell bgeee\">" . dls_utime($user->last_login_time) . "</td>\n";
-      if ($moduser) {
-        if ($moduser == $user->id) {
-          echo "  <td class=\"notice\">$action user.</td>\n";
-        }
-        else {
-          echo "  <td class=\"cell bgeee\">&nbsp;</td>\n";
-        }
-      }
-
-      echo "</tr>";
-    }
-    if ($action == "Deleted") {
-      echo "<tr>";
-      echo "  <td colspan=\"100%\" class=\"notice\">Deleted user '".$_GET["username"]."'.</td></tr>";
+    $filters = MysqlQuery("SELECT DISTINCT filter_set_name FROM $DB_NAME.unit_filter_sets ORDER BY filter_set_name");
+    while ($filter = mysql_fetch_object($filters)) {
+      print "  <span style=\"display:inline; float: left\" class=\"\"><a href=\"javascript:void(0)\" onclick=\"ShowPane('$filter->filter_set_name');\">" .  MysqlUnClean($filter->filter_set_name) . "</a></span>\n";
+      print "  <span style=\"display:none; float: left\" id=\"$filter->filter_set_name\"> ";
+      print "      <a href=\"javascript:void(0)\" onclick=\"HidePane('$filter->filter_set_name');\"> [Hide] </a>\n";
+      print "  Viewing pane for $filter->filter_set_name <br>";
+      print "  Viewing pane 2 for $filter->filter_set_name <br>";
+      print "  Viewing pane 3 for $filter->filter_set_name <br>";
+      print "  Viewing pane 4 for $filter->filter_set_name <br>";
+      print " </span>\n";
+      print "<br>\n\n";
     }
 ?>
-</table>
+</div>
 <p>
-<a class=button href="config-users.php?adduser">Add New User</a>
-<a class=button href="admin.php">Back to Main Configuration Menu</a>
+<div>
+<a class=button href="config-unitfilters.php?new">Add New Filter Set</a><p>
+<a class=button href="admin.php">Back to Main Configuration Menu</a><p>
+</div>
     <?php
-  }
 
   echo "</body>\n</html>\n";

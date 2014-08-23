@@ -1,12 +1,13 @@
 <?php
 require_once('db-open.php');
 include('local-dls.php');
+include('functions.php');
 require_once('session.inc');
 
 $subsys="reports";
 
 
-  if ($_SESSION["access_level"] < 5) {
+if (!CheckAuthByLevel('reports', $_SESSION["access_level"])) {
     header_html('Dispatch :: Access Restricted');
     include('include-title.php');
     print "Access level too low to access Reports page.";

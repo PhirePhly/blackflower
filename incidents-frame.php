@@ -94,10 +94,14 @@
 <table width="100%">
 <tr><td bgcolor="#aaaaaa">
 <?php
+
+// $profile_timer_start = microtime(true);
+  
   // auxiliary query for incident_units: dynamically load them into array that the main display frame will reference:
   $query = "SELECT uid,incident_id,unit FROM incident_units WHERE cleared_time IS NULL ORDER BY incident_id,uid";
   $result = mysql_query ($query) or die ("In query: $query<br />\nError: ". mysql_error());
   while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    // This is awkward.  Build a better data structure?
     $incident_id = $line["incident_id"];
     if (isset($unitcount[$incident_id]))
       $unitcount[$incident_id]++;
@@ -106,6 +110,16 @@
     $unit[$incident_id][$unitcount[$incident_id]] = $line["unit"];
   }
   mysql_free_result($result);
+  
+  // auxiliary query for dispatch and arrival times:
+  $dispatch_times = array();
+  $arrival_times = array();
+  $query = "SELECT incident_id, MIN(iu.dispatch_time) as dispatch_time, MIN(iu.arrival_time) as arrival_time FROM incident_units iu GROUP BY iu.incident_id";
+  $result = mysql_query ($query) or die ("In query: $query<br />\nError: ". mysql_error());
+  while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    $dispatch_times[$line["incident_id"]] = $line["dispatch_time"];
+    $arrival_times[$line["incident_id"]] = $line["arrival_time"];
+  }
 
 
   // Load incident lock info
@@ -119,51 +133,6 @@
     }
   }
 
-  // PREPARE MAIN QUERY
-  $query_select = 'SELECT incidents.*, TIME_TO_SEC(TIMEDIFF(NOW(),updated)) as stale_secs, TIME_TO_SEC(TIMEDIFF(NOW(),ts_opened)) as age_secs FROM incidents';
-  $query_where = ''; 
-  $query_order = " ORDER BY incidents.incident_id DESC ";
-  $query_limit = '';
-
-  if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"]=="no") {
-    // Set up to show a range of incidents depending on filter criteria and scroll window sizing
-    $show_closed = 1;
-    if (isset($filterdate) && $filterdate != '' && isset($filtercalltype) && $filtercalltype != '') {
-      $query_where .= " WHERE DATE_FORMAT(ts_opened, '%Y-%m-%d') = '$filterdate' AND call_type = '$filtercalltype'";
-    }
-    elseif (isset($filterdate) && $filterdate != '') {
-      $query_where .= " WHERE DATE_FORMAT(ts_opened, '%Y-%m-%d') = '$filterdate'";
-    }
-    elseif (isset($filtercalltype) && $filtercalltype != '') {
-      $query_where .= " WHERE call_type = '$filtercalltype'";
-    }
-
-    if ($filterscroll == "yes") {
-      if (isset($start) && $start > 0) $query_limit .= " LIMIT $start, $scrollipp";
-      else                             $query_limit .= " LIMIT $scrollipp";
-    }
-  }
-  else {
-    $show_closed = 0;
-    $query_where = " WHERE incident_status='Open'";
-    if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $_SESSION['access_level'] >= 5) { // todo: magic number "5"
-      $query_where .= " OR incident_status='Dispositioned'";
-    }
-  }
-
-  $howmany = MysqlGrabData('SELECT COUNT(*) AS howmany FROM incidents ' . $query_where);
-  $query = "$query_select $query_where $query_order $query_limit";
-  if ($DEBUG) {
-    syslog(LOG_DEBUG, "Main incidents query: $query");
-  }
-  $result = MysqlQuery($query);
-
-  $td = "    <td class=\"message\" nowrap>";
-
-  if ($filterdate != '' || $filtercalltype != '') {
-    print "<b class=\"text\" style=\"color: #dd0000;\">Filters Applied</b><br />\n";
-  }
-
   $Channels = array();
   $channels = MysqlQuery("SELECT * FROM channels");
   if (mysql_num_rows($channels)) {
@@ -174,6 +143,65 @@
         'repeater'          => $channel->repeater);
     }
   }
+// $profile_timer_end = microtime(true);
+
+  //syslog(LOG_DEBUG, "aux queries: " . $profile_timer_end."-".$profile_timer_start."=".substr(($profile_timer_end - $profile_timer_start),0,5). " seconds");
+
+// $profile_timer_start = microtime(true);
+  // PREPARE MAIN QUERY
+  $query_select = '
+    SELECT i.*, 
+    TIME_TO_SEC(TIMEDIFF(NOW(),updated)) as stale_secs, 
+    TIME_TO_SEC(TIMEDIFF(NOW(),ts_opened)) as age_secs
+    FROM incidents i';
+  
+  $query_where = ''; 
+  $query_order = " ORDER BY i.incident_id DESC ";
+  $query_limit = '';
+
+  if (isset($_COOKIE["incidents_open_only"]) && $_COOKIE["incidents_open_only"]=="no") {
+    // Set up to show a range of incidents depending on filter criteria and scroll window sizing
+    $show_closed = 1;
+    if (isset($filterdate) && $filterdate != '' && isset($filtercalltype) && $filtercalltype != '') {
+      $query_where .= " WHERE DATE_FORMAT(i.ts_opened, '%Y-%m-%d') = '$filterdate' AND call_type = '$filtercalltype'";
+    }
+    elseif (isset($filterdate) && $filterdate != '') {
+      $query_where .= " WHERE DATE_FORMAT(i.ts_opened, '%Y-%m-%d') = '$filterdate'";
+    }
+    elseif (isset($filtercalltype) && $filtercalltype != '') {
+      $query_where .= " WHERE i.call_type = '$filtercalltype'";
+    }
+
+    if ($filterscroll == "yes") {
+      if (isset($start) && $start > 0) $query_limit .= " LIMIT $start, $scrollipp";
+      else                             $query_limit .= " LIMIT $scrollipp";
+    }
+  }
+  else {
+    $show_closed = 0;
+    $query_where = " WHERE i.incident_status='Open'";
+    if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && CheckAuthByLevel('review_incidents',$_SESSION['access_level'])) {
+      $query_where .= " OR i.incident_status='Dispositioned'";
+    }
+  }
+
+  $howmany = MysqlGrabData('SELECT COUNT(*) AS howmany FROM incidents i ' . $query_where);
+  $query = "$query_select $query_where $query_order $query_limit";
+  if ($DEBUG) {
+    syslog(LOG_DEBUG, "Main incidents query: $query");
+  }
+  $result = MysqlQuery($query);
+
+// $profile_timer_end = microtime(true);
+
+// syslog(LOG_DEBUG, "main query: " . $profile_timer_end."-".$profile_timer_start."=".substr(($profile_timer_end - $profile_timer_start),0,5). " seconds");
+
+  $td = "    <td class=\"message\" nowrap>";
+
+  if ($filterdate != '' || $filtercalltype != '') {
+    print "<b class=\"text\" style=\"color: #dd0000;\">Filters Applied</b><br />\n";
+  }
+
 
 ?>
 
@@ -263,7 +291,7 @@
       else {
         echo $td, $quality, $href, 'legacy incident_id ', $incident_id, "</span></a>";  # bug 75 conversion
       }
-      if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $line['incident_status'] == 'Dispositioned' && $_SESSION['access_level'] >= 5) { // TODO: magic number "5"
+      if (isset($SUPERVISOR_INCIDENT_REVIEW) && $SUPERVISOR_INCIDENT_REVIEW && $line['incident_status'] == 'Dispositioned' && CheckAuthByLevel('review_incidents', $_SESSION['access_level'])) {
         echo "&nbsp;&nbsp;<span style='font-size: 8pt; font-weight: bold; background-color: yellow; border: 1px solid black'>READY FOR REVIEW</span>";
         $quality = "<span style='color: #666666; font-style: italic;'>";
       }
@@ -307,11 +335,20 @@
         echo $td, $quality, "$staleness</td>\n";
       echo $td, $quality, dls_utime($line["ts_opened"]), "</span></td>\n";
 
-      if (($line["incident_status"] == 'New' || $line["incident_status"] == 'Open')  && (!$line["ts_dispatch"] || !strcmp($line["ts_dispatch"], "0000-00-00 00:00:00")))
-        echo $td, $quality, "</span><span style='color: darkred; text-decoration: blink;'>Undispatched</span></td>\n";
-      else
-        echo $td, $quality, dls_utime($line["ts_dispatch"]), "</span></td>\n";
-      echo $td, $quality, dls_utime($line["ts_arrival"]), "</span></td>\n";
+      if (!array_key_exists($incident_id, $dispatch_times)) {
+        if ($line["incident_status"] == 'New' || $line["incident_status"] == 'Open')  
+          print "<td class=\"message undispatched_s2\">Undispatched</td>\n";
+        else 
+          print "<td class=\"message\"></td>\n";
+      }
+      else {
+        echo $td, $quality, dls_utime($dispatch_times[$incident_id]), "</span></td>\n";
+      }
+      echo $td, $quality;
+      if (isset($arrival_times[$incident_id])) {
+        print dls_utime($arrival_times[$incident_id]);
+      }
+      print "</span></td>\n";
       if ($show_closed) {
         echo $td, $quality, dls_utime($line["ts_complete"]), "</span></td>\n";
       }
@@ -425,8 +462,7 @@
      print "<span class=\"text\" style=\"display:inline;\"><i> No channels configured. </i></span>";
    }
    print "<span class=\"text\" style=\"display: inline; float: right\">\n";
-   if ((isset($ACCESS_LEVEL_EDITCHANNELS) && $_SESSION['access_level'] >= $ACCESS_LEVEL_EDITCHANNELS ||
-       !isset($ACCESS_LEVEL_EDITCHANNELS) && $_SESSION['access_level'] >= 10) && 
+   if (CheckAuthByLevel('edit_channels', $_SESSION['access_level']) && 
         (!isset($_SESSION['readonly']) ||!$_SESSION['readonly'])) {
          print "<BUTTON TYPE=\"blank\" onClick=\"return popup('edit-channels.php','edit-channels',600,1000)\" 
               TARGET=\"_blank\" NAME=\"edit_channels\" ID=\"edit_channels\">Edit Channels</button>";
