@@ -63,7 +63,7 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
 <?php
   while ($line = mysql_fetch_object($result)) {
     print "<tr bgcolor=\"white\"><td class=\"text\">".$line->message_type."</td>\n";
-    print "<td class=\"text\">" .date('Y-m-d',strtotime($line->ts))."&nbsp;".date('H:i:s',strtotime($line->ts))."</td\n";
+    print "<td class=\"text\">" .date('Y-m-d',strtotime($line->ts))."&nbsp;".date('H:i:s',strtotime($line->ts))."</td>\n";
     print "<td class=\"text\">" .$line->unit."</td>\n";
     print "<td class=\"text\">" . $line->message."</td>\n";
     print "<td class=\"text\">" . $line->creator."</td>\n";
