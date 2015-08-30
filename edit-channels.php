@@ -155,7 +155,7 @@
     if (isset($_GET["action"]) && $_GET["action"]) {
       $action = $_GET["action"];
     }
-    header_html('Dispatch :: Configuration :: Users')
+    header_html('Dispatch :: Channels')
 ?>
 <body vlink="blue" link="blue" alink="cyan">
 <?php

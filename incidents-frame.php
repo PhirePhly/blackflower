@@ -79,6 +79,20 @@
     header("Location: http://".$_SERVER['HTTP_HOST'].$_SERVER["PHP_SELF"]."?".
            "date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll&start=$start");
     exit;
+  } 
+
+  if (isset($_POST["incidents_hide_staging"])) {
+    if ($_POST["incidents_hide_staging"] == "Hide Staging Locations" &&
+        (!isset($_COOKIE["incidents_hide_staging"]) || $_COOKIE["incidents_hide_staging"] == "no")) {
+      setcookie("incidents_hide_staging", "yes");
+    }
+    elseif ($_POST["incidents_hide_staging"] == "Show Staging Locations" &&
+            (!isset($_COOKIE["incidents_hide_staging"]) || $_COOKIE["incidents_hide_staging"] == "yes")) {
+      setcookie("incidents_hide_staging", "no");
+    }
+    header("Location: http://".$_SERVER['HTTP_HOST'].$_SERVER["PHP_SELF"]."?".
+           "date=$filterdate&calltype=$filtercalltype&scroll=$filterscroll&start=$start");
+    exit;
   }
 
   header_html("Dispatch :: Incidents","",
@@ -443,6 +457,115 @@
 
    mysql_free_result($result);
    echo "<!-- END Display Incidents -->\n\n";
+
+   $staging_query = "SELECT * from staging_locations WHERE time_released IS NULL order by location ASC";
+   $staging_result = MysqlQuery($staging_query);
+
+   $staging_locations = array();
+   $staging_assignments = array();
+   $unitstagings = array();
+   while ($staging_row = mysql_fetch_object($staging_result)) {
+     $staging_assignments[$staging_row->staging_id] = array();
+     $staging_locations[$staging_row->staging_id] = $staging_row->location;
+     
+   }
+   mysql_free_result($staging_result);
+
+   $staging_assignments_query = "SELECT * FROM unit_staging_assignments WHERE time_reassigned IS NULL";
+   $staging_assignments_result=MysqlQuery($staging_assignments_query);
+   while ($staging_assignments_row = mysql_fetch_object($staging_assignments_result)) {
+     array_push($staging_assignments[$staging_assignments_row->staged_at_location_id], $staging_assignments_row->unit_name);
+     $unit_staged_at[$staging_assignments_row->unit_name] = $staging_assignments_row->staged_at_location_id;
+     
+     // Dynamically program this now on behalf of Unit Availability section to avoid redoing the query then.
+     $tmp = array();
+     if (isset($unitstagings[$staging_assignments_row->unit_name])) 
+       $tmp = $unitstagings[$staging_assignments_row->unit_name];
+     array_push($tmp, $staging_assignments_row->staged_at_location_id);
+     $unitstagings[$staging_assignments_row->unit_name] = $tmp;
+   }
+?>
+     <div style="width: auto; margin: 0px; margin-top: 8px; margin-bottom: 8px;">
+     <span class="text" style="display:inline;"> <b>Staging Locations</b> </span>
+ 
+<?php 
+     if (isset($_COOKIE['incidents_hide_staging']) && $_COOKIE["incidents_hide_staging"] == "yes") {
+       $hiddenstaging = 1;
+       print "<span class=\"text\">(Currently hidden from view, toggle with button at right...)</span>\n";
+       print "<span class=\"text\" style=\"display: inline; float: right\">\n";
+       print "<button type=\"submit\" name=\"incidents_hide_staging\" id=\"incidents_hide_staging\" ";
+       print "value=\"Show Staging Locations\" title=\"Show Staging Locations\">Show Staging Locations</button>\n";
+       print "</span>\n";
+     }
+     else {
+       $hiddenstaging = 0;
+       print "<span class=\"text\" style=\"display: inline; float: right\">\n";
+
+       print "<BUTTON TYPE=\"blank\" onClick=\"return popup('edit-staging.php?add_staging_location','edit-staging',400,600)\" 
+              TARGET=\"_blank\" NAME=\"edit_staging\" ID=\"new_edit_staging\">Add Staging Location</button>";
+
+       print "<button type=\"submit\" name=\"incidents_hide_staging\" id=\"incidents_hide_staging\" ";
+       print "value=\"Hide Staging Locations\" title=\"Hide Staging Locations\">Hide Staging Locations</button>\n";
+       print "</span>\n";
+
+   if (!count($staging_locations)) {
+     print "<table><Tr><td class=text>No staging locations defined.</td></tr></table>";
+   }
+   else {
+
+?>
+     <table width="100%">
+     <tr><td bgcolor="#aaaaaa">
+     <table width="100%" cellpadding="1" cellspacing="1">
+       <tr>
+         <td class="th" >Location</td>
+         <td class="th" >Units Staged</td>
+       </tr>
+<?php
+     // TODO: Sort by location name
+     foreach (array_keys($staging_locations) as $staging_location_id) {
+       print "<tr><td class=message>
+                    <a onClick=\"return popup('edit-staging.php?staging_id=$staging_location_id','staging-$staging_location_id',400,600)\"
+                    href=\"edit-staging.php?staging_id=".$staging_location_id."\">".$staging_locations[$staging_location_id]."</a></td>\n";
+       $count = count($staging_assignments[$staging_location_id]);
+       if ($count <= 0) {
+         print "<td class=message> <span style='color: #666666; font-size: 9pt;'>No staged units. </span></td></tr>\n";
+       }
+       else {
+         foreach ($staging_assignments[$staging_location_id] as $staged_unit_name) {
+
+           //print "<td class=message>$staged_unit_name </td></tr>";
+           if ($count == 1)
+             $display = str_replace(" ", "&nbsp;", $staging_assignments[$staging_location_id][0]);
+           else {
+             $display = implode (", ", $staging_assignments[$staging_location_id]);
+             if (strlen($display) > 30) {
+                $fulldisplay = $display;
+                $display = str_replace(" ", "&nbsp;", substr($display, 0, 25));
+                $display = "<span style=\"background-color: #bbbbbb\" title=\"$fulldisplay\">$display&nbsp;...</span>&nbsp;<sup style=\"font-weight: normal; color: blue\">&laquo;&nbsp;$count&nbsp;units</sup>";
+             }
+             else 
+               $display = str_replace(" ", "&nbsp;", $display );
+           }
+         }
+         print "<td class=message>$display</td></tr>\n";
+       }
+     }
+?>
+</table>
+</td>
+</tr>
+</table>
+
+<?php
+     }
+   }
+
+
+   print "</div>\n";
+   echo "<!-- END Display Staging -->\n\n";
+
+
    print "<div style=\"width: auto; margin: 0px; margin-top: 8px; margin-bottom: 8px;\">\n";
    print "<span class=\"text\" style=\"display:inline;\"> <b>Channel Availability</b> (repeaters&nbsp;in&nbsp;<b>Bold</b>)   </span>";
 
@@ -570,17 +693,34 @@
            $unitrow["status"] == "Out of Service") {
          $u_name_html = "<span style='color: gray;'>$u_name_html</span>";
        }
-       elseif (isset($unitincidents[$u_name]) && count($unitincidents[$u_name]) > 0) {
-       //elseif ($unitrow["status"] == "Attached to Incident") {
+     elseif ((isset($unitincidents[$u_name]) && count($unitincidents[$u_name]) > 0) ||
+             (isset($unitstagings[$u_name]) && count($unitstagings[$u_name]) > 0))
+       {
+       //elseif ($unitrow["status"] == "Attached to Incident") {}
+         $attached=0;
          $tdclass = "message-attached";
          $u_status_html = "<span>";
-         foreach ($unitincidents[$u_name] as $incident_id) {
-           $u_status_html .= "Attached&nbsp;to&nbsp;<a href=\"edit-incident.php?incident_id=$incident_id\" ".
-              "onClick=\"return popup('edit-incident.php?incident_id=$incident_id','incident-$incident_id',600,1000)\" ".
-              "TARGET=\"_blank\">Incident&nbsp;$incident_id</a><br>";
-           //syslog(LOG_DEBUG, "Main incidents unit availability: saw unit $u_name on incident $incident_id");
+         if (isset($unitincidents[$u_name])) {
+           foreach ($unitincidents[$u_name] as $incident_id) {
+             $u_status_html .= "Attached&nbsp;to&nbsp;<a href=\"edit-incident.php?incident_id=$incident_id\" ".
+                "onClick=\"return popup('edit-incident.php?incident_id=$incident_id','incident-$incident_id',600,1000)\" ".
+                "TARGET=\"_blank\">Incident&nbsp;$incident_id</a><br>";
+             }
+           $attached=1;
          }
-         $u_name_html = "<span style='background-color: yellow; color:black'>$u_name_html</span>";
+
+         if (isset($unitstagings[$u_name])) {
+           foreach ($unitstagings[$u_name] as $staging_id) {
+             $staging_location = $staging_locations[$staging_id];
+             $u_status_html .= "Staged&nbsp;At&nbsp;<a href=\"edit-staging.php?staging_id=$staging_id\" ".
+                "onClick=\"return popup('edit-staging.php?staging_id=$staging_id','staging-$staging_id',400,600)\" ".
+                "TARGET=\"_blank\">$staging_location</a><br>";
+           }
+         }
+
+         if ($attached) { // not sure this logic is perfect
+           $u_name_html = "<span style='background-color: yellow; color:black'>$u_name_html</span>";
+         }
        }
        elseif (((isset($_COOKIE["units_color"]) && $_COOKIE["units_color"] == "yes")
              || !isset($_COOKIE["units_color"]))

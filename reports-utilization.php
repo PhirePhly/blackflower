@@ -7,6 +7,9 @@ include('local-dls.php');
 require_once('session.inc');
 include('functions.php');
 
+ini_set('display_errors',1); 
+error_reporting(E_ALL);
+
 $subsys="reports";
 
 if (!CheckAuthByLevel('reports', $_SESSION["access_level"])) {
@@ -29,7 +32,12 @@ if ($startdate != $enddate) {
   //$selected_date = $startdate;
 //}
 
+syslog(LOG_DEBUG, "At header of utilization report, date range is [$daterange]");
+
 $call_types = "";
+
+$overall_times = array();
+$overall_numcalls = array();
 
 if (array_key_exists('typesselected', $_GET) && sizeof($_GET['typesselected']) > 0) {
   foreach ($_GET['typesselected'] as $type) {
@@ -53,13 +61,13 @@ elseif ($incident_types_selector == 'filter') {
   header_html("Dispatch :: Reports");
   print '<body vlink="blue" link="blue" alink="cyan">';
 
-  print '<form name="myform" method="GET" action="reports-responsetimes.php">';
+  print '<form name="myform" method="GET" action="reports-utilization.php">';
   print "\n<input type=\"hidden\" name=\"filterset\" value=\"$filter_set_name\"/>\n";
   print "\n<input type=\"hidden\" name=\"incidenttypes\" value=\"$incident_types_selector\"/>\n";
   print "\n<input type=\"hidden\" name=\"startdate\" value=\"$startdate\"/>\n";
   print "\n<input type=\"hidden\" name=\"enddate\" value=\"$enddate\"/>\n";
   
-  print '<h3> Select call types for response times report: </h3>';
+  print '<h3> Select call types for unit utilization report: </h3>';
   $query = "SELECT call_type FROM incident_types ORDER BY call_type ASC";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
   while ($line = mysql_fetch_object($result)) {
@@ -67,7 +75,7 @@ elseif ($incident_types_selector == 'filter') {
   }
   mysql_free_result($result);
 
-  print "\n<input class=\"btn\" type=\"submit\" name=\"responsetimes_report\" value=\"Get Report\"/><p>\n";
+  print "\n<input class=\"btn\" type=\"submit\" name=\"unitutilization_report\" value=\"Get Report\"/><p>\n";
   print "\n<input class=\"btn btnatext\" type=\"button\" onclick=\"window.location='reports.php';\" value=\"Return to Reports menu\"/>\n";
   print '</form></body>';
   exit;
@@ -76,26 +84,32 @@ else {
   $call_types = "call_type != 'TRAINING'";
 }
 
+
+  //SELECT DATE_FORMAT(iu.dispatch_time, '%c/%e') AS dispatch_date, 
 $query_daily_base = "
-  SELECT DATE(dispatch_time) as dispatch_date, 
-         TIME_FORMAT(SEC_TO_TIME(AVG(TIME_TO_SEC(TIMEDIFF(arrival_time,dispatch_time)))),'%i:%s') AS avg_response_time 
+  SELECT DATE(iu.dispatch_time) AS dispatch_date, 
+         TIME_FORMAT(SEC_TO_TIME(SUM(TIME_TO_SEC(TIMEDIFF(cleared_time,dispatch_time)))),'%k:%i') AS utiliz, 
+         COUNT(*) AS calls 
     FROM incident_units iu JOIN incidents i ON iu.incident_id=i.incident_id 
-   WHERE DATE(dispatch_time)>='$startdate' 
-     AND DATE(dispatch_time)<='$enddate' 
-     AND arrival_time IS NOT NULL 
+   WHERE DATE(iu.dispatch_time)>='$startdate' 
+     AND DATE(iu.dispatch_time)<='$enddate' 
      AND $call_types ";
 //         AND (unit like '%QRV%') 
+//        AND iu.unit='QRV 3'
 $query_daily_suffix = "
-  GROUP BY dispatch_date
+   GROUP BY dispatch_date
 ";
 
+  //SELECT DATE_FORMAT(iu.dispatch_time, '%c/%e') AS dispatch_date, 
 $query_overall_base = "
-  SELECT TIME_FORMAT(SEC_TO_TIME(AVG(TIME_TO_SEC(TIMEDIFF(arrival_time,dispatch_time)))),'%i:%s') AS avg_response_time 
+  SELECT DATE(iu.dispatch_time) AS dispatch_date, 
+         TIME_FORMAT(SEC_TO_TIME(SUM(TIME_TO_SEC(TIMEDIFF(cleared_time,dispatch_time)))),'%k:%i') AS utiliz, 
+         COUNT(*) AS calls 
     FROM incident_units iu JOIN incidents i ON iu.incident_id=i.incident_id 
    WHERE DATE(dispatch_time)>='$startdate' 
      AND DATE(dispatch_time)<='$enddate' 
-     AND arrival_time IS NOT NULL 
-     AND $call_types ";
+     AND $call_types 
+     ";
 //    and (unit like '%QRV%');
 
   header('Content-type: application/pdf');
@@ -115,7 +129,7 @@ $query_overall_base = "
         // top row
         $this->SetY(12);
         $this->SetFont('Arial','B',14);
-        $this->Cell(160,5,'Black Rock City ESD - Response Times Report',0,0);
+        $this->Cell(160,5,'Black Rock City ESD - Unit Utilization Report',0,0);
 
         $this->SetFont('Arial','',12);
         // bottom row
@@ -271,21 +285,12 @@ $query_overall_base = "
   // End subclass definition
   // Begin main program
 
-    $pdf=new PDF();
-    $pdf->SetFont('Arial','',10);
-    $pdf->Open();
-    $pdf->AliasNbPages();
 
-    $pdf->AddPage('P','Letter');
-    $pdf->SetDrawColor(64);
-
-    syslog(LOG_INFO, $_SESSION['username'] . " generated response times report");
-    if ($DEBUG) syslog(LOG_INFO, " -- beginning report generation.");
+    syslog(LOG_INFO, $_SESSION['username'] . " generated units utilization report");
+    syslog(LOG_DEBUG, " -- beginning report generation.");
 
 
     $filter_regexps = array();
-    $response_times_daily = array();
-    $response_times_overall = array();
     $all_dates = array();
 
     if ($filter_set_name == "") {
@@ -299,47 +304,79 @@ $query_overall_base = "
       }
       mysql_free_result($result);
     }
-    $set_descriptions = array_keys($filter_regexps);
-    sort ($set_descriptions);
-    $widths = array();
-    $colwidth = 50;
-    $num = count($set_descriptions);
-    if ($num > 5) {
-      $colwidth = (int)(150/$num);
-    }
+    // TODO: error check empty filter set if passed parameter was bad
+    $filter_regexp = join('|', array_values($filter_regexps));
+    syslog(LOG_DEBUG, " -- unit filter regexp is [$filter_regexp]");
     
-    foreach ($set_descriptions as $set_description) {
-      array_push($widths, $colwidth);
 
-      $query = $query_daily_base . " AND unit REGEXP '" . $filter_regexps[$set_description] . "' " . $query_daily_suffix;
-      $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-      if ($DEBUG) syslog(LOG_INFO, " -- queried daily times for set [$set_description].");
-      while ($line = mysql_fetch_object($result)) {
-        $all_dates[$line->dispatch_date] = 1;
-        $response_times_daily[$line->dispatch_date][$set_description] = $line->avg_response_time;
+    $units = array();
+    $units_query = "SELECT DISTINCT unit FROM incident_units WHERE unit REGEXP '$filter_regexp' ORDER BY unit";
+    $result = mysql_query($units_query);
+    if (!$result) {
+      syslog(LOG_WARNING, " dying: In query: $units_query --- Error: ".mysql_error());
+      die("In query: $units_query<br>\nError: ".mysql_error());
+    }
+    while ($unit_row = mysql_fetch_object($result)) {
+      array_push($units, $unit_row->unit);
+    }
+    mysql_free_result($result);
+
+    foreach ($units as $unit) {
+      $query = $query_daily_base . " AND unit = '$unit' " . $query_daily_suffix;
+      $result = mysql_query($query);
+      if (!$result) {
+        syslog(LOG_WARNING, " dying: In query: $query --- Error: ".mysql_error());
+        die("In query: $query<br>\nError: ".mysql_error());
+      }
+      syslog(LOG_DEBUG, " -- queried daily times for unit [$unit].");
+      //TODO: error check
+      while ($days = mysql_fetch_object($result)) {
+        $all_dates[$days->dispatch_date] = 1;
+        $utilization_times[$unit][$days->dispatch_date] = $days->utiliz;
+        $utitization_numcalls[$unit][$days->dispatch_date] = $days->calls;
       }
       mysql_free_result($result);
 
-      $query = $query_overall_base . " AND unit REGEXP '" . $filter_regexps[$set_description] . "' ";
-      $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-      $line = mysql_fetch_object($result);
-      if ($DEBUG) syslog(LOG_INFO, " -- queried overall times for set [$set_description].");
-      $response_times_overall[$set_description] = $line->avg_response_time;
+      $query = $query_overall_base . " AND unit = '$unit' ";
+      $result = mysql_query($query);
+      if (!$result) {
+        syslog(LOG_WARNING, " dying: In query: $query --- Error: ".mysql_error());
+        die("In query: $query<br>\nError: ".mysql_error());
+      }
+      syslog(LOG_DEBUG, " -- queried daily times for unit [$unit].");
+      $overalls = mysql_fetch_object($result);
+      //TODO: error check
+      syslog(LOG_DEBUG, " -- queried overall times for set [$unit].");
+      $utilization_times[$unit]["total"] = $overalls->utiliz;
+      $utilization_numcalls[$unit]["total"] = $overalls->calls;
       mysql_free_result($result);
+
+      syslog(LOG_DEBUG, " -- processed unit [$unit], overall time ".$utilization_times[$unit]["total"].", calls (".$utilization_numcalls[$unit]["total"].")");
+     
     }
 
     $all_dates = array_keys($all_dates);
     sort($all_dates);
-    foreach ($all_dates as $dispatch_date) {
-      foreach ($set_descriptions as $set_description) {
-        if (!array_key_exists($set_description, $response_times_daily[$dispatch_date])) {
-          $response_times_daily[$dispatch_date][$set_description] = '---';
+    foreach ($units as $unit) {
+      foreach ($all_dates as $dispatch_date) {
+        if (!array_key_exists($dispatch_date, $utilization_times[$unit])) {
+          $utilization_times[$unit][$dispatch_date] = '--:--';
+          $utilization_numcalls[$unit][$dispatch_date] = '---';
         }
       }
-      ksort($response_times_daily[$dispatch_date]);
     }
-    ksort($response_times_overall);
+    syslog(LOG_DEBUG, " -- closed database connection.");
+    mysql_close($link);
 
+    syslog(LOG_DEBUG, " -- starting PDF generation.");
+
+    $pdf=new PDF();
+    $pdf->SetFont('Arial','',10);
+    $pdf->Open();
+    $pdf->AliasNbPages();
+
+    $pdf->AddPage('P','Letter');
+    $pdf->SetDrawColor(64);
     $pdf->SetFont('Arial','B',12);
     $pdf->Ln(6);
     $pdf->Cell(50, 6, 'Report for dates: ');
@@ -347,55 +384,65 @@ $query_overall_base = "
     $pdf->Ln(6);
 
     $pdf->Cell(50, 6, 'For incident types: ');
-    if ($incidenttypes == 'all') {
+    if ($incident_types_selector == 'all') {
       $pdf->Cell(50, 6, 'All types (except TRAINING)');
     }
     else {
-      $pdf->AutoCell(12, 100, 5, join(', ', $_GET['typesselected']), 0, 'L');
+      $pdf->AutoCell(12, 100, 5, join(', ', $_GET['incident_types_selector']), 0, 'L');
     }
     $pdf->SetFont('Arial','B',12);
 
-    $pdf->SetWidths($widths);
+    //$pdf->SetWidths($widths);
     $pdf->Ln(12);
 
     $pdf->Cell(45,6, '');
-    $pdf->Cell(80,6, 'Average Response Times (in mm:ss)');
+    $pdf->Cell(80,6, 'Unit Daily Utilizations (in hh:mm, number of assigned calls that day shown in parentheses)');
     $pdf->Ln(6);
 
     $pdf->Cell(45,6, '');
-    foreach ($set_descriptions as $set_description) {
-      $pdf->AutoCell(12, $colwidth, 6, $set_description, 1);  
+    foreach ($all_dates as $display_date) {
+      $pdf->AutoCell(12, 30, 6, $display_date, 1);  
     }
+    $pdf->Cell(45,6, 'Total:');
     $pdf->Ln(7);
 
-    $pdf->Cell(45,6, 'Overall:');
-    foreach (array_values($response_times_overall) as $rtime) {
-      $pdf->AutoCell(12, $colwidth, 6, $rtime, 1, 'C');  
-    }
-    $pdf->Ln(7);
-
-    $pdf->Cell(45,6, 'By date:');
-    $pdf->Ln(6);
+    foreach ($units as $unit) {
+      $pdf->AutoCell(12, 30, 5, $unit, 1, 'C');
     
-    foreach ($all_dates as $today) {
-      $pdf->SetFont('Arial','',10);
-      $pdf->Cell(40,5, date("l Y-m-d", strtotime($today)), 0, 0, 'R');
-      $pdf->Cell(5,5, '');
-      $pdf->SetFont('Arial','',12);
-      //$pdf->Row(array_values($response_times_daily[$today]));
+      foreach ($all_dates as $display_date) {
+        $pdf->SetFont('Arial','B',12);
+        
+        // 2015-08-23 hack for now:
+        
+        if (!isset($utilization_times[$unit][$display_date])) {
+          $utilization_times[$unit][$display_date] = 0;
+        }
+        if (!isset($utilization_numcalls[$unit][$display_date])) {
+          $utilization_numcalls[$unit][$display_date] = 0;
+        }
+        if (!isset($overall_times[$display_date])) {
+          $overall_times[$display_date] = 0;
+        }
+        if (!isset($overall_numcalls[$display_date])) {
+          $overall_numcalls[$display_date] = 0;
+        }
 
-      foreach (array_values($response_times_daily[$today]) as $rtime) {
-        $pdf->AutoCell(12, $colwidth, 5, $rtime, 1, 'C');  
+        $pdf->Cell(40,5,  $utilization_times[$unit][$display_date], 0, 0, 'C');
+        $pdf->SetFont('Arial','',12);
+        $pdf->Cell(40,5,  $utilization_numcalls[$unit][$display_date], 0, 0, 'C');
       }
+
+      $pdf->Cell(40,5, $overall_times[$display_date], 0, 0, 'C');
+      $pdf->Cell(40,5, $overall_numcalls[$display_date], 0, 0, 'C');
+
       $pdf->Ln(5);
     }
 
     
+    syslog(LOG_DEBUG, " -- setting PDF generation.");
     $pdf->SetDisplayMode('fullpage','single');
-    mysql_close($link);
     
-    if ($DEBUG) syslog(LOG_INFO, " -- closed database connection.");
-    $pdf->Output("CAD Response Times Report $daterange.pdf",'D');
-    if ($DEBUG) syslog(LOG_INFO, " -- output the pdf report.");
+    $pdf->Output("CAD Unit Utilization Report $daterange.pdf",'D');
+    syslog(LOG_DEBUG, " -- finished writing the pdf report.");
   
-
+?>

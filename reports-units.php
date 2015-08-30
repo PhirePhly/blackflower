@@ -35,10 +35,10 @@ function Header()
 
     // top row
     $this->SetY(12);
-    $this->SetFont('Arial','B',16);
+    $this->SetFont('Arial','B',14);
     $this->Cell(160,5,'Black Rock City ESD - Unit Report',0,0);
 
-    $this->SetFont('Arial','',12);
+    $this->SetFont('Arial','',10);
     // bottom row
     $this->SetY(19);
     $this->Cell(80,5,'Report written at: '.NOW,0,0,'L');
@@ -180,16 +180,28 @@ function index_sort($a, $b)
 // End subclass definition
 // Begin main program
 
-if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
-  
+$daterange = '';
+
+if (isset($_GET["unit"]) && isset($_GET["startdate"])) {
+  $startdate = MysqlClean($_GET,"startdate",20);
+  $enddate = MysqlClean($_GET,"enddate",20);
+  $daterange = $startdate;
+  $selected_date='';
+  if ($startdate != $enddate) {
+    $daterange .= " - $enddate";
+  }
+  else {
+    $selected_date = $startdate;
+  }
+
   $unit = MysqlClean($_GET,"unit",20);
-  $date = MysqlClean($_GET,"selected-date",20);
+  //$date = MysqlClean($_GET,"selected-date",20);
   $pdf=new PDF();
-  $pdf->SetReportsCriteria($unit, $date);
+  $pdf->SetReportsCriteria($unit, $daterange);
   $pdf->SetFont('Arial','',10);
   $pdf->Open();
   $pdf->AliasNbPages();
-  $pdf->AddPage('');
+  $pdf->AddPage('P','Letter');
   $pdf->SetFillColor(230);
   
   syslog(LOG_INFO, $_SESSION['username'] . " generated units report");
@@ -204,7 +216,9 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
   }
   mysql_free_result($incidents);
 
-  $incident_units = MysqlQuery("SELECT * FROM incident_units WHERE unit='$unit' AND DATE_FORMAT(dispatch_time, '%Y-%m-%d') LIKE '$date%'");
+  $incident_units = MysqlQuery("SELECT * FROM incident_units WHERE unit='$unit' AND 
+    dispatch_time >= '$startdate' AND (cleared_time <= '$enddate 23:59:59' OR cleared_time IS NULL) ORDER BY dispatch_time ASC");
+
   while ($incident_unit = mysql_fetch_object($incident_units)) {
     if ($incident_unit->arrival_time == "0000-00-00 00:00:00") $incident_unit->arrival_time = "";
     if ($incident_unit->cleared_time == "0000-00-00 00:00:00") $incident_unit->cleared_time = "";
@@ -213,7 +227,7 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
   }
   mysql_free_result($incident_units);
 
-  $messages = MysqlQuery("SELECT * FROM messages WHERE unit='$unit' AND DATE_FORMAT(ts, '%Y-%m-%d') LIKE '$date%'");
+  $messages = MysqlQuery("SELECT * FROM messages WHERE unit='$unit' AND ts >= '$startdate' AND ts <= '$enddate 23:59:59'");
   while ($message = mysql_fetch_object($messages)) {
      $associated_messages[$message->oid] = $message;
      array_push($index, array($message->ts, "Message", $message->oid));
@@ -226,50 +240,50 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
     if ($index_item[1] == "Incident") {
       $line = $associated_incidents[$index_item[2]];
       $pdf->Ln(2);
-      $pdf->SetFont('Arial','B',12);
+      $pdf->SetFont('Arial','B',10);
       if ($associated_callnums[$line->incident_id] != '') {
         $pdf->Cell(70, 5, 'Attached to Call #' . $associated_callnums[$line->incident_id], 0, 1, "L");
       } else {
         $pdf->Cell(70, 5, 'Attached to Call (Error: Call Number not available - Incident ID# ' .$line->incident_id.')', 0, 1, "L");
       }
 
-      if($date == substr($line->dispatch_time, 0, 10)) {
-        $line->dispatch_time = substr($line->dispatch_time, 11);
-      } else {
-        $line->dispatch_time = substr($line->dispatch_time, 11) . ' ' . substr($line->dispatch_time, 0, 10);
-      }
-      
-      if($date == substr($line->arrival_time, 0, 10)) {
-        $line->arrival_time = substr($line->arrival_time, 11);
-      } else {
-        $line->arrival_time = substr($line->arrival_time, 11) . ' ' . substr($line->arrival_time, 0, 10);
-      }
-      
-      if($date == substr($line->transport_time, 0, 10)) {
-        $line->transport_time = substr($line->transport_time, 11);
-      } else {
-        $line->transport_time = substr($line->transport_time, 11) . ' ' . substr($line->transport_time, 0, 10);
-      }
-
-      if($date == substr($line->transportdone_time, 0, 10)) {
-        $line->transportdone_time = substr($line->transportdone_time, 11);
-      } else {
-        $line->transportdone_time = substr($line->transportdone_time, 11) . ' ' . substr($line->transportdone_time, 0, 10);
-      }
-        
-      if($date == substr($line->cleared_time, 0, 10)) {
-        $line->cleared_time = substr($line->cleared_time, 11);
-      } else {
-        $line->cleared_time = substr($line->cleared_time, 11) . ' ' . substr($line->cleared_time, 0, 10);
-      }
+      //if($date == substr($line->dispatch_time, 0, 10)) {
+        //$line->dispatch_time = substr($line->dispatch_time, 11);
+      //} else {
+        //$line->dispatch_time = substr($line->dispatch_time, 11) . ' ' . substr($line->dispatch_time, 0, 10);
+      //}
+      //
+      //if($date == substr($line->arrival_time, 0, 10)) {
+        //$line->arrival_time = substr($line->arrival_time, 11);
+      //} else {
+        //$line->arrival_time = substr($line->arrival_time, 11) . ' ' . substr($line->arrival_time, 0, 10);
+      //}
+      //
+      //if($date == substr($line->transport_time, 0, 10)) {
+        //$line->transport_time = substr($line->transport_time, 11);
+      //} else {
+        //$line->transport_time = substr($line->transport_time, 11) . ' ' . substr($line->transport_time, 0, 10);
+      //}
+//
+      //if($date == substr($line->transportdone_time, 0, 10)) {
+        //$line->transportdone_time = substr($line->transportdone_time, 11);
+      //} else {
+        //$line->transportdone_time = substr($line->transportdone_time, 11) . ' ' . substr($line->transportdone_time, 0, 10);
+      //}
+        //
+      //if($date == substr($line->cleared_time, 0, 10)) {
+        //$line->cleared_time = substr($line->cleared_time, 11);
+      //} else {
+        //$line->cleared_time = substr($line->cleared_time, 11) . ' ' . substr($line->cleared_time, 0, 10);
+      //}
         
       $thisrow_top = $pdf->GetY();
       $pdf->SetFont('Arial','',10);
-      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Dispatch Time:", 0, 0, "R");  $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->dispatch_time, 1, 1);
-      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Arrival Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->arrival_time, 1, 1);
-      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Transporting Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->transport_time, 1, 1);
-      $pdf->Cell(5,5); $pdf->Cell(30, 5, "At Destination:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->transportdone_time, 1, 1);
-      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Cleared Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, $line->cleared_time, 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Dispatch Time:", 0, 0, "R");  $pdf->Cell(3); $pdf->MultiCell(80, 5, dls_ymdhmstime($line->dispatch_time), 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Arrival Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, dls_ymdhmstime($line->arrival_time), 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Transporting Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, dls_ymdhmstime($line->transport_time), 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "At Destination:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, dls_ymdhmstime($line->transportdone_time), 1, 1);
+      $pdf->Cell(5,5); $pdf->Cell(30, 5, "Cleared Time:", 0, 0, "R");    $pdf->Cell(3); $pdf->MultiCell(80, 5, dls_ymdhmstime($line->cleared_time), 1, 1);
       $pdf->Ln(5);
       $pdf->SetFont('Arial','B',10);
       if ($associated_callnums[$line->incident_id] != '') {
@@ -306,9 +320,9 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
     }
     elseif ($index_item[1] == "Message") {
       $line = $associated_messages[$index_item[2]];
-      $pdf->SetFont('Arial','B',12);
-      $pdf->Cell(50, 5, "Message at ".date('H:i:s',strtotime($line->ts)), 0, 0, "L"); $pdf->Cell(3);
-      $pdf->SetFont('Arial','',12);
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(55, 5, "Message at ".dls_ymdhmstime($line->ts), 0, 0, "L"); $pdf->Cell(3);
+      $pdf->SetFont('Arial','',10);
       $pdf->MultiCell(120, 5, $line->message, 1, 1);
     }
     else {
@@ -320,7 +334,7 @@ if (isset($_GET["unit"]) && isset($_GET["selected-date"])) {
   $pdf->SetDisplayMode('fullpage','single');
   mysql_close($link);
   
-  $pdf->Output();
+  $pdf->Output("CAD Unit Details Report - $unit - $daterange.pdf", 'D');
 }
 else 
 {

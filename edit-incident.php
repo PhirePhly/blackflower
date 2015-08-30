@@ -565,7 +565,7 @@
    else
      $exclude_already_attached_generics = '';
 
-   $unitresult = MysqlQuery("SELECT unit FROM units WHERE (status IN ('In Service', 'Available On Pager') and type != 'Generic') OR (type='Generic' $exclude_already_attached_generics )");
+   $unitresult = MysqlQuery("SELECT unit FROM units WHERE (status IN ('In Service', 'Available On Pager', 'Staged At Location') and type != 'Generic') OR (type='Generic' $exclude_already_attached_generics )");
 
    $unitnames = array();
    $unitarray = array();

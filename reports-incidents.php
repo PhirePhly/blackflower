@@ -333,7 +333,7 @@ if($opencount > 0) {
     $pdf->Open();
     $pdf->AliasNbPages();
 
-    $pdf->AddPage('');
+    $pdf->AddPage('P','Letter');
     $pdf->SetWidths(array(50,25));
     $pdf->SetDrawColor(64);
     //
@@ -371,7 +371,7 @@ if($opencount > 0) {
     $pdf->Row(array('TOTAL', $totalincidents));
 
 
-    $pdf->AddPage('');
+    $pdf->AddPage('P','Letter');
     $pdf->SetWidths(array(19,40,90,21,21));
     
     // preload times -- for all incidents since $where_clause is highly variable
@@ -419,7 +419,7 @@ if($opencount > 0) {
     mysql_free_result($result);
 }
     if ($pdf->GetY() > 31)
-      $pdf->AddPage('');
+      $pdf->AddPage('P','Letter');
 
     $pdf->SetFillColor(230);
     $pdf->SetDrawColor(64);
@@ -617,7 +617,7 @@ if($opencount > 0) {
       $pdf->Ln(5);
     
       if ($thisrow<$numrows && ($pdf->GetY() > 190 || isset($_GET["always-pagebreak"]))) {
-        $pdf->AddPage('');
+        $pdf->AddPage('P','Letter');
       }
     }
     $pdf->SetDisplayMode('fullpage','single');
@@ -625,7 +625,7 @@ if($opencount > 0) {
     mysql_close($link);
     
     if ($DEBUG) syslog(LOG_INFO, " -- closed database connection.");
-    $pdf->Output("\"CAD Incidents Report$typefilter $daterange.pdf\"",'D');
+    $pdf->Output("CAD Incidents Report$typefilter $daterange.pdf",'D');
     if ($DEBUG) syslog(LOG_INFO, " -- output the pdf report.");
   #}
   #else 

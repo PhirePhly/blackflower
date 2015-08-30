@@ -51,12 +51,15 @@ CREATE TABLE channels (
         available       BOOL NOT NULL DEFAULT 1,
         precedence      INTEGER NOT NULL DEFAULT 50,
         incident_id     INTEGER,
+        staging_id      INTEGER,
         notes           VARCHAR(160),
 
         PRIMARY KEY     (channel_id),
         INDEX           (precedence,channel_name),
-        INDEX           (incident_id)
+        INDEX           (incident_id),
+        INDEX           (staging_id)
         );
+
 
 INSERT INTO channels (channel_name, repeater, available, precedence) VALUES 
 ('Tac 11', 0, 1, 10),
@@ -195,6 +198,32 @@ CREATE TABLE unit_assignments (
   );
 
 
+CREATE TABLE staging_locations (
+   staging_id   int not null auto_increment,
+   location     varchar(80),
+   created_by   varchar(80),
+   time_created   datetime not null,
+   time_released  datetime,
+   staging_notes   TEXT,
+
+  PRIMARY KEY (staging_id)
+);
+
+
+CREATE TABLE unit_staging_assignments (
+   staging_assignment_id        int not null auto_increment ,
+   staged_at_location_id        int not null,
+   unit_name                    varchar(20),
+   time_staged                  datetime not null,
+   time_reassigned              datetime,
+   
+  PRIMARY KEY (staging_assignment_id),
+  INDEX(staged_at_location_id),
+  INDEX(unit_name)
+
+);
+
+
 CREATE TABLE incidents (
 	incident_id	int not null auto_increment primary key,
         call_number     varchar(40),
@@ -305,7 +334,8 @@ INSERT INTO message_types VALUES ('DNF');
 INSERT INTO message_types VALUES ('DQ');
 INSERT INTO message_types VALUES ('Other');
 
-INSERT INTO status_options VALUES ('Attached to Incident');
+INSERT INTO status_options VALUES ('Attached to Incident');  -- Magic string
+INSERT INTO status_options VALUES ('Staged At Location');    -- Magic string
 INSERT INTO status_options VALUES ('Available On Pager');
 INSERT INTO status_options VALUES ('Busy');
 INSERT INTO status_options VALUES ('In Service');
