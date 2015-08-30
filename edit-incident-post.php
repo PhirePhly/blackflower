@@ -66,6 +66,9 @@
               $unitprevstatus = $statusline["status"];
           }
         }
+        if ($unitprevstatus == 'Staged At Location') {  // handle special case: don't automatically assume unit will re-stage.
+          $unitprevstatus = 'In Service';
+        }
         MysqlQuery("
           UPDATE units 
           SET status='$unitprevstatus', 
@@ -293,7 +296,7 @@
       INSERT INTO incident_notes (incident_id, ts, unit, message, creator) 
       VALUES ($incident_id, 
                NOW(), 
-              '$unit', 
+              '', 
               'During supervisor review, incident was reopened by $username for administrative update at $complete_date', 
               '$username')
       ");
@@ -412,14 +415,16 @@
 
   if (isset($_POST["attach_unit"]) && (isset($_POST["attach_unit_select"]) && $_POST["attach_unit_select"] != "")) {
     $unit = MysqlClean($_POST, "attach_unit_select", 20);
-    MysqlQuery("LOCK TABLES units WRITE, incident_units WRITE, messages WRITE");
+    MysqlQuery("LOCK TABLES units WRITE, incident_units WRITE, messages WRITE, unit_staging_assignments WRITE");
     $unit_status      = MysqlGrabData("SELECT status FROM units WHERE unit='$unit'");
     $unit_type        = MysqlGrabData("SELECT type FROM units WHERE unit='$unit'");
+    // TODO: do we need to guard this next call with an "if unit_status == staged at location" else = 0?
+    // // ERROR if generic and there are multiple!!!!!!!
     $already_attached = MysqlGrabData("SELECT COUNT(*) FROM incident_units 
                                        WHERE incident_id=$incident_id AND unit='$unit' AND cleared_time IS NULL");
 
     // Guard against simultaneous attachments, and double-safety-net against duplicate attachments of Generics.
-    if (($unit_type != 'Generic' && !in_array($unit_status, array("In Service", "Available On Pager"))) || 
+    if (($unit_type != 'Generic' && !in_array($unit_status, array("In Service", "Available On Pager", "Staged At Location"))) || 
          $unit_type == "Generic" && $already_attached) 
     {
       MysqlQuery("UNLOCK TABLES");
@@ -433,6 +438,17 @@
     }
 
     else {
+      if ($unit_status == 'Staged At Location' && $unit_type != 'Generic') {
+        $staging_assignment_id  = (int)MysqlGrabData("SELECT staging_assignment_id FROM unit_staging_assignments WHERE unit_name='$unit' AND time_reassigned IS NULL");
+        if ($staging_assignment_id > 0) {
+          MysqlQuery("
+            UPDATE unit_staging_assignments SET time_reassigned = NOW() where staging_assignment_id = $staging_assignment_id
+            ");
+          // TODO: what happens if we try to assign a generic staged unit?  This will pick the first id in set?
+          // TODO: if it's generic, don't touch the staging!!
+        }
+      }
+
       MysqlQuery("
         INSERT INTO incident_units (incident_id, unit, dispatch_time) 
         VALUES ('$incident_id', 

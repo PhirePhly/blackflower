@@ -10,7 +10,15 @@
   if (isset($_POST['unit'])) {
       $unit = strtoupper(MysqlClean($_POST,'unit',20));
       // TODO: validate data.
-      if (isset($_POST['status'])) $status = MysqlClean($_POST,'status',30); else $status="In Service";
+      if (isset($_POST['status'])) { 
+        $status = MysqlClean($_POST,'status',30); 
+        syslog(LOG_INFO, "Posted unit $unit with status seen [$status]");
+
+      }
+      else {
+        $status="In Service";
+        syslog(LOG_INFO, "Posted unit $unit with status defaulting to [$status]");
+      }
       // if (isset($_POST['status_comment'])) $status_comment = MysqlClean($_POST,'status_comment',255); else $status_comment="";
       if (isset($_POST['type'])) $type = MysqlClean($_POST,'type',20); else $type="Unit";
       if (isset($_POST['assignment'])) $assignment = MysqlClean($_POST,'assignment',20); else $assignment="";
@@ -367,24 +375,45 @@
     <td class="label" align="right"><u>S</u>tatus</td>
     <td class="text" width="100%">
     <label for="status" accesskey="s">
-    <select name="status" <?php print $disabledp ?> id="status">
     <?php
-      $statusset=0;
-      $statusresult = MysqlQuery("SELECT * from status_options");
-      while ($line = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
-        echo "        <option ";
-        if (!strcmp($line["status"], $unitline["status"])) {
-          $statusset=1;
-          echo "selected ";
+      // Can't set away from these two status options manually:
+      if ($unitline["status"] == 'Attached to Incident') {
+        print "<select name=\"status\" disabled id=\"status\">\n";
+        print "<option selected value=\"Attached to Incident\">Attached to Incident</option>\n";
+        print "</select>\n";
+        print "<input type=hidden id=status name=status value=\"Attached to Incident\">\n";
+        print "<br><font size=\"-2\"><b>(change via Incidents screen)</b></font>\n";
+      }
+      elseif ($unitline["status"] == 'Staged At Location') {
+        print "<select name=\"status\" disabled id=\"status\">\n";
+        print "<option selected value=\"Staged At Location\">Staged at Location</option>\n";
+        print "</select>\n";
+        print "<input type=hidden id=status name=status value=\"Staged at Location\">\n";
+        print "<font size=\"-2\"><br><b>(change via Incidents > Staging Locations screen)</b></font>\n";
+      }
+      else {
+        print "<select name=\"status\" <?php print $disabledp ?> id=\"status\">\n";
+        $statusset=0;
+        $statusresult = MysqlQuery("SELECT * from status_options");
+        while ($line = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
+          // Can't set to these two status options manually:
+          if ($line["status"] != 'Attached to Incident' &&
+              $line["status"] != 'Staged At Location') {
+            echo "        <option ";
+            if (!strcmp($line["status"], $unitline["status"])) {
+              $statusset=1;
+              echo "selected ";
+            }
+            echo "value=\"". MysqlUnClean($line["status"])."\">". $line["status"]."</option>\n";
+          }
         }
-        echo "value=\"". MysqlUnClean($line["status"])."\">". $line["status"]."</option>\n";
+        if (!$statusset) {
+          echo "        <option selected value=\"\">\n";
+        }
+        mysql_free_result($statusresult);
+        print "</select>\n";
       }
-      if (!$statusset) {
-        echo "        <option selected value=\"\">\n";
-      }
-      mysql_free_result($statusresult);
     ?>
-    </select>
     </label>
     <input type="hidden" name="previous_status" value="<?php print MysqlUnClean($unitline["status"]);?>" />
     </td>

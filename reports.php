@@ -31,7 +31,7 @@
   }
   mysql_free_result($result);
 
-  $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d') as ts_date FROM messages GROUP BY ts_date ASC";
+  $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d') as ts_date FROM messages GROUP BY ts_date DESC";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
   while ($line = mysql_fetch_object($result)) {
     array_push($units_dates, $line->ts_date);
@@ -42,7 +42,7 @@
       array_push($units_dates, $idate);
     }
   }
-  rsort($units_dates);
+  sort($units_dates);
 
   $query = "SELECT unit FROM units ORDER BY unit ASC";
   $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
@@ -307,8 +307,22 @@
   ?>
   </select></td><td> </td></tr>
 
-  <tr> <td class="text" align="left">Date</td>
-       <td align="left"><select name="selected-date">
+
+  <tr> <td class="text" align=left>Start Date </td>
+       <td align=left><SELECT name="startdate">
+
+  <?php
+  sort($units_dates); // TODO: these sorts are all massively repetitive and unnecessary, right??
+  foreach($units_dates as $idate) {
+    print "<OPTION ";
+    if (date('Y-m-d', time()-86400) == $idate) print "selected ";
+    print "value=\"".$idate."\">".date('D', strtotime($idate)) . " ". $idate . "</option>\n";
+  }
+  ?>
+
+  <tr> <td class="text" align=left>End Date </td>
+       <td align=left><SELECT name="enddate">
+
   <?php
   foreach($units_dates as $idate) {
     print "<OPTION ";
@@ -317,6 +331,7 @@
   }
   ?>
 
+  </select></td><td> </td></tr>
   </select></td><td> </td></tr>
   <tr><td></td></tr>
   <tr> <td><INPUT class="btn" type="submit" name="units_report" value="Get Report PDF"></td></tr>

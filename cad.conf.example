@@ -41,6 +41,7 @@
   $ACCESS_LEVEL_DELETE_UNITS = 10;              // Access level required to delete existing units.
   $ACCESS_LEVEL_CREATE_UNITPAGING = 5;          // Access level required to create a unit-paging association.
   $ACCESS_LEVEL_DELETE_UNITPAGING = 5;          // Access level required to delete a unit-paging association.
+  $ACCESS_LEVEL_EDIT_STAGING_LOCATIONS = 1;     // Access level required to edit unit staging locations.
 
   
 

@@ -15,6 +15,15 @@
       date_default_timezone_set('America/Los_Angeles');
     }
   }
+
+  // Check if magic_quotes_runtime is active, if it's not, deprecate it to avoid stdout corruption in reports PDFs
+  if(get_magic_quotes_runtime())
+  {
+      // Deactivate
+      set_magic_quotes_runtime(false);
+  }
+
+
   define("THIS_HOUR", date("H"));
   define("THIS_DATE", date("Y-m-d"));
   define("NOW", date("Y-m-d H:i:s"));
@@ -125,6 +134,12 @@
        (date("D", strtotime($tm_var)) != date("D", time())))
       $dayname =  date("D", strtotime($tm_var)) . ' ';
     return $dayname . dls_hmtime ($tm_var);
+  }
+
+  function dls_ymdhmstime ($tm_var) {
+    if ($tm_var && $tm_var <> "0000-00-00 00:00:00")
+      return date("Y-m-d H:i:s", strtotime($tm_var));
+    else return "";
   }
 
   function dls_mdhmtime ($tm_var) {
