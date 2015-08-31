@@ -2,6 +2,13 @@ CHANGES
 -------
 
 ---------------------------
+Version 1.12.1 - 2015-08-31
+---------------------------
+[bugfix] Prevent multiple operators from releasing an attached unit 
+         multiple times and by doing so toggling its status irrevocably 
+         back 'Attached To Incident'.
+
+---------------------------
 Version 1.12.0 - 2015-08-31
 ---------------------------
 [minor]  Added initial version of unit utilization reports.
