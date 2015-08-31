@@ -55,32 +55,43 @@
       if ($unit_type <> 'Generic') {
         MysqlQuery('LOCK TABLES units WRITE, incident_units WRITE, messages WRITE, status_options READ');
 
-        // NASTY HACK to restore unit's previous status based on their status_comment. (or default to In Service).
-        // TODO: issues with bug 23, others should change this.
-        $unitprevstatus = "In Service";
-        $msg = MysqlGrabData("SELECT message FROM messages WHERE unit='$unit_name' ORDER BY oid DESC LIMIT 1");
-        if ($msg != '') {
-          $statusresult = MysqlQuery("SELECT * from status_options");
-          while ($statusline = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
-            if (strpos($msg, '(was: '.$statusline["status"].')')) 
-              $unitprevstatus = $statusline["status"];
+        // old comment: NASTY HACK to restore unit's previous status based on their status_comment. (or default to In Service).
+        // old comment: TODO: issues with bug 23, others should change this.
+        // As of 1.12.1, need to ignore the previous status and just set a released unit to In Service.
+        $status = MysqlGrabData("SELECT status fROM units WHERE unit='$unit_name'");
+        $cleared_time = MysqlGrabData("SELECT cleared_time fROM incident_units WHERE uid='$unit_id'");
+
+        if ($status != 'Attached to Incident' || $cleared_time != '') {
+          syslog(LOG_INFO, "ERROR - User $username tried to record unit [$unit_name] $logfield call [$call_number] (incident $incident_id) -- but that unit was not attached!  (status [$status] cleared_time [$cleared_time] -- Simultaneous update?");
+          print "<html><body><script language=\"JavaScript\">alert(\"That unit is not attached to the incident.  Did another operator already release them?\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </script>";
+          exit;
+        }
+        else {
+          $unitprevstatus = "In Service";
+          $msg = MysqlGrabData("SELECT message FROM messages WHERE unit='$unit_name' ORDER BY oid DESC LIMIT 1");
+          if ($msg != '') {
+            $statusresult = MysqlQuery("SELECT * from status_options");
+            while ($statusline = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
+              if (strpos($msg, '(was: '.$statusline["status"].')')) 
+                $unitprevstatus = $statusline["status"];
+            }
           }
+          if ($unitprevstatus == 'Staged At Location') {  // handle special case: don't automatically assume unit will re-stage.
+            $unitprevstatus = 'In Service';
+          }
+          MysqlQuery("
+            UPDATE units 
+            SET status='$unitprevstatus', 
+                status_comment='Released from Call #$call_number at ".date('H:m:s')."', 
+                update_ts=NOW() where unit='$unit_name'
+            ");
+          MysqlQuery("
+            INSERT INTO messages (ts, unit, message) 
+            VALUES (NOW(), 
+                   '$unit_name', 
+                   'Status Change: $unitprevstatus (was: Attached to Incident)')
+            ");
         }
-        if ($unitprevstatus == 'Staged At Location') {  // handle special case: don't automatically assume unit will re-stage.
-          $unitprevstatus = 'In Service';
-        }
-        MysqlQuery("
-          UPDATE units 
-          SET status='$unitprevstatus', 
-              status_comment='Released from Call #$call_number at ".date('H:m:s')."', 
-              update_ts=NOW() where unit='$unit_name'
-          ");
-        MysqlQuery("
-          INSERT INTO messages (ts, unit, message) 
-          VALUES (NOW(), 
-                 '$unit_name', 
-                 'Status Change: $unitprevstatus (was: Attached to Incident)')
-          ");
       }
     }
 
