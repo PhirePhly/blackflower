@@ -2,6 +2,19 @@ CHANGES
 -------
 
 ---------------------------
+Version 1.12.3 - 2016-07-22
+---------------------------
+[bugfix] Fixed Log Viewer from not displaying any messages under certain
+         conditions.
+[bugfix] Improved the logic for compiling partial incident header 
+         information into unit dispatch auto-pages.
+
+----------------------------------------
+Version 1.12.2 (unreleased) - 2015-09-01
+----------------------------------------
+[minor]  On staging screen, show the times when each unit was staged there.
+
+---------------------------
 Version 1.12.1 - 2015-08-31
 ---------------------------
 [bugfix] Prevent multiple operators from releasing an attached unit 

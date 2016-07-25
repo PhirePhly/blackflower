@@ -508,6 +508,28 @@
           $fromuser = 'CAD Auto Page';
           $ipaddr = $_SERVER['REMOTE_ADDR'];
           $message = ">>> $unit Assigned to Call #$call_number";
+
+          $call_return = MysqlQuery("SELECT * FROM incidents where incident_id=$incident_id");
+          if (mysql_num_rows($call_return) != 1) {
+            syslog(LOG_WARNING, "Error selecting data for auto-paging:  Expected 1 row for incidents id $incident_id, got " . mysql_num_rows($call_return));
+          }
+          $inc = mysql_fetch_object($call_return);
+          $db_location = $inc->location;
+          $db_call_details = $inc->call_details;
+
+          $db_message = $message;
+
+          if (isset($db_location) && $db_location != '') {
+            $db_message .= " - Location [$db_location]";
+          }
+          // TODO -- Look at this language..  This is why they're mysteriously sometimes getting the details and sometimes not.  Auto-page really needs to go to an API that breaks it apart appropriately.  Also need to look into longer length POCSAG to Apollo pagers.
+          if (strlen($db_message) < 110 && isset($db_call_details)) {
+            $db_message .= " - $db_call_details";
+          }
+          if (strlen($db_message) >= 128) {
+            $db_message = substr($db_message, 0, 127);
+          }
+
           if (isset($_POST['location']) && $_POST['location'] != '') {                                             # bug 2013-08-28: location is not always coming through in the POST for subsequently assigned units?  or for other users' locked incidents?
             $message .= ' - Location [' . MysqlClean($_POST, 'location', 80) . ']';
           }
@@ -518,6 +540,9 @@
             $message = substr($message, 0, 127);
           }
         
+          syslog(LOG_DEBUG, "Auto-Page text if POST data : [$message]");
+          syslog(LOG_DEBUG, "Auto-Page text if DB lookup : [$db_message]");
+
           if (!mysql_query("INSERT into $DB_PAGING_NAME.batches (from_user_id, from_ipaddr, orig_message, entered) ".
                            " VALUES (0, '$ipaddr', '$message', NOW() )", $paginglink) || mysql_affected_rows() != 1) {
             syslog(LOG_WARNING, "Error inserting row into DB $DB_PAGING_NAME.batches as [$DB_PAGING_HOST/$DB_PAGING_USER]");
@@ -542,7 +567,7 @@
                 syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.send_queue as [$DB_PAGING_HOST/$DB_PAGING_USER]");
               }
             }
-            syslog(LOG_INFO, "User $username auto-paged [$unit] [$call_number (incident $incident_id)] paging batch $batch_id");
+            syslog(LOG_INFO, "User $username auto-paged [$unit] [$call_number (incident $incident_id)] paging batch $batch_id message [$message]");
           }
           mysql_close($paginglink);
         }

@@ -28,8 +28,7 @@
       $message_type = "";
 
     $query = "INSERT INTO messages (ts,unit,message,creator,message_type) VALUES (NOW(), UPPER('$unit'), '$message', '$creator', '$message_type')";
-    mysql_query($query) or die("Query failed : " . mysql_error());
-    mysql_close($link);
+    MysqlQuery($query);
 
     if (isset($_POST["hour"]))
       $post_pend .= "&hour=". MysqlClean($_POST, "hour", 20);
