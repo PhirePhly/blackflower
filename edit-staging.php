@@ -272,6 +272,7 @@
     $created_by;
     $created_at;
     $units_ary = array();
+    $time_Staged_ary = array(); // hack in lieu of multi level hash
 
     if (isset($_GET['add_staging_location'])) {
       $staging_id = 'new';
@@ -296,6 +297,7 @@
       $staging_assignments_result = MysqlQuery($staging_assignments_query);
       while ($staging_assignments_row = mysql_fetch_object($staging_assignments_result)) {
         $units_ary[$staging_assignments_row->staging_assignment_id] = $staging_assignments_row->unit_name;
+        $time_staged_ary[$staging_assignments_row->staging_assignment_id] = $staging_assignments_row->time_staged;
       }
       asort($units_ary);
     }
@@ -331,7 +333,8 @@
       foreach (array_keys($units_ary) as $staging_assignment_id) {
         $unit_name = $units_ary[$staging_assignment_id];
         print "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<span class=cell style=\"font-size: 16; background-color: yellow\">$unit_name </span>\n";
-        print "<input type=\"hidden\" name=\"staging_id\" value=\"$staging_id\"></td>\n";
+        print "<input type=\"hidden\" name=\"staging_id\" value=\"$staging_id\"> </td>\n";
+        print "<td class=cell>staged at ".dls_utime($time_staged_ary[$staging_assignment_id])." </td>\n";
         print "<td><button type=\"submit\" name=\"release_staged_unit_by_id\" value=\"$staging_assignment_id\">Release From Staging</button></td> \n"; // TODO: release by assignment id not by unit name?
         print "<td><button type=\"submit\" name=\"attach_staged_unit_by_id\" value=\"$staging_assignment_id\">Attach To Incident</button></td> \n";
         print "</tr>\n";

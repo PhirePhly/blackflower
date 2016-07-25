@@ -41,23 +41,23 @@
 
   // Otherwise, process GETs
   else {
-    if ($_GET['date'] != "") {
+    if (isset ($_GET['date']) && $_GET['date'] != "") {
       $filterdate = MysqlClean($_GET,'date',20);
     }
 
-    if ($_GET['hour'] != "") {
+    if (isset ($_GET['hour']) && $_GET['hour'] != "") {
       $filterhour = MysqlClean($_GET,'hour',5);
     }
 
-    if ($_GET['unit'] != "") {
+    if (isset ($_GET['unit']) && $_GET['unit'] != "") {
       $filterunit = MysqlClean($_GET,'unit',100);
     }
 
-    if ($_GET['mpp'] != "") {
+    if (isset ($_GET['mpp']) && $_GET['mpp'] != "") {
       $filtermpp = MysqlClean($_GET,'mpp',10);
     }
 
-    if ($_GET['start'] != "") {
+    if (isset ($_GET['start']) && $_GET['start'] != "") {
       $start = MysqlClean($_GET,'start',10);
     }
   }
@@ -121,7 +121,7 @@
   $logquery = "SELECT * FROM messages WHERE deleted=0";
 
   // Prepare date/hour filter
-  if (isset($filterhour)) {
+  if (!empty($filterhour)) {
     if ($filterhour < 9) {
       $filterhourpadded = "0$filterhour";
     }
@@ -129,18 +129,18 @@
       $filterhourpadded = $filterhour;
     }
   }
-  if (isset($filterdate) && isset($filterhour)) {
+  if (!empty($filterdate) && !empty($filterhour)) {
     $logquery .= " AND DATE_FORMAT(ts, '%Y-%m-%d %H') = '$filterdate $filterhourpadded'";
   }
-  elseif (isset($filterdate)) {
+  elseif (!empty($filterdate)) {
     $logquery .= " AND DATE_FORMAT(ts, '%Y-%m-%d') = '$filterdate'";
   }
-  elseif (isset($filterhour)) {
+  elseif (!empty($filterhour)) {
     $logquery .= " AND DATE_FORMAT(ts, '%H') = '$filterhourpadded'";
   }
 
   // Prepare unit filter
-  if (isset($filterunit)) {
+  if (!empty($filterunit)) {
     $logquery .= " AND unit = '$filterunit'";
   }
 
@@ -152,8 +152,8 @@
   $howmanyquery = str_replace("SELECT *", "SELECT COUNT(*) AS howmany", $howmanyquery);
 
   // Prepare start and limit
-  if (isset($filtermpp) && $filtermpp > 0) {
-    if (isset($start) && $start > 0) {
+  if (!empty($filtermpp)) {
+    if (!empty($start)) {
       $logquery .= " LIMIT $start, $filtermpp";
     }
     else {
@@ -248,7 +248,7 @@
   echo "<center class=\"text\" style=\"margin-top: 8px;\">";
 
   $prevpage = $start - $filtermpp;
-  if ($mpp > 0 && $start >= $filtermpp) {
+  if ($filtermpp > 0 && $start >= $filtermpp) {
     echo "<a href=\"".$_SERVER["PHP_SELF"].
          "?date=$filterdate&hour=$filterhour&unit=$filterunit&mpp=$filtermpp".
          "&start=$prevpage".

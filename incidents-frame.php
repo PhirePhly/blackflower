@@ -539,7 +539,7 @@
              $display = str_replace(" ", "&nbsp;", $staging_assignments[$staging_location_id][0]);
            else {
              $display = implode (", ", $staging_assignments[$staging_location_id]);
-             if (strlen($display) > 30) {
+             if (strlen($display) > 80) {
                 $fulldisplay = $display;
                 $display = str_replace(" ", "&nbsp;", substr($display, 0, 25));
                 $display = "<span style=\"background-color: #bbbbbb\" title=\"$fulldisplay\">$display&nbsp;...</span>&nbsp;<sup style=\"font-weight: normal; color: blue\">&laquo;&nbsp;$count&nbsp;units</sup>";
