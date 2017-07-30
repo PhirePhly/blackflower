@@ -61,17 +61,6 @@ CREATE TABLE channels (
         );
 
 
-INSERT INTO channels (channel_name, repeater, available, precedence) VALUES 
-('Tac 11', 0, 1, 10),
-('Tac 12', 1, 1, 10),
-('Tac 13', 0, 1, 10),
-('Fire Ground 1', 0, 1, 20),
-('Fire Ground 2', 0, 1, 20),
-('911', 1, 0, 97),
-('Operations', 1, 0, 98),
-('Admin', 1, 0, 99);
-
-
 CREATE TABLE message_types (
   message_type varchar(20) not null primary key
   );
