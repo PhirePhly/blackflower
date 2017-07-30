@@ -330,7 +330,7 @@ INSERT INTO status_options VALUES ('Busy');
 INSERT INTO status_options VALUES ('In Service');
 INSERT INTO status_options VALUES ('Off Comm');
 INSERT INTO status_options VALUES ('Off Duty');
-INSERT INTO status_options VALUES ('Out Of Service');
+INSERT INTO status_options VALUES ('Out of Service');
 INSERT INTO status_options VALUES ('Off Duty; On Pager');
 
 INSERT INTO unit_roles (role, color_name, color_html) VALUES 
