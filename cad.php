@@ -205,7 +205,7 @@
   $mpp = array(10, 25, 100);
 
   // This should probably be abstracted to a configurable setting at some point...
-  $mppdefault = 10;
+  $mppdefault = 25;
 
   $filtermppindex = 0;
   $filtermppcount = 0;
