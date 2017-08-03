@@ -86,8 +86,6 @@
     MysqlQuery("DELETE FROM bulletin_history");
     MysqlQuery("UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL, personnel_ts=NULL, location_ts=NULL, notes_ts=NULL, assignment='', location='', personnel='', notes=''");
     MysqlQuery("UPDATE channels SET available=1, incident_id=NULL");
-    //MysqlQuery
-    # TODO - clear unit locations, personnel, notes
     
   /* Finish */
     MysqlQuery("UNLOCK TABLES");
