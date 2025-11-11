@@ -198,7 +198,18 @@ function SessionErrorIfReadonly() {
       exit;
       }
     $answer = mysqli_fetch_object($users);
-    if (!$t_hasher->CheckPassword($_POST['chpw_current'], $answer->password)) {
+    
+    // Support both old PasswordHash and modern password_hash()
+    $current_password_valid = false;
+    if (substr($answer->password, 0, 3) === '$2y' || substr($answer->password, 0, 3) === '$2a' || substr($answer->password, 0, 3) === '$2b') {
+      // Modern password_hash() format (bcrypt)
+      $current_password_valid = password_verify($_POST['chpw_current'], $answer->password);
+    } else {
+      // Legacy PasswordHash format
+      $current_password_valid = $t_hasher->CheckPassword($_POST['chpw_current'], $answer->password);
+    }
+    
+    if (!$current_password_valid) {
       HTMLPasswordDialog("Incorrect current password, try again.");
       exit;
     }
@@ -211,7 +222,12 @@ function SessionErrorIfReadonly() {
       exit;
     }
     else {
-      $hash = $t_hasher->HashPassword($_POST["chpw_newpasswd1"]);
+      // Use modern password_hash() for new passwords
+      $hash = password_hash($_POST["chpw_newpasswd1"], PASSWORD_DEFAULT);
+      if ($hash === false) {
+        HTMLPasswordDialog("Password hashing failed, please try again.");
+        exit;
+      }
       MysqlQuery("UPDATE $DB_NAME.users set password='$hash', change_password=0 where id=".$_SESSION['id']);
       header("Location: index.php");
       exit;
@@ -240,7 +256,18 @@ function SessionErrorIfReadonly() {
         exit;
       }
 
-      if ($t_hasher->CheckPassword($posted_passwordattempt, $answer->password)) {
+      // Support both old PasswordHash library and modern password_hash()
+      // This allows gradual migration to modern password hashing
+      $password_valid = false;
+      if (substr($answer->password, 0, 3) === '$2y' || substr($answer->password, 0, 3) === '$2a' || substr($answer->password, 0, 3) === '$2b') {
+        // Modern password_hash() format (bcrypt)
+        $password_valid = password_verify($posted_passwordattempt, $answer->password);
+      } else {
+        // Legacy PasswordHash format
+        $password_valid = $t_hasher->CheckPassword($posted_passwordattempt, $answer->password);
+      }
+
+      if ($password_valid) {
         # 
         # This is a successful login attempt.
         #

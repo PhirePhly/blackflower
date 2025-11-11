@@ -36,7 +36,6 @@ if (!file_exists('cad.conf')) {
 }
 
 require_once('cad.conf');
-require_once('PasswordHash.php');
 
 // Connect to database
 $link = @mysqli_connect($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
@@ -137,11 +136,11 @@ echo "  Access Level: " . $user->access_level . "\n";
 echo "  User ID: " . $user->id . "\n";
 echo "\n";
 
-// Hash the new password using the same method as the application
-$hasher = new PasswordHash(8, FALSE);
-$password_hash = $hasher->HashPassword($new_password);
+// Hash the new password using PHP's native password_hash() (PHP 5.5+)
+// This creates a bcrypt hash which is much more secure than the old PasswordHash library
+$password_hash = password_hash($new_password, PASSWORD_DEFAULT);
 
-if (strlen($password_hash) < 20) {
+if ($password_hash === false) {
     mysqli_close($link);
     die("ERROR: Password hashing failed.\n\n");
 }
