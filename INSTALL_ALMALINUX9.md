@@ -98,8 +98,8 @@ The script will prompt you for:
 - Desired CAD database name (default: cad)
 - Desired CAD database user (default: cad)
 - Password for the CAD database user
-- CAD administrator username
-- CAD administrator password
+- CAD administrator username (default: Administrator)
+- CAD administrator password (default: default-admin-pw)
 
 Alternatively, manually configure:
 
@@ -334,6 +334,22 @@ If migrating from an older installation:
 3. **Configure log rotation**: For Apache and PHP logs
 4. **Monitor system resources**: CPU, memory, disk space
 5. **Keep system updated**: Regularly apply security updates
+
+## Administrator Account Recovery
+
+If you forget the administrator password or get locked out:
+
+```bash
+cd /var/www/html/cad
+php reset-admin-password.php
+```
+
+This utility will:
+- Reset the password interactively (hidden input)
+- Unlock the account
+- Reset failed login attempts
+
+For detailed instructions, see `ADMIN_RECOVERY.md`.
 
 ## Support
 
