@@ -26,13 +26,13 @@
       // if this fails ... is another incident being created right now?  TODO: error handling?
 
       MysqlQuery("INSERT INTO incidents (ts_opened, incident_status, updated) VALUES (NOW(), 'New', NOW())");
-      if (mysql_affected_rows() != 1)
-        die("Critical error: ".mysql_affected_rows()." is a bad number of rows when inserting new incident.");
+      if (mysqli_affected_rows($link) != 1)
+        die("Critical error: ".mysqli_affected_rows($link)." is a bad number of rows when inserting new incident.");
       $findlastIDquery = "SELECT LAST_INSERT_ID()";
-      $findlastIDresult = MysqlQuery($findlastIDquery) or die ("Could not select new incident row: ". mysql_error());
-      $newIDrow = mysql_fetch_array($findlastIDresult, MYSQL_NUM);
+      $findlastIDresult = MysqlQuery($findlastIDquery) or die ("Could not select new incident row: ". mysqli_error($link));
+      $newIDrow = mysqli_fetch_array($findlastIDresult, MYSQLI_NUM);
       $incident_id = $newIDrow[0];
-      mysql_free_result($findlastIDresult);
+      mysqli_free_result($findlastIDresult);
       MysqlQuery("UPDATE incidents SET call_number='" .CallNumber($incident_id) . "' WHERE incident_id=$incident_id ");
       MysqlQuery("UNLOCK TABLES");
       syslog(LOG_INFO, $_SESSION['username'] . " created call [" . CallNumber($incident_id). "] (incident $incident_id)");
@@ -60,20 +60,20 @@
     }
     MysqlQuery("DELETE FROM incident_locks WHERE user_id=".(int)$_SESSION['id']." AND session_id='".session_id()."' AND takeover_timestamp IS NOT NULL"); // This may be overly aggressive, but is needed to clean up the POST/alert logic in the short term.
     $incident_lock = MysqlQuery ("SELECT incident_locks.*, users.username FROM incident_locks LEFT OUTER JOIN users on incident_locks.user_id = users.id WHERE incident_id=$incident_id AND takeover_timestamp IS NULL");
-    $incident_previously_locked = mysql_num_rows($incident_lock);
-    $lock_info = mysql_fetch_object($incident_lock);
+    $incident_previously_locked = mysqli_num_rows($incident_lock);
+    $lock_info = mysqli_fetch_object($incident_lock);
 
     if ($incident_previously_locked == 0) {
       if ($DEBUG) {
         syslog(LOG_DEBUG, "edit-incident.php Regaining incident_lock for incident_id $incident_id, user_id ".(int)$_SESSION['id'].", session_id '".session_id());
       }
       MysqlQuery("INSERT INTO incident_locks (incident_id, user_id, timestamp, ipaddr, session_id) VALUES ($incident_id, ".$_SESSION['id'].", NOW(), '".$_SERVER['REMOTE_ADDR']."', '".session_id()."')");
-      if (mysql_affected_rows() == 1) {
+      if (mysqli_affected_rows($link) == 1) {
         $lock_obtained=1;
         $lock_msg = "Locked for writing.";
       }
       else {
-        $lock_msg = "Critical error: Unable to lock incident, contact the system administrator.  mysql_affected_rows = " . mysql_affected_rows();
+        $lock_msg = "Critical error: Unable to lock incident, contact the system administrator.  mysql_affected_rows = " . mysqli_affected_rows($link);
       }
     }
 
@@ -108,22 +108,22 @@
   }
 
   $incidentdataresult = MysqlQuery("SELECT * FROM incidents WHERE incident_id=$incident_id");
-  if (mysql_num_rows($incidentdataresult) != 1) {
-    die("Critical error: ".mysql_num_rows($incidentdataresult).
+  if (mysqli_num_rows($incidentdataresult) != 1) {
+    die("Critical error: ".mysqli_num_rows($incidentdataresult).
         " is a bad number of rows when looking for incident_id $incident_id");
   }
-  $row = mysql_fetch_object($incidentdataresult);
+  $row = mysqli_fetch_object($incidentdataresult);
 
   $query = "SELECT incident_id, MIN(iu.dispatch_time) as dispatch_time, MIN(iu.arrival_time) as arrival_time FROM incident_units iu WHERE iu.incident_id=$incident_id GROUP BY iu.incident_id";
   $result = MysqlQuery ($query);
   $dispatch_time = '';
   $arrival_time = '';
-  if (mysql_num_rows($result) > 1) {
-    die("Critical error: ".mysql_num_rows($result).
+  if (mysqli_num_rows($result) > 1) {
+    die("Critical error: ".mysqli_num_rows($result).
         " is a bad number of rows when looking for unit times for incident_id $incident_id");
   }
-  elseif (mysql_num_rows($result) == 1) {
-    $times_row = mysql_fetch_object($result);
+  elseif (mysqli_num_rows($result) == 1) {
+    $times_row = mysqli_fetch_object($result);
     $dispatch_time = $times_row->dispatch_time;
     $arrival_time = $times_row->arrival_time;
 
@@ -241,12 +241,12 @@
     echo "<option selected value=\"not selected\">not selected</option>\n";
 
     $type_result = MysqlQuery("SELECT * from incident_types");
-    while ($type_row = mysql_fetch_object($type_result)) {
+    while ($type_row = mysqli_fetch_object($type_result)) {
       echo "<option ";
       if (!strcmp($type_row->call_type, $row->call_type)) echo "selected ";
       echo "value=\"". $type_row->call_type ."\">".$type_row->call_type ."</option>\n";
     }
-    mysql_free_result($type_result);
+    mysqli_free_result($type_result);
     ?>
        </select>
        </label>
@@ -311,14 +311,14 @@
      $dispresult = MysqlQuery("SELECT disposition FROM incident_disposition_types");
      if (!$row->disposition || !strcmp($row->disposition, ''))
        echo "<option selected value=\"\"></option>\n";
-     while ($disprow = mysql_fetch_array($dispresult,MYSQL_ASSOC)) {
+     while ($disprow = mysqli_fetch_array($dispresult,MYSQLI_ASSOC)) {
       echo "<option ";
        if (!strcmp($disprow["disposition"], $row->disposition)) {
          echo "selected ";
        }
        echo "value=\"" . $disprow["disposition"]."\">". $disprow["disposition"] . "</option>\n";
      }
-     mysql_free_result($dispresult);
+     mysqli_free_result($dispresult);
      print "</select>\n";
    } 
 ?>
@@ -356,7 +356,7 @@
      echo "selected ";
    }
    echo "value=\"\">(Select)</option>";
-   while ($duprow = mysql_fetch_array($dupresult,MYSQL_ASSOC)) {
+   while ($duprow = mysqli_fetch_array($dupresult,MYSQLI_ASSOC)) {
      if ($duprow["call_number"] != $row->call_number) {
        echo "<option ";
        if($row->duplicate_of_incident_id == $duprow["incident_id"]) {
@@ -365,7 +365,7 @@
        echo "value=\"" . $duprow["incident_id"]."\">". $duprow["call_number"] . "</option>\n";
      } 
    }
-   mysql_free_result($dupresult);
+   mysqli_free_result($dupresult);
 ?>
     </select>
     </label>
@@ -490,7 +490,7 @@
     # fill a second array if it meets the conditionals for the second query.
     $unitnames = array();
     $unitarray = array();
-    while ($unitrow = mysql_fetch_array($formresult, MYSQL_ASSOC)) {
+    while ($unitrow = mysqli_fetch_array($formresult, MYSQLI_ASSOC)) {
       array_push($unitnames, $unitrow["unit"]);
       $unitarray[$unitrow["unit"]] = $unitrow;
     }
@@ -502,7 +502,7 @@
       echo "<option value=\"" . $unitrow["unit"]."\">". $unitrow["unit"] . "</option>\n";
     }
 
-    mysql_free_result($formresult);
+    mysqli_free_result($formresult);
 ?>
          </select>
          </label>
@@ -556,7 +556,7 @@
        AND incident_id=$incident_id
        AND cleared_time IS NULL
     ");
-   while ($ag_row = mysql_fetch_object($ag_query)) {
+   while ($ag_row = mysqli_fetch_object($ag_query)) {
      array_push($attached_generics, $ag_row->unit);
    }
 
@@ -569,7 +569,7 @@
 
    $unitnames = array();
    $unitarray = array();
-   while ($unitrow = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
+   while ($unitrow = mysqli_fetch_array($unitresult, MYSQLI_ASSOC)) {
      array_push($unitnames, $unitrow["unit"]);
      $unitarray[$unitrow["unit"]] = $unitrow;
    }
@@ -580,7 +580,7 @@
      $unitrow = $unitarray[$u_name];
      echo "<option value=\"" . $unitrow["unit"]."\">". $unitrow["unit"] . "</option>\n";
    }
-   mysql_free_result($unitresult);
+   mysqli_free_result($unitresult);
 ?>
     </select>
     </label>
@@ -607,10 +607,10 @@
      $attachedunitsresult = MysqlQuery(
        "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL ORDER BY dispatch_time DESC");
 
-     if (!mysql_num_rows($attachedunitsresult)) {
+     if (!mysqli_num_rows($attachedunitsresult)) {
              print "<tr><td class=\"messageold\" colspan=\"6\">No units attached</td></tr>";
      }
-     while ($line = mysql_fetch_array($attachedunitsresult, MYSQL_ASSOC)) {
+     while ($line = mysqli_fetch_array($attachedunitsresult, MYSQLI_ASSOC)) {
       ((int)THIS_PAGETS - date("U", strtotime($line["dispatch_time"]))) < 300 ? $quality="<b>" : $quality="";
        
        $safe_unit = str_replace(" ", "_", $line["unit"]);
@@ -678,10 +678,10 @@
      $prevunitsresult = MysqlQuery(
        "SELECT * from incident_units WHERE incident_id=$incident_id AND cleared_time IS NOT NULL ORDER BY dispatch_time DESC");
 
-     if (!mysql_num_rows($prevunitsresult)) {
+     if (!mysqli_num_rows($prevunitsresult)) {
              print "<tr><td class=\"messageold\" colspan=\"6\">No units attached previously</td></tr>";
      }
-     while ($line = mysql_fetch_array($prevunitsresult, MYSQL_ASSOC)) {
+     while ($line = mysqli_fetch_array($prevunitsresult, MYSQLI_ASSOC)) {
        $safe_unit = str_replace(" ", "_", $line["unit"]);
        $html_unit = str_replace(" ", "&nbsp;", $line["unit"]);
        print "<tr>\n";
@@ -697,6 +697,6 @@
 </td></tr> </table>
 </td></tr> </table>
 </td></tr> </table></form></body></html><?php 
-mysql_free_result($incidentdataresult);
-mysql_close($link);
+mysqli_free_result($incidentdataresult);
+mysqli_close($link);
 ?>

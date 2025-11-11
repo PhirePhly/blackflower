@@ -16,19 +16,19 @@
     $incident_id = MysqlClean($_POST,"incident_id",20);
     if (isset($_POST["undelete"])) {
       $query = "UPDATE incident_notes SET deleted=0 where note_id=$note_id";
-      mysql_query($query) or die("update delete query failed: ".mysql_error());
+      mysqli_query($link, $query) or die("update delete query failed: ".mysqli_error($link));
       $deleted=0;
     }
     elseif (isset($_POST["delete"])) {
       $query = "UPDATE incident_notes SET deleted=1 where note_id=$note_id";
-      mysql_query($query) or die("update delete query failed: ".mysql_error());
+      mysqli_query($link, $query) or die("update delete query failed: ".mysqli_error($link));
       $deleted=1;
     }
     elseif (isset($_POST["save"])) {
       $unit = MysqlClean($_POST,"unit",20);
       $message = MysqlClean($_POST,"message",255);
       $query = "UPDATE incident_notes SET unit='$unit', message='$message' WHERE note_id=$note_id";
-      mysql_query($query) or die("update query failed: ".mysql_error());
+      mysqli_query($link, $query) or die("update query failed: ".mysqli_error($link));
       $saved=1;
       header("Location: incident-notes.php?incident_id=$incident_id");
     }
@@ -39,11 +39,11 @@
     die("Improper usage: GET[note_id] must be specified.");
 
   $query = "SELECT * FROM incident_notes WHERE note_id=$note_id";
-  $result = mysql_query($query) or die("select query failed : " . mysql_error());
-  if (mysql_num_rows($result) != 1) {
-    die("Critical error: ".mysql_num_rows($result)." is a bad number of rows when looking for note_id=$note_id");
+  $result = mysqli_query($link, $query) or die("select query failed : " . mysqli_error($link));
+  if (mysqli_num_rows($result) != 1) {
+    die("Critical error: ".mysqli_num_rows($result)." is a bad number of rows when looking for note_id=$note_id");
   }
-  $messagerow = mysql_fetch_array($result, MYSQL_ASSOC);
+  $messagerow = mysqli_fetch_array($result, MYSQLI_ASSOC);
   $ts = $messagerow["ts"];
   $unit = $messagerow["unit"];
   $message = $messagerow["message"];
@@ -72,9 +72,9 @@
      print "<select name=\"unit\">\n";
    }
    $query = "SELECT unit FROM units";
-   $result = mysql_query($query) or die("Query failed : " . mysql_error());
+   $result = mysqli_query($link, $query) or die("Query failed : " . mysqli_error($link));
    $unitnames = array();
-   while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+   while ($line = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
      array_push($unitnames, $line["unit"]);
    }
    natsort($unitnames);
@@ -123,5 +123,5 @@
 </body>
 </html>
 
-<?php mysql_free_result($result) ?>
-<?php mysql_close($link) ?>
+<?php mysqli_free_result($result) ?>
+<?php mysqli_close($link) ?>

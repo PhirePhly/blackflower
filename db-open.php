@@ -4,25 +4,26 @@
     exit;
   }
 
-  $link = mysql_connect($DB_HOST, $DB_USER, $DB_PASS) or die("Could not connect : " . mysql_error());
-  mysql_select_db($DB_NAME) or die("Could not select database");
+  // Use mysqli for PHP 7.4+ / 8.x compatibility
+  $link = mysqli_connect($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME) or die("Could not connect : " . mysqli_connect_error());
 
   function MysqlQuery ($sqlquery) {
     global $link;
-    $return = mysql_query($sqlquery, $link) or die("CRITICAL ERROR\nIn query: $sqlquery<br>\nError: ".mysql_error());
+    $return = mysqli_query($link, $sqlquery) or die("CRITICAL ERROR\nIn query: $sqlquery<br>\nError: ".mysqli_error($link));
     return $return;
   }
 
 
   function MysqlGrabData ($sqlquery) {
+    global $link;
     $return = MysqlQuery($sqlquery);
-    $num_rows = mysql_num_rows($return);
+    $num_rows = mysqli_num_rows($return);
     if ($num_rows != 1) {
       print "Internal error, expected 1 row (got $num_rows) in query [$sqlquery]";
       syslog(LOG_CRIT, "MysqlGrabData: Internal error - saw $num_rows rows for [$sqlquery]");
     }
-    $rval = mysql_fetch_array($return, MYSQL_NUM);
-    mysql_free_result($return);
+    $rval = mysqli_fetch_array($return, MYSQLI_NUM);
+    mysqli_free_result($return);
     return $rval[0];
   }
 
@@ -30,13 +31,8 @@
     global $link;
     if (isset($array["{$index}"])) {
       $input = substr($array["{$index}"], 0, $maxlength);
-      if (get_magic_quotes_gpc()) {
-        $input = stripslashes($input);
-        $input = mysql_real_escape_string($input, $link);
-      }
-      else {
-        $input = mysql_real_escape_string($input, $link);
-      }
+      // get_magic_quotes_gpc() removed in PHP 7.4, no longer needed
+      $input = mysqli_real_escape_string($link, $input);
       return ($input);
     }
     return NULL;

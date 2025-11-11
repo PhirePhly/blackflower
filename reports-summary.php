@@ -54,19 +54,19 @@ if (isset($_GET["startdate"]) && isset($_GET["enddate"])) {
 
   $types = array();
   $typesquery = MysqlQuery("SELECT call_type FROM incident_types WHERE call_type != 'TRAINING'");
-  while ($call_type = mysql_fetch_object($typesquery)) {
+  while ($call_type = mysqli_fetch_object($typesquery)) {
     if ($call_type->call_type == '' || $call_type->call_type == 'NULL') {
       $call_type->call_type = 'undefined';
     }
     array_push($types, $call_type->call_type);
   }
-  mysql_free_result($typesquery);
+  mysqli_free_result($typesquery);
   natsort($types);
 
   $dates = array();
   $datesquery = MysqlQuery("SELECT DISTINCT DATE_FORMAT(ts_opened, '%Y-%m-%d') as canddate FROM incidents WHERE ts_opened >= '$startdate' AND ts_opened <= '$enddate 23:59:59'");
   $lastdate = '';
-  while ($date = mysql_fetch_object($datesquery)) {
+  while ($date = mysqli_fetch_object($datesquery)) {
     $nextdate = date('Y-m-d', strtotime($lastdate)+86400);
     while ($showalldates &&
            $lastdate != '' && 
@@ -83,7 +83,7 @@ if (isset($_GET["startdate"]) && isset($_GET["enddate"])) {
     $lastdate = $date->canddate;
   }
   # TODO: interpolate absent dates, depending on GET toggle
-  mysql_free_result($datesquery);
+  mysqli_free_result($datesquery);
   print "<td class=\"text\">Totals:</td></tr>\n";
 
   $datesumcount = array();
@@ -101,9 +101,9 @@ if (isset($_GET["startdate"]) && isset($_GET["enddate"])) {
       else {
         $countsquery = MysqlQuery("SELECT count(*) AS cnum FROM incidents WHERE call_type='$call_type' AND DATE_FORMAT(ts_opened, '%Y-%m-%d') = '$date'");
       }
-      $count = mysql_fetch_object($countsquery);
+      $count = mysqli_fetch_object($countsquery);
       print '<td class="text" style="text-align: center">' . $count->cnum. "</td>\n";
-      mysql_free_result($countsquery);
+      mysqli_free_result($countsquery);
       $datesumcount[$date] += $count->cnum;
       $typesumcount += $count->cnum;
     }
@@ -115,13 +115,13 @@ if (isset($_GET["startdate"]) && isset($_GET["enddate"])) {
     print "<td class=\"text\" style=\"text-align: center; background-color:#cccccc\">" .$datesumcount[$date] . "</td>\n";
   }
 
-  mysql_close($link);
+  mysqli_close($link);
   print "</table>\n";
   print "</td></tr></table>\n";
 } 
 
 else {
-  mysql_close($link);
+  mysqli_close($link);
   die("Date(s) not set.");
 }
 

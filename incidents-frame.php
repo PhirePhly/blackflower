@@ -113,8 +113,8 @@
   
   // auxiliary query for incident_units: dynamically load them into array that the main display frame will reference:
   $query = "SELECT uid,incident_id,unit FROM incident_units WHERE cleared_time IS NULL ORDER BY incident_id,uid";
-  $result = mysql_query ($query) or die ("In query: $query<br />\nError: ". mysql_error());
-  while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+  $result = mysqli_query ($link, $query) or die ("In query: $query<br />\nError: ". mysqli_error($link));
+  while ($line = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
     // This is awkward.  Build a better data structure?
     $incident_id = $line["incident_id"];
     if (isset($unitcount[$incident_id]))
@@ -123,14 +123,14 @@
       $unitcount[$incident_id] = 1;
     $unit[$incident_id][$unitcount[$incident_id]] = $line["unit"];
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
   
   // auxiliary query for dispatch and arrival times:
   $dispatch_times = array();
   $arrival_times = array();
   $query = "SELECT incident_id, MIN(iu.dispatch_time) as dispatch_time, MIN(iu.arrival_time) as arrival_time FROM incident_units iu GROUP BY iu.incident_id";
-  $result = mysql_query ($query) or die ("In query: $query<br />\nError: ". mysql_error());
-  while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+  $result = mysqli_query ($link, $query) or die ("In query: $query<br />\nError: ". mysqli_error($link));
+  while ($line = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
     $dispatch_times[$line["incident_id"]] = $line["dispatch_time"];
     $arrival_times[$line["incident_id"]] = $line["arrival_time"];
   }
@@ -140,7 +140,7 @@
   $locks = array();
   $query_locks = 'SELECT il.incident_id, il.user_id, il.takeover_timestamp, u.username, u.name FROM incident_locks il LEFT OUTER JOIN users u on il.user_id=u.id WHERE takeover_timestamp IS NULL';
   $locks_result = MysqlQuery($query_locks);
-  while ($lock_row = mysql_fetch_object($locks_result)) {
+  while ($lock_row = mysqli_fetch_object($locks_result)) {
     $locks[(int)$lock_row->incident_id] = $lock_row;
     if ($DEBUG) {
       syslog(LOG_DEBUG, "Set lock flag for incident " . $lock_row->incident_id);
@@ -149,8 +149,8 @@
 
   $Channels = array();
   $channels = MysqlQuery("SELECT * FROM channels");
-  if (mysql_num_rows($channels)) {
-    while ($channel = mysql_fetch_object($channels)) {
+  if (mysqli_num_rows($channels)) {
+    while ($channel = mysqli_fetch_object($channels)) {
       $Channels[$channel->channel_id] = array(
         'incident_id'       => $channel->incident_id, 
         'channel_name'      => $channel->channel_name, 
@@ -245,9 +245,9 @@
   // ------------------------------------------------------------------------
   // Incident Display Table
 
-  if (mysql_num_rows($result)) {
+  if (mysqli_num_rows($result)) {
     // Loop through all the incidents that match the query
-    while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+    while ($line = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
       echo "  <tr>\n";
       $incident_id = $line["incident_id"];
 
@@ -455,7 +455,7 @@
      echo "</center>\n";
    }
 
-   mysql_free_result($result);
+   mysqli_free_result($result);
    echo "<!-- END Display Incidents -->\n\n";
 
    $staging_query = "SELECT * from staging_locations WHERE time_released IS NULL order by location ASC";
@@ -464,16 +464,16 @@
    $staging_locations = array();
    $staging_assignments = array();
    $unitstagings = array();
-   while ($staging_row = mysql_fetch_object($staging_result)) {
+   while ($staging_row = mysqli_fetch_object($staging_result)) {
      $staging_assignments[$staging_row->staging_id] = array();
      $staging_locations[$staging_row->staging_id] = $staging_row->location;
      
    }
-   mysql_free_result($staging_result);
+   mysqli_free_result($staging_result);
 
    $staging_assignments_query = "SELECT * FROM unit_staging_assignments WHERE time_reassigned IS NULL";
    $staging_assignments_result=MysqlQuery($staging_assignments_query);
-   while ($staging_assignments_row = mysql_fetch_object($staging_assignments_result)) {
+   while ($staging_assignments_row = mysqli_fetch_object($staging_assignments_result)) {
      array_push($staging_assignments[$staging_assignments_row->staged_at_location_id], $staging_assignments_row->unit_name);
      $unit_staged_at[$staging_assignments_row->unit_name] = $staging_assignments_row->staged_at_location_id;
      
@@ -570,8 +570,8 @@
    print "<span class=\"text\" style=\"display:inline;\"> <b>Channel Availability</b> (repeaters&nbsp;in&nbsp;<b>Bold</b>)   </span>";
 
    $channels = MysqlQuery("SELECT * FROM channels c ORDER BY precedence,channel_name");
-   if (mysql_num_rows($channels)) {
-     while ($channel = mysql_fetch_object($channels)) {
+   if (mysqli_num_rows($channels)) {
+     while ($channel = mysqli_fetch_object($channels)) {
        $chclass='channel';
        $chtitle='This channel is available for assignment to incidents.';
        if ($channel->repeater) { $chclass .= ' b'; $chtitle.='  This is a repeated channel. '; }
@@ -579,7 +579,7 @@
        if (!$channel->available) { $chclass .= ' chunav'; $chtitle = 'This channel is marked unavailable for assignment to incidents, contact your system administrator to change.'; }
        print "<span class=\"$chclass\" style=\"display:inline\" title=\"$chtitle\">$channel->channel_name</span>\n";
      }
-     mysql_free_result($channels);
+     mysqli_free_result($channels);
    }
    else {
      print "<span class=\"text\" style=\"display:inline;\"><i> No channels configured. </i></span>";
@@ -600,11 +600,11 @@
     || !isset($_COOKIE["incidents_show_units"])) {
      $query = "SELECT role, color_html FROM unit_roles";
 
-     $result = mysql_query($query) or die ("In query: $query\nError: ".mysql_error());
-     while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+     $result = mysqli_query($link, $query) or die ("In query: $query\nError: ".mysqli_error($link));
+     while ($line = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
        $rolecolor[$line["role"]] = $line["color_html"];
      }
-     mysql_free_result($result);
+     mysqli_free_result($result);
 
 
      $query_select = 'SELECT * FROM units u LEFT OUTER JOIN unit_assignments a on u.assignment=a.assignment ';
@@ -618,13 +618,13 @@
      $unitnames = array();
      $unitarray = array();
      $unitincidents = array();
-     while ($unitrow = mysql_fetch_array($result, MYSQL_ASSOC)) {
+     while ($unitrow = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
        array_push($unitnames, $unitrow["unit"]);
        $unitarray[$unitrow["unit"]] = $unitrow;
      }
      natsort($unitnames);
      $attachments = MysqlQuery ("SELECT * FROM incident_units WHERE cleared_time IS NULL ORDER BY incident_id ASC");
-     while ($iu = mysql_fetch_array($attachments, MYSQL_ASSOC)) {
+     while ($iu = mysqli_fetch_array($attachments, MYSQLI_ASSOC)) {
        //syslog(LOG_DEBUG, "Unit availability query: saw unit ".$iu["unit"]." on incident ".$iu["incident_id"]);
        $tmp = array();
        if (isset($unitincidents[$iu["unit"]])) 
@@ -671,7 +671,7 @@
 
      print "<tr>\n";
      print "<td valign=top width=\"$columnwidthpct%\" align=left>";
-     if (mysql_num_rows($result) == 0) {
+     if (mysqli_num_rows($result) == 0) {
        if ($hiddenoosunits) 
          print "<span class=\"text\" style=\"color: red\">There are no units in service.  Go to Units screen to create new units, or set one or more Out Of Service units into service.</span>";
        else
@@ -767,10 +767,10 @@
        }
 
      }
-     mysql_free_result($result);
+     mysqli_free_result($result);
    }
 
-   mysql_close($link);
+   mysqli_close($link);
  ?>
  </table></td><td></td><td></td></tr></table>
 

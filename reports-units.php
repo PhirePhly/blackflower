@@ -211,28 +211,28 @@ if (isset($_GET["unit"]) && isset($_GET["startdate"])) {
   $associated_callnums = array();
   
   $incidents = MysqlQuery("SELECT incident_id,call_number FROM incidents");
-  while ($incident = mysql_fetch_object($incidents)) {
+  while ($incident = mysqli_fetch_object($incidents)) {
     $associated_callnums[$incident->incident_id] = $incident->call_number;
   }
-  mysql_free_result($incidents);
+  mysqli_free_result($incidents);
 
   $incident_units = MysqlQuery("SELECT * FROM incident_units WHERE unit='$unit' AND 
     dispatch_time >= '$startdate' AND (cleared_time <= '$enddate 23:59:59' OR cleared_time IS NULL) ORDER BY dispatch_time ASC");
 
-  while ($incident_unit = mysql_fetch_object($incident_units)) {
+  while ($incident_unit = mysqli_fetch_object($incident_units)) {
     if ($incident_unit->arrival_time == "0000-00-00 00:00:00") $incident_unit->arrival_time = "";
     if ($incident_unit->cleared_time == "0000-00-00 00:00:00") $incident_unit->cleared_time = "";
     $associated_incidents[$incident_unit->incident_id] =  $incident_unit;
     array_push($index, array($incident_unit->dispatch_time, "Incident", $incident_unit->incident_id));
   }
-  mysql_free_result($incident_units);
+  mysqli_free_result($incident_units);
 
   $messages = MysqlQuery("SELECT * FROM messages WHERE unit='$unit' AND ts >= '$startdate' AND ts <= '$enddate 23:59:59'");
-  while ($message = mysql_fetch_object($messages)) {
+  while ($message = mysqli_fetch_object($messages)) {
      $associated_messages[$message->oid] = $message;
      array_push($index, array($message->ts, "Message", $message->oid));
   }
-  mysql_free_result($messages);
+  mysqli_free_result($messages);
 
   usort($index, "index_sort");
   
@@ -295,14 +295,14 @@ if (isset($_GET["unit"]) && isset($_GET["startdate"])) {
       $pdf->SetFont('Arial','',10);
     
       $notequery = "SELECT * FROM incident_notes WHERE incident_id=".$line->incident_id." AND unit='$unit' ORDER BY note_id";
-      $noteresult = mysql_query($notequery) or die("In query: $notequery<br>\nError: ".mysql_error());
-      if (mysql_num_rows($noteresult) > 0) {
+      $noteresult = mysqli_query($link, $notequery) or die("In query: $notequery<br>\nError: ".mysqli_error($link));
+      if (mysqli_num_rows($noteresult) > 0) {
         $pdf->Cell(10,5);
         $pdf->Cell(40,5,"Time");
         $pdf->Cell(40,5,"Unit");
         $pdf->Cell(40,5,"Note");
         $pdf->Ln(5);
-        while ($note = mysql_fetch_object($noteresult)) {
+        while ($note = mysqli_fetch_object($noteresult)) {
           $pdf->Cell(10,5);
           $pdf->Cell(40,5,$note->ts,1,0);
           $pdf->Cell(40,5,$note->unit,1,0);
@@ -314,7 +314,7 @@ if (isset($_GET["unit"]) && isset($_GET["startdate"])) {
         $pdf->Cell(50,5, "- No notes logged by $unit for this incident -");
         $pdf->Ln(5);
       }
-      mysql_free_result($noteresult);
+      mysqli_free_result($noteresult);
           
       $pdf->Ln(5);
     }
@@ -332,7 +332,7 @@ if (isset($_GET["unit"]) && isset($_GET["startdate"])) {
     //$pdf->SetY($thisrow_endhdr+5);
   }
   $pdf->SetDisplayMode('fullpage','single');
-  mysql_close($link);
+  mysqli_close($link);
   
   $pdf->Output("CAD Unit Details Report - $unit - $daterange.pdf", 'D');
 }

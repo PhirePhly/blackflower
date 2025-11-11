@@ -45,7 +45,7 @@
     // TODO: better error checking?
     syslog(LOG_INFO, "Channel [$channel_name] was added by [".$_SESSION['username']."]");
 
-    $rid = mysql_insert_id();
+    $rid = mysqli_insert_id($link);
     header("Location: edit-channels.php?modchannel=$rid&action=Added");
     exit;
   }
@@ -79,12 +79,12 @@
     else {  // by definition, edit existing channel id:
       $channel_id = (int)$_GET['edit_channel_id'];
       $channels = MysqlQuery("SELECT * FROM $DB_NAME.channels WHERE channel_id=$channel_id");
-      if (mysql_num_rows($channels) != 1) {
-        syslog(LOG_CRITICAL, "Expected 1 row for edit-channels.php?edit_channel_id=$channel_id -- got " . mysql_num_rows($channels));
-        echo "INTERNAL ERROR: bad number of rows (". mysql_num_rows($channels) . ") for channel ID [$channel_id] (expected 1).<p>";
+      if (mysqli_num_rows($channels) != 1) {
+        syslog(LOG_CRITICAL, "Expected 1 row for edit-channels.php?edit_channel_id=$channel_id -- got " . mysqli_num_rows($channels));
+        echo "INTERNAL ERROR: bad number of rows (". mysqli_num_rows($channels) . ") for channel ID [$channel_id] (expected 1).<p>";
         exit;
       }
-      $channel = mysql_fetch_array($channels, MYSQL_ASSOC);
+      $channel = mysqli_fetch_array($channels, MYSQLI_ASSOC);
     }
 
 ?>
@@ -178,7 +178,7 @@
 </tr>
 <?php
     $channels = MysqlQuery("SELECT * FROM $DB_NAME.channels ORDER BY precedence,channel_name");
-    while ($channel = mysql_fetch_object($channels)) {
+    while ($channel = mysqli_fetch_object($channels)) {
       echo "<tr>\n";
       echo "  <td class=\"cell bgeee\"><a href=\"edit-channels.php?edit_channel_id=$channel->channel_id\"> " . 
            MysqlUnClean($channel->channel_name) . " </a></td>\n";

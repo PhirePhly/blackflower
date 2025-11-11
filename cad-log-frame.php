@@ -101,20 +101,20 @@
   // Prepare unit query
   $unitquery = "SELECT unit,status,role FROM units";
   $unitresult = MysqlQuery($unitquery);
-  while ($unitrow = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
+  while ($unitrow = mysqli_fetch_array($unitresult, MYSQLI_ASSOC)) {
     $unitExists[$unitrow["unit"]] = 1;
     $unitstatus[$unitrow["unit"]] = $unitrow["status"];
     $unitrole[$unitrow["unit"]] = $unitrow["role"];
   }
-  mysql_free_result($unitresult);
+  mysqli_free_result($unitresult);
 
   // Prepare unit color query
   $unitcolorquery = "SELECT role, color_html FROM unit_roles";
   $unitcolorresult = MysqlQuery($unitcolorquery);
-  while ($line = mysql_fetch_array($unitcolorresult, MYSQL_ASSOC)) {
+  while ($line = mysqli_fetch_array($unitcolorresult, MYSQLI_ASSOC)) {
     $unitrolecolor[$line["role"]] = $line["color_html"];
   }
-  mysql_free_result($unitcolorresult);
+  mysqli_free_result($unitcolorresult);
 
   // Prepare main query
   // Start query string
@@ -167,8 +167,8 @@
   $td = "  <td class=\"message\">";
 
   // MAIN DISPLAY TABLE
-  if (mysql_num_rows($logresult) > 0) {
-    for ($i=1; $line = mysql_fetch_array($logresult, MYSQL_ASSOC); $i++) {
+  if (mysqli_num_rows($logresult) > 0) {
+    for ($i=1; $line = mysqli_fetch_array($logresult, MYSQLI_ASSOC); $i++) {
        ((int)THIS_PAGETS - date("U", strtotime($line["ts"]))) < 300 ? $quality="<b>" : $quality="";
 
       echo "<tr>\n";
@@ -241,7 +241,7 @@
 
   // Issue Howmany Query
   $howmanyresult = MysqlQuery($howmanyquery);
-  $howmanyline = mysql_fetch_array($howmanyresult);
+  $howmanyline = mysqli_fetch_array($howmanyresult);
   $howmany = $howmanyline['howmany'];
 
   // Print page back / page forward links
@@ -287,12 +287,12 @@
 
   echo "</center>\n";
 
-  mysql_free_result($howmanyresult);
+  mysqli_free_result($howmanyresult);
 ?>
 
 <?php
-  mysql_free_result($logresult);
-  mysql_close($link);
+  mysqli_free_result($logresult);
+  mysqli_close($link);
  ?>
 </body>
 </html>

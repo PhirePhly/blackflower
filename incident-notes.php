@@ -26,7 +26,7 @@
 
     if ($action == ACTION_NEW) {
       $query = "INSERT INTO incident_notes (incident_id, ts, unit, message, creator) VALUES ($incident_id, NOW(), '$unit', '$message', '$creator')";
-      mysql_query($query) or die ("Error with query: ".mysql_error());
+      mysqli_query($link, $query) or die ("Error with query: ".mysqli_error($link));
       header("Location: edit-incident.php?incident_id=$incident_id");
     }
   }
@@ -58,10 +58,10 @@
 
 <?php
   $query = "SELECT * FROM incident_notes WHERE incident_id=$incident_id AND deleted=0 ORDER BY note_id DESC";
-  $result = mysql_query($query) or die("Query failed : " . mysql_error());
+  $result = mysqli_query($link, $query) or die("Query failed : " . mysqli_error($link));
 
-  if (mysql_num_rows($result)) {
-    while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+  if (mysqli_num_rows($result)) {
+    while ($line = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
       ((int)THIS_PAGETS - date("U", strtotime($line["ts"]))) < 300 ? $quality="<b>" : $quality="";
       echo "<tr>\n";
       if (!isset($_COOKIE['incidents_show_creator']) || $_COOKIE['incidents_show_creator'] == 'yes') {
@@ -90,8 +90,8 @@
   }
   echo "</table></table>\n";
 
-  mysql_free_result($result);
-  mysql_close($link);
+  mysqli_free_result($result);
+  mysqli_close($link);
 ?>
 
 </body>

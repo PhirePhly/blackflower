@@ -18,11 +18,11 @@
     # bulletin add/delete and on user add.
     $LastRead = array();
     $bulletin_views = MysqlQuery('SELECT bulletin_id, last_read FROM bulletin_views WHERE user_id='. (int)$_SESSION['id'] );
-    while ($view = mysql_fetch_object($bulletin_views)) {
+    while ($view = mysqli_fetch_object($bulletin_views)) {
       $LastRead[$view->bulletin_id] = $view->last_read;
     }
     $bulletins = MysqlQuery('SELECT bulletin_id, updated FROM bulletins WHERE access_level <= '.(int)$_SESSION['access_level'] .' AND closed=0');
-    while ($bull = mysql_fetch_object($bulletins)) {
+    while ($bull = mysqli_fetch_object($bulletins)) {
       if (!isset($LastRead[$bull->bulletin_id])) {
         $new_bull++;
       }

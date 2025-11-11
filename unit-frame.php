@@ -19,13 +19,13 @@
       // TODO: handle error condition better
     }
     $query = "INSERT INTO units (unit) VALUES (UPPER('".MysqlClean($_POST,"addunit",20)."'))";
-    mysql_query($query) or die ("couldn't insert unit: ".mysql_error());
+    mysqli_query($link, $query) or die ("couldn't insert unit: ".mysqli_error($link));
     header('Location: units.php');
   }
 
   $query = "SELECT role, color_html FROM unit_roles";
-  $result = mysql_query($query) or die ("In query: $query\nError: ".mysql_error());
-  while ($line = mysql_fetch_array($result, MYSQL_ASSOC)) {
+  $result = mysqli_query($link, $query) or die ("In query: $query\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
     $rolecolor[$line["role"]] = $line["color_html"];
   }
 
@@ -48,13 +48,13 @@
     }
 
     $unitquery = "SELECT * from units u LEFT OUTER JOIN unit_assignments a ON u.assignment=a.assignment $wheretype ORDER BY unit ASC ";
-    $unitresult = mysql_query($unitquery) or die("unit Query failed : ".mysql_error());
+    $unitresult = mysqli_query($link, $unitquery) or die("unit Query failed : ".mysqli_error($link));
 
     $unitarray = array();
     $unitnames = array();
-    if (mysql_num_rows($unitresult) > 0) {
+    if (mysqli_num_rows($unitresult) > 0) {
       echo "<span class=\"text\">".$title."</span>";
-      while ($urow = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
+      while ($urow = mysqli_fetch_array($unitresult, MYSQLI_ASSOC)) {
         $unitarray[$urow["unit"]] = $urow;
         array_push($unitnames, $urow["unit"]);
       }
@@ -93,8 +93,8 @@
 
         // TODO: replace as of MySQL 4.1 with a subquery (SELECT... WHERE oid=select(max(oid)...).
         $oidquery = "SELECT oid, unit, ts, message FROM messages WHERE unit = '". $unitrow["unit"] ."' AND deleted=0 ORDER BY oid DESC LIMIT 1";
-        $oidresult = mysql_query($oidquery) or die("In query: $oidquery\nError: " . mysql_error());
-        if ($line = mysql_fetch_array($oidresult, MYSQL_ASSOC)) {
+        $oidresult = mysqli_query($link, $oidquery) or die("In query: $oidquery\nError: " . mysqli_error($link));
+        if ($line = mysqli_fetch_array($oidresult, MYSQLI_ASSOC)) {
           $u_time = dls_utime($line["ts"]);
           $u_message = $line["message"];
         }
@@ -102,7 +102,7 @@
           $u_time = "";
           $u_message = "<span style='color: gray;'>No messages logged</span>";
         }
-        mysql_free_result($oidresult);
+        mysqli_free_result($oidresult);
 
         $icon = "";
         if (isset($unitrow["assignment"])) {
@@ -126,10 +126,10 @@
       }
       print "  </table>\n</table>\n<p />\n";
     }
-    mysql_free_result($unitresult);
+    mysqli_free_result($unitresult);
   }
 /////////////////////////////////////////////////////////
 ?>
 </body>
 </html>
-<?php mysql_close($link); ?>
+<?php mysqli_close($link); ?>

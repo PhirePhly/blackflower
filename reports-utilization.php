@@ -69,11 +69,11 @@ elseif ($incident_types_selector == 'filter') {
   
   print '<h3> Select call types for unit utilization report: </h3>';
   $query = "SELECT call_type FROM incident_types ORDER BY call_type ASC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     print '<div class=text><input type=checkbox name="typesselected[]" value="' . $line->call_type . '">' . $line->call_type. "</div>\n";
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
 
   print "\n<input class=\"btn\" type=\"submit\" name=\"unitutilization_report\" value=\"Get Report\"/><p>\n";
   print "\n<input class=\"btn btnatext\" type=\"button\" onclick=\"window.location='reports.php';\" value=\"Return to Reports menu\"/>\n";
@@ -298,11 +298,11 @@ $query_overall_base = "
     }
     else {
       $filter_query = "SELECT * FROM unit_filter_sets WHERE filter_set_name='$filter_set_name'";
-      $result = mysql_query($filter_query) or die("In query: $filter_query<br>\nError: ".mysql_error());
-      while ($line = mysql_fetch_object($result)) {
+      $result = mysqli_query($link, $filter_query) or die("In query: $filter_query<br>\nError: ".mysqli_error($link));
+      while ($line = mysqli_fetch_object($result)) {
         $filter_regexps[$line->row_description] = $line->row_regexp;
       }
-      mysql_free_result($result);
+      mysqli_free_result($result);
     }
     // TODO: error check empty filter set if passed parameter was bad
     $filter_regexp = join('|', array_values($filter_regexps));
@@ -311,45 +311,45 @@ $query_overall_base = "
 
     $units = array();
     $units_query = "SELECT DISTINCT unit FROM incident_units WHERE unit REGEXP '$filter_regexp' ORDER BY unit";
-    $result = mysql_query($units_query);
+    $result = mysqli_query($link, $units_query);
     if (!$result) {
-      syslog(LOG_WARNING, " dying: In query: $units_query --- Error: ".mysql_error());
-      die("In query: $units_query<br>\nError: ".mysql_error());
+      syslog(LOG_WARNING, " dying: In query: $units_query --- Error: ".mysqli_error($link));
+      die("In query: $units_query<br>\nError: ".mysqli_error($link));
     }
-    while ($unit_row = mysql_fetch_object($result)) {
+    while ($unit_row = mysqli_fetch_object($result)) {
       array_push($units, $unit_row->unit);
     }
-    mysql_free_result($result);
+    mysqli_free_result($result);
 
     foreach ($units as $unit) {
       $query = $query_daily_base . " AND unit = '$unit' " . $query_daily_suffix;
-      $result = mysql_query($query);
+      $result = mysqli_query($link, $query);
       if (!$result) {
-        syslog(LOG_WARNING, " dying: In query: $query --- Error: ".mysql_error());
-        die("In query: $query<br>\nError: ".mysql_error());
+        syslog(LOG_WARNING, " dying: In query: $query --- Error: ".mysqli_error($link));
+        die("In query: $query<br>\nError: ".mysqli_error($link));
       }
       syslog(LOG_DEBUG, " -- queried daily times for unit [$unit].");
       //TODO: error check
-      while ($days = mysql_fetch_object($result)) {
+      while ($days = mysqli_fetch_object($result)) {
         $all_dates[$days->dispatch_date] = 1;
         $utilization_times[$unit][$days->dispatch_date] = $days->utiliz;
         $utitization_numcalls[$unit][$days->dispatch_date] = $days->calls;
       }
-      mysql_free_result($result);
+      mysqli_free_result($result);
 
       $query = $query_overall_base . " AND unit = '$unit' ";
-      $result = mysql_query($query);
+      $result = mysqli_query($link, $query);
       if (!$result) {
-        syslog(LOG_WARNING, " dying: In query: $query --- Error: ".mysql_error());
-        die("In query: $query<br>\nError: ".mysql_error());
+        syslog(LOG_WARNING, " dying: In query: $query --- Error: ".mysqli_error($link));
+        die("In query: $query<br>\nError: ".mysqli_error($link));
       }
       syslog(LOG_DEBUG, " -- queried daily times for unit [$unit].");
-      $overalls = mysql_fetch_object($result);
+      $overalls = mysqli_fetch_object($result);
       //TODO: error check
       syslog(LOG_DEBUG, " -- queried overall times for set [$unit].");
       $utilization_times[$unit]["total"] = $overalls->utiliz;
       $utilization_numcalls[$unit]["total"] = $overalls->calls;
-      mysql_free_result($result);
+      mysqli_free_result($result);
 
       syslog(LOG_DEBUG, " -- processed unit [$unit], overall time ".$utilization_times[$unit]["total"].", calls (".$utilization_numcalls[$unit]["total"].")");
      
@@ -366,7 +366,7 @@ $query_overall_base = "
       }
     }
     syslog(LOG_DEBUG, " -- closed database connection.");
-    mysql_close($link);
+    mysqli_close($link);
 
     syslog(LOG_DEBUG, " -- starting PDF generation.");
 

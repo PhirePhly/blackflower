@@ -25,18 +25,18 @@
   $unit_filter_sets = array();
 
   $query = "SELECT DATE_FORMAT(ts_opened,'%Y-%m-%d') as ts_date FROM incidents GROUP BY ts_date DESC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     array_push($incidents_dates, $line->ts_date);
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
 
   $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d') as ts_date FROM messages GROUP BY ts_date DESC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     array_push($units_dates, $line->ts_date);
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
   foreach ($incidents_dates as $idate) {
     if (!in_array($idate, $units_dates)) {
       array_push($units_dates, $idate);
@@ -45,33 +45,33 @@
   sort($units_dates);
 
   $query = "SELECT unit FROM units ORDER BY unit ASC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     array_push($units, $line->unit);
   }
   natsort($units);
-  mysql_free_result($result);
+  mysqli_free_result($result);
 
   $query = "SELECT call_type FROM incident_types ORDER BY call_type ASC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     array_push($incidents_types, $line->call_type);
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
 
   $query = "SELECT message_type FROM message_types ORDER BY message_type ASC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     array_push($message_types, $line->message_type);
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
 
   $query = "SELECT DISTINCT filter_set_name FROM unit_filter_sets ORDER BY filter_set_name ASC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     array_push($unit_filter_sets, $line->filter_set_name);
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
   ?>
 
   

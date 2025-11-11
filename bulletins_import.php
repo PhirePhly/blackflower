@@ -30,7 +30,7 @@
     }
 
     $sourcebulls = MysqlQuery("SELECT b.*,u.username FROM $srcdbname.$srctablename b LEFT OUTER JOIN users u ON b.updated_by=u.id WHERE b.bulletin_id IN (".join(",",$import_ids).")");
-    while ($bulletin = mysql_fetch_object($sourcebulls)) {
+    while ($bulletin = mysqli_fetch_object($sourcebulls)) {
       //print "fetched bulletin id $bulletin->bulletin_id subject $bulletin->bulletin_subject<br>\n";
       syslog(LOG_INFO, $_SESSION["username"] . " fetched bulletin id ". $bulletin->bulletin_id );
       if ($bulletin->username != "") 
@@ -63,11 +63,11 @@
 <?php
 
   $bulletin_query = MysqlQuery("SELECT b.*, u.username, u.id FROM bulletins b LEFT OUTER JOIN users u ON b.updated_by=u.id ");
-  if (mysql_num_rows($bulletin_query) == 0) {
+  if (mysqli_num_rows($bulletin_query) == 0) {
     print "<li><b>No bulletins entered</b>\n";
   }
   else {
-    while ($bulletin = mysql_fetch_object($bulletin_query)) {
+    while ($bulletin = mysqli_fetch_object($bulletin_query)) {
       $bullstatus="";
       $style = "font-family: tahoma, sans; font-size: 10pt; font-weight: bold; ";
 
@@ -102,7 +102,7 @@
 
     print "<div style=\"font: 10pt monospace; border: 1px dotted gray; margin: 5px; padding-left: 10px; padding-right: 10px; background-color: #ffffcc\">";
     $dbnames = MysqlQuery("SELECT table_schema,table_name FROM information_schema.tables WHERE table_name LIKE 'bulletins%' AND table_schema != '$DB_NAME'");
-    while ($db = mysql_fetch_object($dbnames)) {
+    while ($db = mysqli_fetch_object($dbnames)) {
       print "<div style=\"font: bold 10pt monospace;\"><input type=\"radio\" name=\"dbsource\" value=\"$db->table_schema.$db->table_name\"> $db->table_schema.$db->table_name </div>";
     }
 
@@ -133,12 +133,12 @@
     print "<!-- field 1 -- table name is ".$dbary[1]."-->";
 
     $dbverify = MysqlQuery("SELECT table_name,table_schema FROM information_schema.tables WHERE table_name = '$dbary[1]' AND table_schema = '$dbary[0]'");
-    if (mysql_num_rows($dbverify) != 1) {
-      print "Error - expected one row for dbname, got ". mysql_num_rows($dbverify);
+    if (mysqli_num_rows($dbverify) != 1) {
+      print "Error - expected one row for dbname, got ". mysqli_num_rows($dbverify);
       exit;
     }
     else {
-      $verifyrow = mysql_fetch_object($dbverify);
+      $verifyrow = mysqli_fetch_object($dbverify);
       $dbname = $verifyrow->table_schema;
       $tablename = $verifyrow->table_name;
     }
@@ -151,7 +151,7 @@
 
     print "<div style=\"font: 10pt monospace; border: 1px dotted gray; margin: 5px; padding-left: 10px; padding-right: 10px; background-color: #ffffcc\">";
     $bulletins = MysqlQuery("SELECT b.*, u.username FROM $dbname.$tablename b LEFT OUTER JOIN users u on b.updated_by=u.id"); 
-    while ($bulletin = mysql_fetch_object($bulletins)) {
+    while ($bulletin = mysqli_fetch_object($bulletins)) {
       if ($bulletin->closed) 
         $style = "color:grey; ";
       else 
@@ -182,7 +182,7 @@
 
   /////////////////////////////////////////////////////////////////////////////////
 
-  mysql_close($link);
+  mysqli_close($link);
 ?>
 </body>
 </html>

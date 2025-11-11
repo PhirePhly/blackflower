@@ -61,11 +61,11 @@ elseif ($incident_types_selector == 'filter') {
   
   print '<h3> Select call types for response times report: </h3>';
   $query = "SELECT call_type FROM incident_types ORDER BY call_type ASC";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-  while ($line = mysql_fetch_object($result)) {
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+  while ($line = mysqli_fetch_object($result)) {
     print '<div class=text><input type=checkbox name="typesselected[]" value="' . $line->call_type . '">' . $line->call_type. "</div>\n";
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
 
   print "\n<input class=\"btn\" type=\"submit\" name=\"responsetimes_report\" value=\"Get Report\"/><p>\n";
   print "\n<input class=\"btn btnatext\" type=\"button\" onclick=\"window.location='reports.php';\" value=\"Return to Reports menu\"/>\n";
@@ -293,11 +293,11 @@ $query_overall_base = "
     }
     else {
       $filter_query = "SELECT * FROM unit_filter_sets WHERE filter_set_name='$filter_set_name'";
-      $result = mysql_query($filter_query) or die("In query: $filter_query<br>\nError: ".mysql_error());
-      while ($line = mysql_fetch_object($result)) {
+      $result = mysqli_query($link, $filter_query) or die("In query: $filter_query<br>\nError: ".mysqli_error($link));
+      while ($line = mysqli_fetch_object($result)) {
         $filter_regexps[$line->row_description] = $line->row_regexp;
       }
-      mysql_free_result($result);
+      mysqli_free_result($result);
     }
     $set_descriptions = array_keys($filter_regexps);
     sort ($set_descriptions);
@@ -312,20 +312,20 @@ $query_overall_base = "
       array_push($widths, $colwidth);
 
       $query = $query_daily_base . " AND unit REGEXP '" . $filter_regexps[$set_description] . "' " . $query_daily_suffix;
-      $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+      $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
       if ($DEBUG) syslog(LOG_INFO, " -- queried daily times for set [$set_description].");
-      while ($line = mysql_fetch_object($result)) {
+      while ($line = mysqli_fetch_object($result)) {
         $all_dates[$line->dispatch_date] = 1;
         $response_times_daily[$line->dispatch_date][$set_description] = $line->avg_response_time;
       }
-      mysql_free_result($result);
+      mysqli_free_result($result);
 
       $query = $query_overall_base . " AND unit REGEXP '" . $filter_regexps[$set_description] . "' ";
-      $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-      $line = mysql_fetch_object($result);
+      $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+      $line = mysqli_fetch_object($result);
       if ($DEBUG) syslog(LOG_INFO, " -- queried overall times for set [$set_description].");
       $response_times_overall[$set_description] = $line->avg_response_time;
-      mysql_free_result($result);
+      mysqli_free_result($result);
     }
 
     $all_dates = array_keys($all_dates);
@@ -392,7 +392,7 @@ $query_overall_base = "
 
     
     $pdf->SetDisplayMode('fullpage','single');
-    mysql_close($link);
+    mysqli_close($link);
     
     if ($DEBUG) syslog(LOG_INFO, " -- closed database connection.");
     $pdf->Output("CAD Response Times Report $daterange.pdf",'D');

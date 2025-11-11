@@ -26,15 +26,15 @@
     $dbver = 'NULL';
     $codever = 'NULL';
     $dephist = MysqlQuery("SELECT * FROM deployment_history ORDER BY idx DESC LIMIT 1");
-    if (mysql_num_rows($dephist)) {
-      $schemaver = mysql_fetch_object($dephist);
+    if (mysqli_num_rows($dephist)) {
+      $schemaver = mysqli_fetch_object($dephist);
       $dbver = "'" . $schemaver->database_version . "'";
       $codever = "'" . $schemaver->requires_code_ver . "'";
     }
 
   /* Note revision in master archive table */
     MysqlQuery("INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment', $dbver, $codever)");
-    if (mysql_affected_rows() != 1) die("Error registering archive checkpoint [$ts] in archive_master table");
+    if (mysqli_affected_rows($link) != 1) die("Error registering archive checkpoint [$ts] in archive_master table");
 
   /* Make backup copies of all relevant tables and data */
 

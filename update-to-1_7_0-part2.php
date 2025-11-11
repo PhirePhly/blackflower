@@ -17,7 +17,7 @@
 
   if(isset($_GET["update_uip"])) {
     $uipquery = MysqlQuery(" SELECT row_id,unit,to_pager_id,person_id FROM unit_incident_paging ui JOIN paging.pager_assignments pa ON pa.pager_id=ui.to_pager_id; ");
-    while ($uiprow = mysql_fetch_object($uipquery)) {
+    while ($uiprow = mysqli_fetch_object($uipquery)) {
       print "Converting unit ".$uiprow->unit." from pager $uiprow->to_pager_id to person $uiprow->person_id ...<br>";
       MysqlQuery("UPDATE $db.unit_incident_paging SET to_person_id=$uiprow->person_id WHERE row_id=$uiprow->row_id");
     }
@@ -25,11 +25,11 @@
   }
   
   $pagers = MysqlQuery("SELECT COUNT(*) as cnt FROM $db.unit_incident_paging");
-  while ($pager = mysql_fetch_object($pagers)) {
+  while ($pager = mysqli_fetch_object($pagers)) {
     print "<p>Pager integrations (total): ".$pager->cnt."<br>";
   }
   $people = MysqlQuery("SELECT COUNT(*) as cnt FROM $db.unit_incident_paging WHERE to_person_id != 0");
-  while ($person = mysql_fetch_object($people)) {
+  while ($person = mysqli_fetch_object($people)) {
     print "<p>Pager integrations (updated): ".$person->cnt."<br>";
   }
   print "<hr>";

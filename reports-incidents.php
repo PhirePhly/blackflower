@@ -72,8 +72,8 @@ if(isset($_GET["confirmed"])) {
 } else {
   $openquery = "SELECT call_number, call_type, call_details, TIME(ts_opened) as open_time FROM incidents $where_clause  AND incident_status = 'Open' AND disposition != 'Duplicate' ORDER BY incident_id DESC";
   // TODO 1.10.x: Isn't "disposition != Duplicate" redundant here?
-  $openresult = mysql_query($openquery) or die("In query: $openquery<br>\nError: ".mysql_error());
-  $opencount = mysql_num_rows($openresult);
+  $openresult = mysqli_query($link, $openquery) or die("In query: $openquery<br>\nError: ".mysqli_error($link));
+  $opencount = mysqli_num_rows($openresult);
 }
 
 if($opencount > 0) {
@@ -109,7 +109,7 @@ if($opencount > 0) {
         <td class="th">Open Time</td>
       </tr>
     <?php
-      while ($open = mysql_fetch_object($openresult)) {
+      while ($open = mysqli_fetch_object($openresult)) {
         ?>
         <tr>
           <td class="message-iself"><?php print "$open->call_number" ?></td>
@@ -348,14 +348,14 @@ if($opencount > 0) {
 
     if ($toc_page) {
     $query = "SELECT * FROM incident_types ";
-    $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+    $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
 
     $pdf->StatsColumnHeader();
     $totalincidents = 0;
-    while ($line = mysql_fetch_object($result)) {
+    while ($line = mysqli_fetch_object($result)) {
       $query = "SELECT COUNT(*) AS subtotal FROM incidents $where_clause  AND incident_status != 'New' AND call_type='".$line->call_type."'";
-      $subresult = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-      $subline = mysql_fetch_object($subresult);
+      $subresult = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+      $subline = mysqli_fetch_object($subresult);
       $totalincidents = $totalincidents + $subline->subtotal;
       if ((isset($_GET['selected-type']) && $_GET['selected-type'] != '' && $_GET['selected-type'] != $line->call_type) || 
           ($line->call_type == 'TRAINING' && isset($_GET['hidetraining']))) {
@@ -364,9 +364,9 @@ if($opencount > 0) {
       else {
         $pdf->Row(array($line->call_type, $subline->subtotal));
       }
-      mysql_free_result($subresult);
+      mysqli_free_result($subresult);
     }
-    mysql_free_result($result);
+    mysqli_free_result($result);
     $pdf->Ln(7);
     $pdf->Row(array('TOTAL', $totalincidents));
 
@@ -379,17 +379,17 @@ if($opencount > 0) {
     $dispatch_times = array();
     $arrival_times = array();
     $times = MysqlQuery("SELECT incident_id, MIN(iu.dispatch_time) as dispatch_time, MIN(iu.arrival_time) as arrival_time FROM incident_units iu GROUP BY iu.incident_id");
-    while ($incident_time = mysql_fetch_array($times, MYSQL_ASSOC)) {
+    while ($incident_time = mysqli_fetch_array($times, MYSQLI_ASSOC)) {
       $dispatch_times[$incident_time["incident_id"]] = $incident_time["dispatch_time"];
       $arrival_times[$incident_time["incident_id"]] = $incident_time["arrival_time"];
     }
 
     $query = "SELECT * FROM incidents $where_clause  AND incident_status != 'New' AND disposition != 'Duplicate'";
 
-    $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+    $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
     if ($DEBUG) syslog(LOG_INFO, " -- selected appropriate incidents.");
 
-    while ($line = mysql_fetch_object($result)) {
+    while ($line = mysqli_fetch_object($result)) {
       if ($pdf->GetY() < 31) 
         $pdf->DLSColumnHeader();
       //if ($line->ts_opened == "0000-00-00 00:00:00") {
@@ -416,7 +416,7 @@ if($opencount > 0) {
         $pdf->Row(array("incident #" . $line->incident_id, $line->call_type, $line->call_details, dls_mdhmtime($line->ts_opened), dls_mdhmtime($line->ts_complete)));
       }
     }
-    mysql_free_result($result);
+    mysqli_free_result($result);
 }
     if ($pdf->GetY() > 31)
       $pdf->AddPage('P','Letter');
@@ -426,10 +426,10 @@ if($opencount > 0) {
     
     // TODO: don't repeat this query needlessly
     $query = "SELECT * FROM incidents $where_clause  AND incident_status != 'New' AND disposition != 'Duplicate'";
-    $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
-    $numrows = mysql_num_rows($result);
+    $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
+    $numrows = mysqli_num_rows($result);
     $thisrow=0;
-    while ($line = mysql_fetch_object($result)) {
+    while ($line = mysqli_fetch_object($result)) {
       $thisrow++;
     
       //if ($line->ts_opened == "0000-00-00 00:00:00") {
@@ -518,9 +518,9 @@ if($opencount > 0) {
       $pdf->SetFont('Arial','',10);
     
       $unitquery = "SELECT * FROM incident_units WHERE incident_id=".$line->incident_id." ORDER BY dispatch_time";
-      $unitresult = mysql_query($unitquery) or die("In query: $unitquery<br>\nError: ".mysql_error());
+      $unitresult = mysqli_query($link, $unitquery) or die("In query: $unitquery<br>\nError: ".mysqli_error($link));
     
-      if (mysql_num_rows($unitresult)>0) {
+      if (mysqli_num_rows($unitresult)>0) {
         $pdf->Cell(5,5);
         $pdf->Cell(60,5,"Unit Name");
         $pdf->Cell(21,5,"Dispatched");
@@ -530,7 +530,7 @@ if($opencount > 0) {
         $pdf->Cell(21,5,"Cleared");
         $pdf->Ln(5);
         $pdf->SetWidths(array(60, 21, 21, 24, 24, 21));
-        while ($unit = mysql_fetch_object($unitresult)) {
+        while ($unit = mysqli_fetch_object($unitresult)) {
         
 					//if($selected_date == substr($unit->dispatch_time, 0, 10)) {
 						//$unit->dispatch_time = substr($unit->dispatch_time, 11);
@@ -581,7 +581,7 @@ if($opencount > 0) {
         $pdf->Cell(50,5, "- No units were assigned to this incident -");
         $pdf->Ln(5);
       }
-      mysql_free_result($unitresult);
+      mysqli_free_result($unitresult);
     
       $pdf->Ln(5);
       $pdf->SetFont('Arial','B',10);
@@ -589,8 +589,8 @@ if($opencount > 0) {
       $pdf->SetFont('Arial','',10);
     
       $notequery = "SELECT * FROM incident_notes WHERE incident_id=".$line->incident_id." ORDER BY note_id";
-      $noteresult = mysql_query($notequery) or die("In query: $notequery<br>\nError: ".mysql_error());
-      if (mysql_num_rows($noteresult) > 0) {
+      $noteresult = mysqli_query($link, $notequery) or die("In query: $notequery<br>\nError: ".mysqli_error($link));
+      if (mysqli_num_rows($noteresult) > 0) {
         $pdf->Cell(5,5);
         $pdf->Cell(21,5,"Time");
         $pdf->Cell(25,5,"Noted By");
@@ -598,7 +598,7 @@ if($opencount > 0) {
         $pdf->Cell(107,5,"Note");
         $pdf->Ln(5);
         $pdf->SetWidths(array(21,25,30,107));
-        while ($note = mysql_fetch_object($noteresult)) {
+        while ($note = mysqli_fetch_object($noteresult)) {
           //if($selected_date == substr($note->ts, 0, 10)) {
             //$note->ts = substr($note->ts, 11);
           //} else {
@@ -612,7 +612,7 @@ if($opencount > 0) {
         $pdf->Cell(50,5, "- No notes logged for this incident -");
         $pdf->Ln(5);
       }
-      mysql_free_result($noteresult);
+      mysqli_free_result($noteresult);
           
       $pdf->Ln(5);
     
@@ -621,8 +621,8 @@ if($opencount > 0) {
       }
     }
     $pdf->SetDisplayMode('fullpage','single');
-    mysql_free_result($result);
-    mysql_close($link);
+    mysqli_free_result($result);
+    mysqli_close($link);
     
     if ($DEBUG) syslog(LOG_INFO, " -- closed database connection.");
     $pdf->Output("CAD Incidents Report$typefilter $daterange.pdf",'D');

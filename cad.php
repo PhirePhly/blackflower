@@ -82,16 +82,16 @@
      <option selected value=""></option>
 <?php
       $unitquery = "SELECT unit FROM units";
-      $unitresult = mysql_query($unitquery) or die("In query: $unitquery<br />\nError: " . mysql_error());
+      $unitresult = mysqli_query($link, $unitquery) or die("In query: $unitquery<br />\nError: " . mysqli_error($link));
       $unitnames = array();
-      while ($line = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
+      while ($line = mysqli_fetch_array($unitresult, MYSQLI_ASSOC)) {
         array_push($unitnames, $line["unit"]);
       }
       natsort($unitnames);
       foreach ($unitnames as $unitname) {
          echo "<option value=\"$unitname\">$unitname</option>\n";
       }
-      mysql_free_result($unitresult);
+      mysqli_free_result($unitresult);
  ?>
      </select>
      </label>
@@ -104,11 +104,11 @@
         print '<select tabindex="4" style="width:150px" name="message_type">';
         print '<option selected value=""></option>';
         $typequery = "SELECT message_type FROM message_types ORDER BY message_type ASC";
-        $typeresult = mysql_query($typequery) or die("In query: $typequery<br />\nError: " . mysql_error());
-        while ($line = mysql_fetch_array($typeresult, MYSQL_ASSOC)) {
+        $typeresult = mysqli_query($link, $typequery) or die("In query: $typequery<br />\nError: " . mysqli_error($link));
+        while ($line = mysqli_fetch_array($typeresult, MYSQLI_ASSOC)) {
            print "<option value=\"". $line["message_type"] ."\">". $line["message_type"] ."</option>\n";
         }
-        mysql_free_result($typeresult);
+        mysqli_free_result($typeresult);
         print "</select>\n</td>\n";
       }
     }
@@ -153,13 +153,13 @@
   $datesquery = "SELECT DISTINCT CAST(ts AS DATE) AS tsdate FROM messages ORDER BY ts DESC";
   $datesresult = MysqlQuery($datesquery);
   $dates = array();
-  while ($line = mysql_fetch_array($datesresult, MYSQL_ASSOC)) {
+  while ($line = mysqli_fetch_array($datesresult, MYSQLI_ASSOC)) {
     array_push($dates, $line["tsdate"]);
   }
   foreach ($dates as $date) {
     echo "<option value=\"$date\">$date</option>\n";
   }
-  mysql_free_result($datesresult);
+  mysqli_free_result($datesresult);
 ?>
   </select>
   </td>
@@ -186,14 +186,14 @@
   $unitquery = "SELECT unit FROM units";
   $unitresult = MysqlQuery($unitquery);
   $unitnames = array();
-  while ($line = mysql_fetch_array($unitresult, MYSQL_ASSOC)) {
+  while ($line = mysqli_fetch_array($unitresult, MYSQLI_ASSOC)) {
     array_push($unitnames, $line["unit"]);
   }
   natsort($unitnames);
   foreach ($unitnames as $unitname) {
     echo "<option value=\"$unitname\">$unitname</option>\n";
   }
-  mysql_free_result($unitresult);
+  mysqli_free_result($unitresult);
 ?>
   </select>
   </td>
@@ -261,7 +261,7 @@
         height=<?php print trim($_COOKIE['height'])-250; ?>
         marginheight="0" marginwidth="0" frameborder="0"> </iframe>
 <?php
-   mysql_close($link);
+   mysqli_close($link);
 ?>
 </body>
 </html>

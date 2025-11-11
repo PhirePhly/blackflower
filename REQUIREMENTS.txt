@@ -1,0 +1,281 @@
+Black Flower CAD - System Requirements
+
+================================================================================
+MODERNIZED VERSION - Compatible with Modern PHP and Linux Distributions
+================================================================================
+
+OPERATING SYSTEM
+----------------
+AlmaLinux 9.x               (recommended)
+Rocky Linux 9.x             (supported)
+RHEL 9.x                    (supported)
+CentOS Stream 9             (supported)
+Ubuntu 20.04 LTS or later   (supported)
+Debian 11 or later          (supported)
+Fedora 35 or later          (supported)
+
+Note: Windows installations are NOT recommended for production use due to
+limitations of PHP running under Windows-based webservers and Event Log
+emulation for syslog.
+
+WEB SERVER
+----------
+Apache HTTP Server 2.4 or later
+  Required modules:
+    - mod_rewrite (or AllowOverride support for .htaccess)
+    - mod_php OR php-fpm
+
+PHP VERSION
+-----------
+PHP 7.4.x                   (minimum, deprecated by PHP project)
+PHP 8.0.x                   (supported)
+PHP 8.1.x                   (supported)  
+PHP 8.2.x                   (recommended)
+PHP 8.3.x                   (recommended)
+
+PHP 7.3 and below:          NOT SUPPORTED (mysql extension removed)
+PHP 5.x:                    NOT SUPPORTED (original version requirement)
+
+REQUIRED PHP EXTENSIONS
+-----------------------
+mysqli                      Database connectivity (REQUIRED)
+session                     Session management (REQUIRED)
+json                        JSON encoding/decoding (REQUIRED)
+mbstring                    Multibyte string handling (recommended)
+openssl                     Secure connections (recommended)
+
+OPTIONAL PHP EXTENSIONS
+-----------------------
+gd                          Image manipulation (for future features)
+curl                        External API calls (for future features)
+
+PHP CONFIGURATION SETTINGS
+---------------------------
+Minimum recommended php.ini settings:
+
+  memory_limit = 128M
+  upload_max_filesize = 10M
+  post_max_size = 10M
+  max_execution_time = 300
+  session.gc_maxlifetime = 3600
+  date.timezone = [Your timezone, e.g., America/Los_Angeles]
+
+DATABASE
+--------
+MySQL 8.0.x or later        (recommended)
+MySQL 5.7.x                 (supported, EOL October 2023)
+MariaDB 10.3 or later       (recommended)
+MariaDB 10.11 LTS           (recommended for production)
+
+Recommended database configuration:
+  - Character set: utf8mb4
+  - Collation: utf8mb4_unicode_ci
+  - InnoDB storage engine
+
+CLIENT REQUIREMENTS
+-------------------
+Screen Resolution:
+  - 1024x768 minimum (REQUIRED)
+  - 1280x1024 or higher (RECOMMENDED)
+
+Web Browser:
+  - Mozilla Firefox 90+      (recommended)
+  - Google Chrome 90+        (supported)
+  - Microsoft Edge 90+       (supported)
+  - Safari 14+               (minimally tested)
+  - Internet Explorer        (NOT SUPPORTED - by design)
+
+Client Operating System:
+  - Windows 10/11            (recommended)
+  - Linux (any distribution) (supported)
+  - macOS 10.15+             (minimally tested)
+
+JavaScript:
+  - REQUIRED - JavaScript must be enabled in the browser
+
+Time Synchronization:
+  - Client system time MUST be synchronized with CAD server
+  - NTP/chrony recommended on all systems
+
+NETWORK REQUIREMENTS
+--------------------
+Server Ports (must be accessible from clients):
+  - Port 80 (HTTP)           OR
+  - Port 443 (HTTPS)         (recommended for production)
+
+Optional Ports (if hosting additional services):
+  - Port 53 (DNS)
+  - Port 67 (DHCP)
+  - Port 123 (NTP)
+  - Port 3306 (MySQL)        (only if remote database access required)
+
+Latency:
+  - Low latency required for real-time updates
+  - < 100ms RTT recommended
+  - System designed for LAN deployment
+
+SECURITY REQUIREMENTS
+---------------------
+AlmaLinux 9 Specific:
+  - SELinux can run in enforcing mode (recommended)
+  - Required SELinux boolean: httpd_can_network_connect_db = 1
+  - Firewall rules must allow HTTP/HTTPS traffic
+
+General:
+  - Strong passwords required for all accounts
+  - MySQL/MariaDB should be configured to allow localhost connections only
+    (unless distributed deployment is required)
+  - HTTPS strongly recommended for production deployments
+  - Regular security updates required
+
+FILE SYSTEM PERMISSIONS
+------------------------
+Web directory (e.g., /var/www/html/cad):
+  - Owner: apache:apache (RHEL-based) or www-data:www-data (Debian-based)
+  - Directory permissions: 755
+  - File permissions: 644
+  - cad.conf permissions: 600 (configuration file with passwords)
+
+DISK SPACE REQUIREMENTS
+------------------------
+Application files:         ~5 MB
+Database (initial):        ~1 MB
+Database (growth):         Variable, depends on usage
+                          Estimate: ~100-500 MB per year for typical usage
+Log files:                Variable, depends on logging configuration
+                          Recommend log rotation
+
+Recommended minimum:      1 GB free space for application and initial database
+Recommended for production: 10+ GB with monitoring and log rotation
+
+MEMORY REQUIREMENTS
+-------------------
+Server:
+  - Minimum: 512 MB RAM
+  - Recommended: 2 GB+ RAM
+  - Production: 4 GB+ RAM
+
+Database:
+  - Minimum: 256 MB RAM
+  - Recommended: 1 GB+ RAM
+  - Production: 2 GB+ RAM
+
+Note: Actual requirements depend on number of concurrent users and
+incident volume.
+
+CPU REQUIREMENTS
+----------------
+Minimum: Single-core processor, 1 GHz
+Recommended: Dual-core processor, 2 GHz+
+Production: Quad-core processor, 2.5 GHz+
+
+Note: Modern multi-core processors recommended for multiple concurrent users.
+
+CONCURRENT USERS
+----------------
+The system has been tested with:
+  - Small deployments: 5-10 concurrent users
+  - Medium deployments: 10-25 concurrent users
+  - Large deployments: 25+ concurrent users
+
+Performance tuning of PHP, Apache, and MySQL may be required for larger
+deployments.
+
+TIME SYNCHRONIZATION
+--------------------
+Required Software:
+  - chrony (recommended for RHEL-based systems)
+  - ntpd (alternative)
+  - Windows Time Service (for Windows clients)
+
+Accuracy:
+  - All systems must be within 1 second of each other
+  - Drift of more than a few seconds will cause timestamp issues
+
+BACKUP REQUIREMENTS
+-------------------
+Critical data to backup:
+  - Database (entire 'cad' database)
+  - cad.conf (contains passwords and configuration)
+  - Any customized files (logos, styles, etc.)
+
+Backup frequency:
+  - Production: Daily incremental, weekly full backup
+  - Development: Weekly or as needed
+
+Retention:
+  - Minimum: 7 days
+  - Recommended: 30 days
+  - Long-term archive: Consider monthly or yearly archives
+
+LOGGING
+-------
+System logs:
+  - Apache access_log and error_log
+  - PHP error log (if enabled)
+  - MySQL/MariaDB logs
+  - System syslog/journal (CAD uses syslog facility LOG_LOCAL4 on Unix)
+
+Recommended log rotation to prevent disk space exhaustion.
+
+CHANGELOG FROM ORIGINAL VERSION
+--------------------------------
+Version 1.8.0 (2011) to Version 1.8.1 (2025):
+
+  - Migrated from mysql extension to mysqli extension
+  - Removed dependency on get_magic_quotes_gpc()
+  - Replaced deprecated split() with explode()
+  - Removed define_syslog_variables() call
+  - Updated for PHP 7.4+ / 8.x compatibility
+  - Tested on AlmaLinux 9 / Rocky Linux 9
+  - Updated documentation for modern Linux distributions
+
+MIGRATION FROM PHP 5 VERSIONS
+------------------------------
+If migrating from an existing Black Flower CAD installation on PHP 5:
+
+1. Backup the entire system (database, files, configuration)
+2. Install new server with AlmaLinux 9 and PHP 7.4+
+3. Deploy updated code (this version)
+4. Import database dump from old system
+5. Copy and verify cad.conf settings
+6. Test thoroughly before production cutover
+
+No database schema changes are required.
+
+KNOWN LIMITATIONS
+-----------------
+1. Internet Explorer is not supported (by design)
+2. IPv6 whitelisting not yet implemented for READONLY_BY_DEFAULT feature
+3. Some PHP 8.x deprecation notices may appear (non-critical)
+4. Paging functionality may require additional testing on modern systems
+
+THIRD-PARTY COMPONENTS
+-----------------------
+Included in distribution:
+  - FPDF (PDF generation library)
+  - PasswordHash.php (password hashing library)
+
+These components have not been modified and remain compatible with
+modern PHP versions.
+
+SUPPORT
+-------
+For installation and modernization issues:
+  - Review INSTALL_ALMALINUX9.md
+  - Review MODERNIZATION.md
+  - Check system logs for errors
+
+For general Black Flower CAD support:
+  - Email: cad-info@forlorn.net
+  - Website: http://www.forlorn.net/cad/
+
+LICENSE
+-------
+See LICENSE file for software license information.
+
+================================================================================
+Last Updated: 2025
+Version: 1.8.1 (Modernized)
+================================================================================
+

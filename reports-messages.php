@@ -27,7 +27,7 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
 
   syslog(LOG_INFO, $_SESSION['username'] . " generated messages report");
   $query = "SELECT * FROM messages WHERE $optional_type_clause DATE_FORMAT(ts, '%Y-%m-%d') LIKE '$date%'";
-  $result = mysql_query($query) or die("In query: $query<br>\nError: ".mysql_error());
+  $result = mysqli_query($link, $query) or die("In query: $query<br>\nError: ".mysqli_error($link));
 
   ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
@@ -62,7 +62,7 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
     <td class="th">Message</td>
     <td class="th"><font size="-2">Logged By</font></td></tr>
 <?php
-  while ($line = mysql_fetch_object($result)) {
+  while ($line = mysqli_fetch_object($result)) {
     print "<tr bgcolor=\"white\"><td class=\"text\">".$line->message_type."</td>\n";
     print "<td class=\"text\">" .date('Y-m-d',strtotime($line->ts))."&nbsp;".date('H:i:s',strtotime($line->ts))."</td\n";
     print "<td class=\"text\">" .$line->unit."</td>\n";
@@ -70,15 +70,15 @@ if (isset($_GET["message_type"]) && isset($_GET["selected-date"])) {
     print "<td class=\"text\">" . $line->creator."</td>\n";
     print "</tr>\n\n";
   }
-  mysql_free_result($result);
+  mysqli_free_result($result);
 
-  mysql_close($link);
+  mysqli_close($link);
 ?>
 </table>
 </td></tr></table>
 <?php
 } else {
-  mysql_close($link);
+  mysqli_close($link);
   die("Unit selection not set.");
 }
 ?>

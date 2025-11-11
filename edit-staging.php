@@ -63,7 +63,7 @@
     if (isset($_POST["incident_id"])) {
       $incident_id = (int)$_POST["incident_id"];
       $incidents_result = MysqlQuery ("SELECT * FROM $DB_NAME.incidents WHERE incident_id=$incident_id");
-      $incident = mysql_fetch_object($incidents_result);
+      $incident = mysqli_fetch_object($incidents_result);
       MysqlQuery("LOCK TABLES unit_staging_assignments WRITE, units WRITE, messages WRITE, incident_units WRITE");
       // TODO: error check that target unit is still staged? -- but likely doesn't matter.
 
@@ -139,7 +139,7 @@
         WHERE incident_status='Open'
         ORDER BY incident_id DESC
         ");
-      while ($incident_row = mysql_fetch_object($incidents_result)) {
+      while ($incident_row = mysqli_fetch_object($incidents_result)) {
         print "<tr><td><button type=submit name=\"incident_id\" value=\"$incident_row->incident_id\">$incident_row->call_number</button></td>\n
           <td>$incident_row->call_details</td>\n
           <td>$incident_row->location</td>\n
@@ -177,7 +177,7 @@
     // TODO: better error checking?
     syslog(LOG_INFO, "Staging location [$location] was created by [".$_SESSION['username']."]");
 
-    $rid = mysql_insert_id();
+    $rid = mysqli_insert_id($link);
     print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> if (window.opener){window.opener.location.reload()} window.location = \"edit-staging.php?staging_id=$rid\"; </script>\n</body></html>\n";
     //header("Location: edit-staging.php?staging_id=$rid");
     exit;
@@ -216,13 +216,13 @@
     
     
     $unit_result = MysqlQuery("SELECT * FROM $DB_NAME.units WHERE unit='$unit_name'");
-    if (mysql_num_rows($unit_result) != 1) {
-      syslog('LOG_CRITICAL', "edit-staging.php POST staging_id=$staging_id unit=$unit_name -- expected 1 row got " . mysql_num_rows($unit_result));
-      echo "INTERNAL ERROR: bad number of unit rows (". mysql_num_rows($unit_result) . ") for staging ID [$staging_id] while staging unit $unit_name - (expected 1 row).<p>";
+    if (mysqli_num_rows($unit_result) != 1) {
+      syslog('LOG_CRITICAL', "edit-staging.php POST staging_id=$staging_id unit=$unit_name -- expected 1 row got " . mysqli_num_rows($unit_result));
+      echo "INTERNAL ERROR: bad number of unit rows (". mysqli_num_rows($unit_result) . ") for staging ID [$staging_id] while staging unit $unit_name - (expected 1 row).<p>";
       MysqlQuery('UNLOCK TABLES');
       exit;
     }
-    $unit_row = mysql_fetch_object($unit_result);
+    $unit_row = mysqli_fetch_object($unit_result);
     $unit_status = $unit_row->status;
     $unit_type = $unit_row->type;
 
@@ -281,21 +281,21 @@
     else {  // by definition, edit existing channel id:
       $staging_id = (int)$_GET['staging_id'];
       $locations = MysqlQuery("SELECT * FROM $DB_NAME.staging_locations WHERE staging_id=$staging_id");
-      if (mysql_num_rows($locations) == 1) {
-        $row = mysql_fetch_object($locations);
+      if (mysqli_num_rows($locations) == 1) {
+        $row = mysqli_fetch_object($locations);
         $created_by = $row->created_by;
         $created_at = $row->time_created;
         $location = $row->location;
         $notes = $row->staging_notes;
       }
       else {
-        syslog(LOG_CRITICAL, "Expected 1 row for edit-staging.php?edit_staging_id=$staging_id -- got " . mysql_num_rows($locations));
-        echo "INTERNAL ERROR: bad number of rows (". mysql_num_rows($locations) . ") for staging ID [$staging_id] (expected 1).<p>";
+        syslog(LOG_CRITICAL, "Expected 1 row for edit-staging.php?edit_staging_id=$staging_id -- got " . mysqli_num_rows($locations));
+        echo "INTERNAL ERROR: bad number of rows (". mysqli_num_rows($locations) . ") for staging ID [$staging_id] (expected 1).<p>";
         exit;
       }
       $staging_assignments_query = "SELECT * FROM $DB_NAME.unit_staging_assignments WHERE staged_at_location_id=$staging_id AND time_reassigned IS NULL";
       $staging_assignments_result = MysqlQuery($staging_assignments_query);
-      while ($staging_assignments_row = mysql_fetch_object($staging_assignments_result)) {
+      while ($staging_assignments_row = mysqli_fetch_object($staging_assignments_result)) {
         $units_ary[$staging_assignments_row->staging_assignment_id] = $staging_assignments_row->unit_name;
         $time_staged_ary[$staging_assignments_row->staging_assignment_id] = $staging_assignments_row->time_staged;
       }
@@ -349,7 +349,7 @@
     $avail_units_result = MysqlQuery ("SELECT * from $DB_NAME.units where status IN ('In Service', 'Available On Pager') OR type='Generic' ORDER BY unit");  // TODO: is this what we want ???
     $avail_units = array();
 
-    while ($avail_unit = mysql_fetch_object($avail_units_result)) {
+    while ($avail_unit = mysqli_fetch_object($avail_units_result)) {
       if (!in_array($avail_unit->unit, array_values($units_ary))) { // Do not print option if generic unit is already staged here
         array_push($avail_units, $avail_unit->unit);
       }

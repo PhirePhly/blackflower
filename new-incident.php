@@ -26,13 +26,13 @@
     // if this fails ... is another incident being created right now?
 
     MysqlQuery("INSERT INTO incidents (call_details, location, call_type, ts_opened, incident_status, updated) VALUES ('$call_details', '$location', '$call_type', NOW(), 'Open', NOW())");
-    if (mysql_affected_rows() != 1)
-      die("Critical error: When inserting incident, mysql_affected_rows(".mysql_affected_rows().") != 1.");
+    if (mysqli_affected_rows($link) != 1)
+      die("Critical error: When inserting incident, mysql_affected_rows(".mysqli_affected_rows($link).") != 1.");
     $findlastIDquery = "SELECT LAST_INSERT_ID()";
-    $findlastIDresult = MysqlQuery($findlastIDquery) or die ("Could not select new incident row LAST_INSERT_ID(): ". mysql_error());
-    $newIDrow = mysql_fetch_array($findlastIDresult, MYSQL_NUM);
+    $findlastIDresult = MysqlQuery($findlastIDquery) or die ("Could not select new incident row LAST_INSERT_ID(): ". mysqli_error($link));
+    $newIDrow = mysqli_fetch_array($findlastIDresult, MYSQLI_NUM);
     $incident_id = $newIDrow[0];
-    mysql_free_result($findlastIDresult);
+    mysqli_free_result($findlastIDresult);
     MysqlQuery("UPDATE incidents SET call_number='" .CallNumber($incident_id) . "' WHERE incident_id=$incident_id ");
     MysqlQuery("UNLOCK TABLES");
     syslog(LOG_INFO, $_SESSION['username'] . " created call [" . CallNumber($incident_id). "] (incident $incident_id) with values: details ($call_details), location ($location), type ($call_type)");
@@ -157,12 +157,12 @@
 	  echo "<option selected value=\"not selected\">not selected</option>\n";
 
 	$type_result = MysqlQuery("SELECT * from incident_types");
-	while ($type_row = mysql_fetch_object($type_result)) {
+	while ($type_row = mysqli_fetch_object($type_result)) {
           echo "<option ";
 	  if (isset($row->call_type) && !strcmp($type_row->call_type, $row->call_type)) echo "selected ";
 	  echo "value=\"". $type_row->call_type ."\">".$type_row->call_type ."</option>\n";
 	}
-	mysql_free_result($type_result);
+	mysqli_free_result($type_result);
 	?>
        </select>
        </label>

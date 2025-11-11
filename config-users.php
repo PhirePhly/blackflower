@@ -36,7 +36,7 @@
   if (isset($_GET["delete"]) && $_GET["delete"]) {
     $cleandelete = MysqlClean($_GET, "delete", 20);
     $levelrow = MysqlQuery("SELECT username, access_level FROM $DB_NAME.users WHERE id='$cleandelete'");
-    $levelobj = mysql_fetch_object($levelrow);
+    $levelobj = mysqli_fetch_object($levelrow);
     $username = $levelobj->username;
     if ($_SESSION['access_level'] < $levelobj->access_level ) {
       syslog(LOG_WARNING, "User [".$_SESSION['username']."] (level ".$_SESSION["access_level"].") attempted to delete [$username] (level ".$levelobj->access_level.")!");
@@ -91,7 +91,7 @@
       # TODO: form values currently nullify the database default for numerical values
 
       $levelrow = MysqlQuery("SELECT username, access_level FROM $DB_NAME.users WHERE id='$cleanid'");
-      $levelobj = mysql_fetch_object($levelrow);
+      $levelobj = mysqli_fetch_object($levelrow);
       $username = $levelobj->username;
       $pwhash_query_frag = '';
       $hash = '';
@@ -120,7 +120,7 @@
         else {
           syslog(LOG_INFO, "User [$cleanuser] was added by [".$_SESSION['username']."]");
           MysqlQuery("INSERT INTO $DB_NAME.users (username, password, name, access_level, access_acl, timeout, locked_out, change_password) VALUES ('$cleanuser', '$hash', '$cleanname', '$cleanaccesslevel', '$cleanaccessacl', '$cleantimeout', $locked_out, $change_password)");
-          header('Location: config-users.php?moduser='.mysql_insert_id().'&action=Added');
+          header('Location: config-users.php?moduser='.mysqli_insert_id($link).'&action=Added');
           exit;
         }
       }
@@ -155,13 +155,13 @@
       if ($DEBUG) syslog (LOG_INFO, "entering GET edituserid display");
       $edituserid = MysqlClean($_GET, "edituserid", 20);
       $oneuser = MysqlQuery("SELECT * FROM $DB_NAME.users WHERE id='$edituserid'");
-      if (mysql_num_rows($oneuser) != 1) {
-        syslog(LOG_CRITICAL, "Expected 1 row for config-users.php?edituserid=$edituserid -- got " . mysql_num_rows($oneuser));
-        echo "INTERNAL ERROR: bad number of rows (". mysql_num_rows($oneuser) . ") for user ID [$edituserid] (expected 1).<p>";
+      if (mysqli_num_rows($oneuser) != 1) {
+        syslog(LOG_CRITICAL, "Expected 1 row for config-users.php?edituserid=$edituserid -- got " . mysqli_num_rows($oneuser));
+        echo "INTERNAL ERROR: bad number of rows (". mysqli_num_rows($oneuser) . ") for user ID [$edituserid] (expected 1).<p>";
         exit;
       }
       else {
-        $user = mysql_fetch_array($oneuser, MYSQL_ASSOC);
+        $user = mysqli_fetch_array($oneuser, MYSQLI_ASSOC);
   # TODO: if any new columns WERE accepted in previous form validation that set check_errormsg, recall and use the changed ones.
       }
     }
@@ -326,7 +326,7 @@
 </tr>
 <?php
     $userlist = MysqlQuery("SELECT * FROM $DB_NAME.users ORDER BY username");
-    while ($user = mysql_fetch_object($userlist)) {
+    while ($user = mysqli_fetch_object($userlist)) {
       echo "<tr>\n";
       echo "  <td class=\"cell bgeee\"><a href=\"config-users.php?edituserid=$user->id\">" . 
            MysqlUnClean($user->username) . "</a></td>\n";

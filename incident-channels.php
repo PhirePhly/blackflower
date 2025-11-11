@@ -18,8 +18,8 @@
     // TODO: guard against assigning channels on Closed/Dispositioned incident
     MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
     $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
-    if (mysql_num_rows($chinfo)) { 
-      $chrow = mysql_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
+    if (mysqli_num_rows($chinfo)) { 
+      $chrow = mysqli_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
       if ((int)$chrow->incident_id) {
         MysqlQuery ("UNLOCK TABLES");
         print "<html><body><SCRIPT LANGUAGE=\"JavaScript\">alert('That channel ($chrow->channel_name) was previously assigned to incident " . CallNumber($chrow->incident_id) . "'); window.location=\"incident-channels.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
@@ -41,8 +41,8 @@
     // TODO: guard against unassigning channels on Closed/Dispositioned incident
     MysqlQuery ("LOCK TABLES channels WRITE, incident_notes WRITE");
     $chinfo = MysqlQuery ("SELECT channel_name,incident_id FROM channels WHERE channel_id=$channel_to_toggle"); 
-    if (mysql_num_rows($chinfo)) { 
-      $chrow = mysql_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
+    if (mysqli_num_rows($chinfo)) { 
+      $chrow = mysqli_fetch_object($chinfo); // Trust in 1 row returned due to primary key integrity
       if (!isset($chrow->incident_id) || !(int)$chrow->incident_id) {
         MysqlQuery ("UNLOCK TABLES");
         print "<html><body><SCRIPT LANGUAGE=\"JavaScript\">alert('That channel ($chrow->channel_name) was already unassigned, incident_id is empty [$chrow->incident_id].'); window.location=\"incident-channels.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
@@ -80,8 +80,8 @@
 <?php
 }
   $channels = MysqlQuery("SELECT * FROM channels c WHERE available=1 ORDER BY precedence,channel_name");
-  if (mysql_num_rows($channels)) {
-    while ($channel = mysql_fetch_object($channels)) {
+  if (mysqli_num_rows($channels)) {
+    while ($channel = mysqli_fetch_object($channels)) {
       $chclass='channel';
       $chaction='assign';
       if ($incident_status == 'Open') {
@@ -96,7 +96,7 @@
         print "<button type=button style=\"margin: 0px; padding: 0px;\" name=\"channel_$chaction\" value=\"$channel->channel_id\" title=\"$chtitle\"><span class=\"$chclass\" title=\"$chtitle\">$channel->channel_name</span></button>\n";
       }
     }
-    mysql_free_result($channels);
+    mysqli_free_result($channels);
   }
   else {
     print "<span class=\"text\"><i> No channels configured. </i></span>";

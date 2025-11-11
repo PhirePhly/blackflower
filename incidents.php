@@ -61,13 +61,13 @@
     $datesquery = "SELECT DISTINCT CAST(ts_opened AS DATE) AS tsdate FROM incidents ORDER BY ts_opened DESC";
     $datesresult = MysqlQuery($datesquery);
     $dates = array();
-    while ($line = mysql_fetch_array($datesresult, MYSQL_ASSOC)) {
+    while ($line = mysqli_fetch_array($datesresult, MYSQLI_ASSOC)) {
       array_push($dates, $line["tsdate"]);
     }
     foreach ($dates as $date) {
       echo "<option value=\"$date\">$date</option>\n";
     }
-    mysql_free_result($datesresult);
+    mysqli_free_result($datesresult);
     print "</select>\n";
     print "</td>\n";
 
@@ -77,13 +77,13 @@
     $calltypequery = "SELECT call_type FROM incident_types";
     $calltyperesult = MysqlQuery($calltypequery);
     $calltypes = array();
-    while ($line = mysql_fetch_array($calltyperesult, MYSQL_ASSOC)) {
+    while ($line = mysqli_fetch_array($calltyperesult, MYSQLI_ASSOC)) {
       array_push($calltypes, $line["call_type"]);
     }
     foreach ($calltypes as $calltype) {
       echo "<option value=\"$calltype\">$calltype</option>\n";
     }
-    mysql_free_result($calltyperesult);
+    mysqli_free_result($calltyperesult);
     print "</select>\n";
     print "</td>\n";
 

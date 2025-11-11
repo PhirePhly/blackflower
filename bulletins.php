@@ -40,8 +40,8 @@
     $whoami = (int)$_SESSION["id"];
     if ($insert_not_update) {
       MysqlQuery("INSERT INTO bulletins (bulletin_subject, bulletin_text, updated, updated_by, access_level, closed) VALUES ('$bulletin_subject', '$bulletin_text', NOW(), $whoami, $access_level, $closed)");
-      if (mysql_affected_rows() == 1) {
-        $bulletin_id = mysql_insert_id();
+      if (mysqli_affected_rows($link) == 1) {
+        $bulletin_id = mysqli_insert_id($link);
         MysqlQuery("INSERT INTO bulletin_history (bulletin_id, action, updated, updated_by) VALUES ($bulletin_id, 'Created', NOW(), $whoami)");
         # TODO: error check?
       }
@@ -58,7 +58,7 @@
         $action = "Reopened";
       }
       MysqlQuery("UPDATE bulletins SET bulletin_subject='$bulletin_subject', bulletin_text='$bulletin_text', access_level=$access_level, closed=$closed, updated=NOW(), updated_by=$whoami WHERE bulletin_id=$bulletin_id");
-      if (mysql_affected_rows() == 1) {
+      if (mysqli_affected_rows($link) == 1) {
         MysqlQuery("INSERT INTO bulletin_history (bulletin_id, action, updated, updated_by) VALUES ($bulletin_id, '$action', NOW(), $whoami)");
       }
       else {
@@ -104,14 +104,14 @@
   if (isset($_GET["bulletin_id"])) {
     $bulletin_id = (int) $_GET["bulletin_id"];
     MysqlQuery("UPDATE bulletin_views SET last_read=NOW() WHERE bulletin_id=$bulletin_id AND user_id=".$_SESSION["id"]);
-    if (mysql_affected_rows() == 0) {
+    if (mysqli_affected_rows($link) == 0) {
       MysqlQuery("INSERT INTO bulletin_views (bulletin_id, user_id, last_read) VALUES ($bulletin_id, ". $_SESSION["id"] . ", NOW())");
-      if (mysql_affected_rows() == 0) {
+      if (mysqli_affected_rows($link) == 0) {
         syslog(LOG_WARNING, "Could not update or insert bulletin_views for id [$bulletin_id], user [". $_SESSION["id"]."]");
       }
     }
-    elseif (mysql_affected_rows() > 1) {
-      syslog(LOG_WARNING, "Updated too many (" . mysql_affected_rows() . ") bulletin_views for id [$bulletin_id], user [". $_SESSION["id"]."]");
+    elseif (mysqli_affected_rows($link) > 1) {
+      syslog(LOG_WARNING, "Updated too many (" . mysqli_affected_rows($link) . ") bulletin_views for id [$bulletin_id], user [". $_SESSION["id"]."]");
     }
   }
 
@@ -121,15 +121,15 @@
   }
   $ViewedAt = array ();
   $viewquery = MysqlQuery("SELECT * FROM bulletin_views WHERE user_id=".$_SESSION['id']);
-  while ($view = mysql_fetch_object($viewquery)) {
+  while ($view = mysqli_fetch_object($viewquery)) {
     $ViewedAt[$view->bulletin_id] = $view->last_read;
   }
   $bulletin_query = MysqlQuery("SELECT b.*, u.username, u.id FROM bulletins b LEFT OUTER JOIN users u ON b.updated_by=u.id WHERE " . ($closed ? "" : " b.closed=0 AND ") . " b.access_level <= ". $_SESSION["access_level"] . " ORDER BY b.closed ASC, b.updated DESC ");
-  if (mysql_num_rows($bulletin_query) == 0) {
+  if (mysqli_num_rows($bulletin_query) == 0) {
     print "<li><b>No bulletins entered</b>\n";
   }
   else {
-    while ($bulletin = mysql_fetch_object($bulletin_query)) {
+    while ($bulletin = mysqli_fetch_object($bulletin_query)) {
       $bullstatus="";
       $style = "font-family: tahoma, sans; font-size: 10pt; font-weight: bold; ";
       $divstyle = "";
@@ -186,12 +186,12 @@
   if (isset($_GET["bulletin_id"])) {
     $bulletin_id = MysqlClean($_GET,"bulletin_id",20);
     $bulletin_query = MysqlQuery("SELECT b.*, u.username from bulletins b LEFT OUTER JOIN users u ON b.updated_by=u.id where b.bulletin_id=$bulletin_id ");
-    if (mysql_affected_rows() != 1) {
-      print "Error - expected 1 row, but got " . mysql_affected_rows() . " rows for bulletin $bulletin_id ";
-      syslog(LOG_WARNING, "Error - expected 1 row, but got " . mysql_affected_rows() . " rows for bulletin $bulletin_id ");
+    if (mysqli_affected_rows($link) != 1) {
+      print "Error - expected 1 row, but got " . mysqli_affected_rows($link) . " rows for bulletin $bulletin_id ";
+      syslog(LOG_WARNING, "Error - expected 1 row, but got " . mysqli_affected_rows($link) . " rows for bulletin $bulletin_id ");
       exit;
     }
-    $bulletin = mysql_fetch_object($bulletin_query);
+    $bulletin = mysqli_fetch_object($bulletin_query);
 
     print "<div style=\"font: bold 10pt monospace;\"><u>" . $bulletin->bulletin_subject . "</u></div>";
     print "<div style=\"font: 10pt monospace; border: 1px dotted gray; margin: 5px; padding-left: 10px; padding-right: 10px; background-color: #ffffcc\"><pre>". 
@@ -213,13 +213,13 @@
     $bid_request = MysqlClean($_GET, "edit_bulletin", 20);
     if ($bid_request != "new") {
       $bulletin_load = MysqlQuery("SELECT * FROM bulletins WHERE bulletin_id=$bid_request");
-      if (mysql_num_rows($bulletin_load) != 1) {
-        print "ERROR loading bulletin for edit - returned " . $mysql_num_rows($bulletin_load) . " rows (expected 1).";
-        syslog (LOG_WARNING, "ERROR loading bulletin for edit - returned " . $mysql_num_rows($bulletin_load) . " rows (expected 1).");
+      if (mysqli_num_rows($bulletin_load) != 1) {
+        print "ERROR loading bulletin for edit - returned " . $mysqli_num_rows($bulletin_load) . " rows (expected 1).";
+        syslog (LOG_WARNING, "ERROR loading bulletin for edit - returned " . $mysqli_num_rows($bulletin_load) . " rows (expected 1).");
         exit;
       }
       else {
-        $bulletin = mysql_fetch_object($bulletin_load);
+        $bulletin = mysqli_fetch_object($bulletin_load);
         $bulletin_subject = $bulletin->bulletin_subject;
         $bulletin_text = $bulletin->bulletin_text;
         $access_level = $bulletin->access_level;
@@ -315,7 +315,7 @@
 
   /////////////////////////////////////////////////////////////////////////////////
 
-  mysql_close($link);
+  mysqli_close($link);
 ?>
 </body>
 </html>

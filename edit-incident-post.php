@@ -71,7 +71,7 @@
           $msg = MysqlGrabData("SELECT message FROM messages WHERE unit='$unit_name' ORDER BY oid DESC LIMIT 1");
           if ($msg != '') {
             $statusresult = MysqlQuery("SELECT * from status_options");
-            while ($statusline = mysql_fetch_array($statusresult, MYSQL_ASSOC)) {
+            while ($statusline = mysqli_fetch_array($statusresult, MYSQLI_ASSOC)) {
               if (strpos($msg, '(was: '.$statusline["status"].')')) 
                 $unitprevstatus = $statusline["status"];
             }
@@ -140,7 +140,7 @@
 
     syslog(LOG_INFO, "User $username aborted and deleted incident $incident_id");
     $query = "DELETE FROM incidents WHERE incident_id=$incident_id";
-    mysql_query($query) or die("delete query failed: ".mysql_error());
+    mysqli_query($link, $query) or die("delete query failed: ".mysqli_error($link));
 
     print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
     die("(Error: JavaScript not enabled or not present) Incident has been aborted as you requested.");
@@ -193,8 +193,8 @@
         //WHERE incident_id=$incident_id 
         //AND takeover_timestamp IS NULL ");
 //
-      //if (mysql_num_rows($incident_lock_results) == 1) {
-        //$incident_lock = mysql_fetch_object($incident_lock_results);
+      //if (mysqli_num_rows($incident_lock_results) == 1) {
+        //$incident_lock = mysqli_fetch_object($incident_lock_results);
         //MysqlQuery(" 
           //UPDATE incident_locks
           //SET takeover_by_userid=$userid,
@@ -230,8 +230,8 @@
         WHERE incident_id=$incident_id 
         AND takeover_timestamp IS NULL ");
 
-      if (mysql_num_rows($incident_lock_results) == 1) {
-        $incident_lock = mysql_fetch_object($incident_lock_results);
+      if (mysqli_num_rows($incident_lock_results) == 1) {
+        $incident_lock = mysqli_fetch_object($incident_lock_results);
         if ($DEBUG) {
           syslog(LOG_DEBUG, "Taking over: Updating old incident_lock for incident_id $incident_id");
         }
@@ -369,9 +369,9 @@
   // Prep the standard fields for saving, then evaluate conditionals.
 
   $result = MysqlQuery("SELECT * FROM incidents WHERE incident_id=$incident_id");
-  if (mysql_num_rows($result) != 1) 
-    die ("Critical error: Expected to find 1 database row for incident $incident_id, got " .  mysql_num_rows($result));
-  $oldline = mysql_fetch_array($result, MYSQL_ASSOC);
+  if (mysqli_num_rows($result) != 1) 
+    die ("Critical error: Expected to find 1 database row for incident $incident_id, got " .  mysqli_num_rows($result));
+  $oldline = mysqli_fetch_array($result, MYSQLI_ASSOC);
   $call_number = $oldline["call_number"];
 
 
@@ -405,8 +405,8 @@
       syslog(LOG_INFO, "User $username marked call [$call_number] (incident $incident_id) as complete");
 
       $unitsrelresult = MysqlQuery("SELECT * FROM incident_units WHERE incident_id=$incident_id AND cleared_time IS NULL");
-      if (mysql_num_rows($unitsrelresult) > 0) {
-        while ($unitsrelrow = mysql_fetch_object($unitsrelresult)) {
+      if (mysqli_num_rows($unitsrelresult) > 0) {
+        while ($unitsrelrow = mysqli_fetch_object($unitsrelresult)) {
           DoUnitAction($incident_id, $call_number, $unitsrelrow->uid, 'released from', 'cleared_time');
         }
       }
@@ -500,20 +500,20 @@
         if ($DEBUG) {
           syslog(LOG_DEBUG, "Debug: auto-paging for $unit");
         }
-        $paginglink = mysql_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS);
+        $paginglink = mysqli_connect($DB_PAGING_HOST, $DB_PAGING_USER, $DB_PAGING_PASS);
         if (!$paginglink) { syslog(LOG_WARNING, "Error connecting to paging db on $DB_PAGING_HOST"); }
 
         $pageout_query = MysqlQuery("SELECT * FROM unit_incident_paging WHERE unit='$unit'");
-        if (mysql_num_rows($pageout_query) && $paginglink) {
+        if (mysqli_num_rows($pageout_query) && $paginglink) {
           $fromuser = 'CAD Auto Page';
           $ipaddr = $_SERVER['REMOTE_ADDR'];
           $message = ">>> $unit Assigned to Call #$call_number";
 
           $call_return = MysqlQuery("SELECT * FROM incidents where incident_id=$incident_id");
-          if (mysql_num_rows($call_return) != 1) {
-            syslog(LOG_WARNING, "Error selecting data for auto-paging:  Expected 1 row for incidents id $incident_id, got " . mysql_num_rows($call_return));
+          if (mysqli_num_rows($call_return) != 1) {
+            syslog(LOG_WARNING, "Error selecting data for auto-paging:  Expected 1 row for incidents id $incident_id, got " . mysqli_num_rows($call_return));
           }
-          $inc = mysql_fetch_object($call_return);
+          $inc = mysqli_fetch_object($call_return);
           $db_location = $inc->location;
           $db_call_details = $inc->call_details;
 
@@ -543,33 +543,33 @@
           syslog(LOG_DEBUG, "Auto-Page text if POST data : [$message]");
           syslog(LOG_DEBUG, "Auto-Page text if DB lookup : [$db_message]");
 
-          if (!mysql_query("INSERT into $DB_PAGING_NAME.batches (from_user_id, from_ipaddr, orig_message, entered) ".
-                           " VALUES (0, '$ipaddr', '$message', NOW() )", $paginglink) || mysql_affected_rows() != 1) {
+          if (!mysqli_query($link, "INSERT into $DB_PAGING_NAME.batches (from_user_id, from_ipaddr, orig_message, entered) ".
+                           " VALUES (0, '$ipaddr', '$message', NOW() )", $paginglink) || mysqli_affected_rows($link) != 1) {
             syslog(LOG_WARNING, "Error inserting row into DB $DB_PAGING_NAME.batches as [$DB_PAGING_HOST/$DB_PAGING_USER]");
           }
           else {
-            $batch_id = mysql_insert_id();
+            $batch_id = mysqli_insert_id($link);
             
-            while ($pageout_rcpt = mysql_fetch_object($pageout_query)) {
-              if (!mysql_query("INSERT into $DB_PAGING_NAME.messages (from_user_id, to_person_id, message) VALUES ".
-                    "(0, " . $pageout_rcpt->to_person_id . ", '$message')", $paginglink) || mysql_affected_rows() != 1) {
+            while ($pageout_rcpt = mysqli_fetch_object($pageout_query)) {
+              if (!mysqli_query($link, "INSERT into $DB_PAGING_NAME.messages (from_user_id, to_person_id, message) VALUES ".
+                    "(0, " . $pageout_rcpt->to_person_id . ", '$message')", $paginglink) || mysqli_affected_rows($link) != 1) {
                 syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.messages as [$DB_PAGING_HOST/$DB_PAGING_USER]");
               }
-              $msg_id = mysql_insert_id();
+              $msg_id = mysqli_insert_id($link);
             
-              if (!mysql_query("INSERT into $DB_PAGING_NAME.batch_messages (batch_id, msg_id) VALUES ".
-                                  "($batch_id, $msg_id)", $paginglink) || mysql_affected_rows() != 1) {
+              if (!mysqli_query($link, "INSERT into $DB_PAGING_NAME.batch_messages (batch_id, msg_id) VALUES ".
+                                  "($batch_id, $msg_id)", $paginglink) || mysqli_affected_rows($link) != 1) {
                 syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.bat_msgs as [$DB_PAGING_HOST/$DB_PAGING_USER]");
               }
 
-              if (!mysql_query("INSERT into $DB_PAGING_NAME.send_queue (status, msg_id, queued) VALUES ".
-                               "('Queued', $msg_id, NOW())", $paginglink) || mysql_affected_rows() != 1) {
+              if (!mysqli_query($link, "INSERT into $DB_PAGING_NAME.send_queue (status, msg_id, queued) VALUES ".
+                               "('Queued', $msg_id, NOW())", $paginglink) || mysqli_affected_rows($link) != 1) {
                 syslog(LOG_WARNING, "Error inserting row into $DB_PAGING_NAME.send_queue as [$DB_PAGING_HOST/$DB_PAGING_USER]");
               }
             }
             syslog(LOG_INFO, "User $username auto-paged [$unit] [$call_number (incident $incident_id)] paging batch $batch_id message [$message]");
           }
-          mysql_close($paginglink);
+          mysqli_close($paginglink);
         }
       }
     }
@@ -611,13 +611,13 @@
     }
     $incident_lock_results = MysqlQuery($incident_lock_query);
 
-    if (mysql_num_rows($incident_lock_results) != 1) {
-      syslog(LOG_NOTICE, "Read-write privileges [user_id $userid, session ". session_id() . "] disappeared while editing incident $incident_id, number of locks: " . mysql_num_rows($incident_lock_results));
-      print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> alert(\"Read-write privileges disappeared while editing incident $incident_id (". mysql_num_rows($incident_lock_results) . " locks).  DO NOT MANUALLY REFRESH THIS WINDOW (Control-R or equivalent); doing so will cause this error.  Otherwise, contact the system administrator with this message.\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
+    if (mysqli_num_rows($incident_lock_results) != 1) {
+      syslog(LOG_NOTICE, "Read-write privileges [user_id $userid, session ". session_id() . "] disappeared while editing incident $incident_id, number of locks: " . mysqli_num_rows($incident_lock_results));
+      print "<html><body><SCRIPT LANGUAGE=\"JavaScript\"> alert(\"Read-write privileges disappeared while editing incident $incident_id (". mysqli_num_rows($incident_lock_results) . " locks).  DO NOT MANUALLY REFRESH THIS WINDOW (Control-R or equivalent); doing so will cause this error.  Otherwise, contact the system administrator with this message.\"); window.location=\"edit-incident.php?incident_id=$incident_id\"; </SCRIPT></body></html>\n";
       exit;
     }
 
-    $incident_lock = mysql_fetch_object($incident_lock_results);
+    $incident_lock = mysqli_fetch_object($incident_lock_results);
     
     if ($incident_lock->takeover_timestamp != '') {     // Alert user and delete the taken-over lock from DB
       $takeover_lock_user = MysqlGrabData ("SELECT username FROM incident_locks LEFT OUTER JOIN users on incident_locks.takeover_by_userid = users.id WHERE lock_id=".$incident_lock->lock_id);
