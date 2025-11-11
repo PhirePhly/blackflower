@@ -16,12 +16,8 @@
     }
   }
 
-  // Check if magic_quotes_runtime is active, if it's not, deprecate it to avoid stdout corruption in reports PDFs
-  if(get_magic_quotes_runtime())
-  {
-      // Deactivate
-      set_magic_quotes_runtime(false);
-  }
+  // magic_quotes_runtime removed in PHP 7.4, no longer needed
+  // In PHP 7.4+ magic quotes are always disabled
 
 
   define("THIS_HOUR", date("H"));

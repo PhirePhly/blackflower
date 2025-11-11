@@ -312,8 +312,7 @@ function MakeDefinitionFile($file, $type, $enc, $embed, $map, $info)
 function MakeFont($fontfile, $enc='cp1252', $embed=true)
 {
 	// Generate a font definition file
-	if(get_magic_quotes_runtime())
-		@set_magic_quotes_runtime(0);
+	// magic_quotes_runtime removed in PHP 7.4, always disabled in modern PHP
 	ini_set('auto_detect_line_endings', '1');
 
 	if(!file_exists($fontfile))
