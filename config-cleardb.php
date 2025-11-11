@@ -35,13 +35,9 @@
   /* Note revision in master archive table */
     MysqlQuery("INSERT INTO archive_master VALUES ('$ts', NOW(), '$comment', $dbver, $codever)");
     if (mysqli_affected_rows($link) != 1) die("Error registering archive checkpoint [$ts] in archive_master table");
+    MysqlQuery("UNLOCK TABLES");
 
   /* Make backup copies of all relevant tables and data */
-
-    MysqlQuery("LOCK TABLES messages WRITE, incidents WRITE, incident_notes WRITE, 
-                  incident_units WRITE, bulletins WRITE, bulletin_views WRITE,
-                  bulletin_history WRITE, units WRITE, unit_incident_paging WRITE, deployment_history WRITE, users WRITE, channels WRITE");
-
 
     MysqlQuery("CREATE TABLE cadarchives.messages_$ts LIKE messages ");
     MysqlQuery("CREATE TABLE cadarchives.incidents_$ts LIKE incidents ");
@@ -90,8 +86,6 @@
     MysqlQuery("DELETE FROM bulletin_history");
     MysqlQuery("UPDATE units SET status=NULL, update_ts=NULL, status_comment=NULL, personnel_ts=NULL, location_ts=NULL, notes_ts=NULL, assignment='', location='', personnel='', notes=''");
     MysqlQuery("UPDATE channels SET available=1, incident_id=NULL");
-    //MysqlQuery
-    # TODO - clear unit locations, personnel, notes
     
   /* Finish */
     MysqlQuery("UNLOCK TABLES");

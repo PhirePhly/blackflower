@@ -86,10 +86,11 @@
                 update_ts=NOW() where unit='$unit_name'
             ");
           MysqlQuery("
-            INSERT INTO messages (ts, unit, message) 
+            INSERT INTO messages (ts, unit, message, creator)
             VALUES (NOW(), 
                    '$unit_name', 
-                   'Status Change: $unitprevstatus (was: Attached to Incident)')
+                   'Status Change: $unitprevstatus (was: Attached to Incident)',
+                   '$username')
             ");
         }
       }

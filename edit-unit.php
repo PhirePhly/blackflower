@@ -7,6 +7,13 @@
   require_once('functions.php');
   SessionErrorIfReadonly();
 
+  if (isset($_SESSION['username']) && $_SESSION['username'] != '') {
+      $creator = $_SESSION['username'];
+  }
+  else {
+      $creator = '';
+  }
+
   if (isset($_POST['unit'])) {
       $unit = strtoupper(MysqlClean($_POST,'unit',20));
       // TODO: validate data.
@@ -41,9 +48,9 @@
       }
       // update status
       if ($personnel != "")
-        MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit created - personnel: $personnel')");
+        MysqlQuery("INSERT INTO messages (ts, unit, message, creator) VALUES (NOW(), '$unit', 'Unit created - personnel: $personnel', '$creator')");
       else
-        MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit created.')");
+        MysqlQuery("INSERT INTO messages (ts, unit, message, creator) VALUES (NOW(), '$unit', 'Unit created.','$creator')");
 
       syslog(LOG_INFO, $_SESSION['username'] . " created unit [$unit]");
       // update units
@@ -57,9 +64,9 @@
         $fragment = "status='$status', status_comment='Status changed to: $status', update_ts=NOW(),";
 
         if ($_POST['previous_status'] <> "")
-          MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Status change: $status (was: ".MysqlClean($_POST, 'previous_status', 200).")')");
+          MysqlQuery("INSERT INTO messages (ts, unit, message, creator) VALUES (NOW(), '$unit', 'Status change: $status (was: ".MysqlClean($_POST, 'previous_status', 200).")', '$creator')");
         else
-          MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Status change: $status')");
+          MysqlQuery("INSERT INTO messages (ts, unit, message, creator) VALUES (NOW(), '$unit', 'Status change: $status', '$creator')");
 
         if ($_POST['previous_status'] == 'Attached to Incident') {
           MysqlQuery("UPDATE incident_units SET cleared_time=NOW() WHERE unit='$unit' AND cleared_time IS NULL");
@@ -77,7 +84,7 @@
 
       // update personnel
       if ($_POST['personnel'] <> $_POST['previous_personnel']) {
-        MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Personnel change logged: $personnel')");
+        MysqlQuery("INSERT INTO messages (ts, unit, message, creator) VALUES (NOW(), '$unit', 'Personnel change logged: $personnel', '$creator')");
       }
 
       syslog(LOG_INFO, $_SESSION['username'] . " edited unit [$unit]");
@@ -106,7 +113,7 @@
     elseif (isset($_POST['deleteforsure'])) {
       syslog(LOG_INFO, $_SESSION['username'] . ' deleted unit [' . $_POST['unit'] . ']');
       MysqlQuery("DELETE FROM units WHERE unit='".MysqlClean($_POST,"unit",20)."'");
-      MysqlQuery("INSERT INTO messages (ts, unit, message) VALUES (NOW(), '$unit', 'Unit deleted.')");
+      MysqlQuery("INSERT INTO messages (ts, unit, message, creator) VALUES (NOW(), '$unit', 'Unit deleted.', '$creator')");
       print "<SCRIPT LANGUAGE=\"JavaScript\">if (window.opener){window.opener.location.reload()} self.close()</SCRIPT>";
       die("(Error: JavaScript not enabled or not present) Action completed. Close this window to continue.");
     }
