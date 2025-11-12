@@ -51,19 +51,6 @@ sudo systemctl enable mariadb
 ```bash
 # Secure the MySQL installation
 sudo mysql_secure_installation
-
-# Log into MySQL as root
-sudo mysql -u root -p
-```
-
-Create the CAD database and user:
-
-```sql
-CREATE DATABASE cad CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'cad'@'localhost' IDENTIFIED BY 'your_secure_password_here';
-GRANT ALL PRIVILEGES ON cad.* TO 'cad'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
 ```
 
 ### 3. Deploy Black Flower CAD
@@ -130,6 +117,18 @@ sudo chmod 600 cad.conf
 ### 5. Initialize the Database
 
 If not using initialize.sh, manually load the database schema:
+
+Create the CAD database and user:
+
+```sql
+# Log into MySQL as root
+sudo mysql -u root -p
+CREATE DATABASE cad CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'cad'@'localhost' IDENTIFIED BY 'your_secure_password_here';
+GRANT ALL PRIVILEGES ON cad.* TO 'cad'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
 
 ```bash
 mysql -u cad -p cad < data/schema.sql
