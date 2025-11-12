@@ -99,7 +99,13 @@
       $pwhash_query_frag = '';
       $hash = '';
       if ($tainted_password != '') {
-        $hash = $t_hasher->HashPassword($tainted_password);
+        // Use modern password_hash() for new/changed passwords
+        $hash = password_hash($tainted_password, PASSWORD_DEFAULT);
+        if ($hash === false) {
+          syslog(LOG_ERR, "Password hashing failed for user [$username]");
+          echo "ERROR: Password hashing failed. Please try again.<br>";
+          exit;
+        }
         $pwhash_query_frag = "password='$hash', ";
       }
 

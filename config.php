@@ -65,12 +65,28 @@
         exit;
       }
       else {
-        $hash = $t_hasher->HashPassword($tainted_newpw1);
+        // Use modern password_hash() for new passwords
+        $hash = password_hash($tainted_newpw1, PASSWORD_DEFAULT);
+        if ($hash === false) {
+          print "Password hashing failed. Please try again.";
+          exit;
+        }
         $answer = mysqli_fetch_object($pwcheck);
         if ($DEBUG && $tainted_newpw1 && $tainted_newpw1 == $tainted_newpw2) {
           print "<!-- Hash of new password is: $hash -->\n\n\n";
         }
-        if (!$t_hasher->CheckPassword($tainted_oldpw, $answer->password)) {
+        
+        // Support both old PasswordHash and modern password_hash() for verification
+        $old_password_valid = false;
+        if (substr($answer->password, 0, 3) === '$2y' || substr($answer->password, 0, 3) === '$2a' || substr($answer->password, 0, 3) === '$2b') {
+          // Modern password_hash() format (bcrypt)
+          $old_password_valid = password_verify($tainted_oldpw, $answer->password);
+        } else {
+          // Legacy PasswordHash format
+          $old_password_valid = $t_hasher->CheckPassword($tainted_oldpw, $answer->password);
+        }
+        
+        if (!$old_password_valid) {
           print "Old password is incorrect.";
           exit;
         }
